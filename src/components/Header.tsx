@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/AuthGate";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { useState } from "react";
-import { BookOpen, Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound } from "lucide-react";
+import { BookOpen, Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins } from "lucide-react";
 
 export function Header() {
   const { signInWithGoogle, signOut } = useAuth();
@@ -73,7 +74,9 @@ export function Header() {
           </Link>
           <AuthGate fallback={SignInButton}>
             {({ user, isAdmin }) => (
-              <div className="relative">
+              <div className="flex items-center gap-2">
+                <NotificationsBell />
+                <div className="relative">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
                   className="flex items-center gap-2 rounded-full border border-border bg-card px-1.5 py-1.5 transition-shadow hover:shadow-card"
@@ -102,11 +105,25 @@ export function Header() {
                         <UserRound className="h-4 w-4" /> Profile
                       </Link>
                       <Link
+                        to="/wishlist"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <Heart className="h-4 w-4" /> Wishlist
+                      </Link>
+                      <Link
                         to="/my-listings"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
                       >
                         <ListChecks className="h-4 w-4" /> My listings
+                      </Link>
+                      <Link
+                        to="/offers"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <HandCoins className="h-4 w-4" /> Offers
                       </Link>
                       {isAdmin && (
                         <Link
@@ -129,6 +146,7 @@ export function Header() {
                     </div>
                   </>
                 )}
+                </div>
               </div>
             )}
           </AuthGate>
@@ -174,11 +192,25 @@ export function Header() {
                     Profile
                   </Link>
                   <Link
+                    to="/wishlist"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
+                  >
+                    Wishlist
+                  </Link>
+                  <Link
                     to="/my-listings"
                     onClick={() => setOpen(false)}
                     className="rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
                   >
                     My listings
+                  </Link>
+                  <Link
+                    to="/offers"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
+                  >
+                    Offers
                   </Link>
                   {isAdmin && (
                     <Link

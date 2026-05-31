@@ -163,8 +163,29 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 {
-    font-family: var(--font-display);
-    letter-spacing: -0.02em;
-  }
-}
+		@keyframes badge-pop {
+			0% { transform: scale(1); }
+			40% { transform: scale(1.35); }
+			100% { transform: scale(1); }
+		}
+		@keyframes dot-shrink {
+			0% { transform: scale(1); opacity: 1; }
+			100% { transform: scale(0); opacity: 0; }
+		}
+		@keyframes item-settle {
+			0% { background-color: var(--color-secondary); }
+			100% { background-color: transparent; }
+		}
+		.animate-badge-pop {
+			animation: badge-pop 0.35s ease-out;
+		}
+		.animate-dot-shrink {
+			animation: dot-shrink 0.3s ease-in forwards;
+		}
+		.animate-item-settle {
+			animation: item-settle 0.5s ease-out forwards;
+		}
+		.transition-read {
+			transition: background-color 0.35s ease, opacity 0.35s ease;
+		}
+	}

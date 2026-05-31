@@ -9,7 +9,7 @@ import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { getApprovedListings, type ListingCursor } from "@/lib/listings";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
-import { Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, Search, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
 
 const PAGE_SIZE = 12;
 
@@ -20,21 +20,23 @@ const searchSchema = z.object({
   min: fallback(z.number(), 0).default(0),
   max: fallback(z.number(), 0).default(0),
   condition: fallback(z.string(), "").default(""),
+  sort: fallback(z.enum(["newest", "price_asc", "price_desc"]), "newest").default("newest"),
 });
 
 type BrowseSearch = z.infer<typeof searchSchema>;
 
 const listingsInfiniteQueryOptions = (
-  s: Pick<BrowseSearch, "category" | "condition" | "min" | "max">,
+  s: Pick<BrowseSearch, "category" | "condition" | "min" | "max" | "sort">,
 ) =>
   infiniteQueryOptions({
-    queryKey: ["listings", "approved", "infinite", s.category, s.condition, s.min, s.max],
+    queryKey: ["listings", "approved", "infinite", s.category, s.condition, s.min, s.max, s.sort],
     queryFn: ({ pageParam }) =>
       getApprovedListings({
         category: s.category || undefined,
         condition: s.condition || undefined,
         minPrice: s.min || undefined,
         maxPrice: s.max || undefined,
+        sort: s.sort || undefined,
         limit: PAGE_SIZE,
         cursor: pageParam,
       }),
@@ -44,7 +46,7 @@ const listingsInfiniteQueryOptions = (
 
 export const Route = createFileRoute("/browse")({
   validateSearch: zodValidator(searchSchema),
-  loaderDeps: ({ search: { category, condition, min, max } }) => ({ category, condition, min, max }),
+  loaderDeps: ({ search: { category, condition, min, max, sort } }) => ({ category, condition, min, max, sort }),
   loader: ({ context, deps }) =>
     context.queryClient.ensureInfiniteQueryData(listingsInfiniteQueryOptions(deps)),
   head: () => ({
@@ -270,6 +272,18 @@ function Browse() {
                   placeholder="Search by title or author…"
                   className="w-full rounded-full border border-border bg-background py-3.5 pl-11 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
+              </div>
+              <div className="relative">
+                <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <select
+                  value={params.sort}
+                  onChange={(e) => update({ sort: e.target.value as BrowseSearch["sort"] })}
+                  className="h-full appearance-none rounded-full border border-border bg-background py-3.5 pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                </select>
               </div>
               <button
                 onClick={() => setDrawerOpen(true)}

@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Truck } from "lucide-react";
+import { MapPin, Truck, Eye } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
+import { SaveButton } from "@/components/SaveButton";
 
 export function BookCard({ listing }: { listing: Listing }) {
   const cover = listing.images?.[0];
@@ -25,6 +26,7 @@ export function BookCard({ listing }: { listing: Listing }) {
         <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
           {categoryLabel(listing.category)}
         </div>
+        <SaveButton listingId={listing.id} className="absolute right-3 top-3" />
         {listing.status === "sold" && (
           <div className="absolute inset-0 grid place-items-center bg-foreground/60 backdrop-blur-sm">
             <span className="rounded-full bg-background px-4 py-1.5 text-sm font-bold">SOLD</span>
@@ -39,6 +41,11 @@ export function BookCard({ listing }: { listing: Listing }) {
           <span className="inline-flex items-center gap-1">
             <Truck className="h-3 w-3" /> {listing.deliveryType === "shipping" ? "Ships" : "Pickup"}
           </span>
+          {typeof listing.views === "number" && listing.views > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Eye className="h-3 w-3" /> {listing.views.toLocaleString("en-IN")}
+            </span>
+          )}
         </div>
         <div className="mt-2 flex items-end justify-between">
           <div>

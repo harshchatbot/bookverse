@@ -21,4 +21,5 @@ export interface Listing {
   status: ListingStatus;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
+  views?: number;
 }

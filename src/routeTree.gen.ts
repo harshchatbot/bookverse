@@ -9,16 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OffersRouteImport } from './routes/offers'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SellerUidRouteImport } from './routes/seller.$uid'
 import { Route as BookIdRouteImport } from './routes/book.$id'
 
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -27,6 +36,16 @@ const SellRoute = SellRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -59,6 +78,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerUidRoute = SellerUidRouteImport.update({
+  id: '/seller/$uid',
+  path: '/seller/$uid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookIdRoute = BookIdRouteImport.update({
   id: '/book/$id',
   path: '/book/$id',
@@ -72,9 +96,13 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/seller/$uid': typeof SellerUidRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,9 +111,13 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/seller/$uid': typeof SellerUidRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,9 +127,13 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/seller/$uid': typeof SellerUidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,9 +144,13 @@ export interface FileRouteTypes {
     | '/browse'
     | '/login'
     | '/my-listings'
+    | '/notifications'
+    | '/offers'
     | '/profile'
     | '/sell'
+    | '/wishlist'
     | '/book/$id'
+    | '/seller/$uid'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,9 +159,13 @@ export interface FileRouteTypes {
     | '/browse'
     | '/login'
     | '/my-listings'
+    | '/notifications'
+    | '/offers'
     | '/profile'
     | '/sell'
+    | '/wishlist'
     | '/book/$id'
+    | '/seller/$uid'
   id:
     | '__root__'
     | '/'
@@ -130,9 +174,13 @@ export interface FileRouteTypes {
     | '/browse'
     | '/login'
     | '/my-listings'
+    | '/notifications'
+    | '/offers'
     | '/profile'
     | '/sell'
+    | '/wishlist'
     | '/book/$id'
+    | '/seller/$uid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -142,13 +190,24 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   LoginRoute: typeof LoginRoute
   MyListingsRoute: typeof MyListingsRoute
+  NotificationsRoute: typeof NotificationsRoute
+  OffersRoute: typeof OffersRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
+  WishlistRoute: typeof WishlistRoute
   BookIdRoute: typeof BookIdRoute
+  SellerUidRoute: typeof SellerUidRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sell': {
       id: '/sell'
       path: '/sell'
@@ -161,6 +220,20 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -205,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller/$uid': {
+      id: '/seller/$uid'
+      path: '/seller/$uid'
+      fullPath: '/seller/$uid'
+      preLoaderRoute: typeof SellerUidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book/$id': {
       id: '/book/$id'
       path: '/book/$id'
@@ -222,9 +302,13 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   LoginRoute: LoginRoute,
   MyListingsRoute: MyListingsRoute,
+  NotificationsRoute: NotificationsRoute,
+  OffersRoute: OffersRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
+  WishlistRoute: WishlistRoute,
   BookIdRoute: BookIdRoute,
+  SellerUidRoute: SellerUidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

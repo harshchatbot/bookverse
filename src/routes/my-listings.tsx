@@ -65,9 +65,20 @@ function MyListingsContent({ user }: { user: User }) {
   });
 
   const markSold = async (id: string) => {
+    if (!confirm("Mark this book as sold? It will be removed from public browsing.")) return;
     try {
       await updateListingStatus(id, "sold");
       toast.success("Marked as sold");
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+
+  const relist = async (id: string) => {
+    try {
+      await updateListingStatus(id, "approved");
+      toast.success("Listing is live again");
       qc.invalidateQueries({ queryKey: ["my-listings"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -127,6 +138,14 @@ function MyListingsContent({ user }: { user: User }) {
                         className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
                       >
                         Mark sold
+                      </button>
+                    )}
+                    {l.status === "sold" && (
+                      <button
+                        onClick={() => relist(l.id)}
+                        className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                      >
+                        Relist
                       </button>
                     )}
                   </div>

@@ -9,6 +9,7 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
+  increment,
   limit as fbLimit,
   startAfter,
   type QueryConstraint,
@@ -72,6 +73,7 @@ export async function getApprovedListings(options?: {
   condition?: string;
   minPrice?: number;
   maxPrice?: number;
+  sort?: "newest" | "price_asc" | "price_desc";
   limit?: number;
   cursor?: ListingCursor | null;
 }): Promise<ApprovedListingsPage> {
@@ -84,12 +86,32 @@ export async function getApprovedListings(options?: {
   if (hasMin) constraints.push(where("sellingPrice", ">=", options!.minPrice));
   if (hasMax) constraints.push(where("sellingPrice", "<=", options!.maxPrice));
 
+  const sort = options?.sort ?? "newest";
+  const hasInequality = hasMin || hasMax;
+
   // Firestore requires the first orderBy to match any inequality field.
-  if (hasMin || hasMax) {
-    constraints.push(orderBy("sellingPrice", "asc"));
-    constraints.push(orderBy("createdAt", "desc"));
+  if (hasInequality) {
+    if (sort === "price_asc") {
+      constraints.push(orderBy("sellingPrice", "asc"));
+      constraints.push(orderBy("createdAt", "desc"));
+    } else if (sort === "price_desc") {
+      constraints.push(orderBy("sellingPrice", "desc"));
+      constraints.push(orderBy("createdAt", "desc"));
+    } else {
+      // newest with price inequality — price must be first orderBy
+      constraints.push(orderBy("sellingPrice", "asc"));
+      constraints.push(orderBy("createdAt", "desc"));
+    }
   } else {
-    constraints.push(orderBy("createdAt", "desc"));
+    if (sort === "price_asc") {
+      constraints.push(orderBy("sellingPrice", "asc"));
+      constraints.push(orderBy("createdAt", "desc"));
+    } else if (sort === "price_desc") {
+      constraints.push(orderBy("sellingPrice", "desc"));
+      constraints.push(orderBy("createdAt", "desc"));
+    } else {
+      constraints.push(orderBy("createdAt", "desc"));
+    }
   }
 
   if (options?.cursor) constraints.push(startAfter(options.cursor));
@@ -116,8 +138,49 @@ export async function getMyListings(uid: string): Promise<Listing[]> {
   return snapToListings(snap);
 }
 
+export async function getSellerApprovedListings(uid: string): Promise<Listing[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, COLLECTION),
+      where("sellerUid", "==", uid),
+      where("status", "in", ["approved", "sold"]),
+      orderBy("createdAt", "desc"),
+    ),
+  );
+  return snapToListings(snap);
+}
+
+
+export async function getRelatedListings(opts: {
+  category: string;
+  excludeId: string;
+  limit?: number;
+}): Promise<Listing[]> {
+  const max = opts.limit ?? 4;
+  const snap = await getDocs(
+    query(
+      collection(db, COLLECTION),
+      where("status", "==", "approved"),
+      where("category", "==", opts.category),
+      orderBy("createdAt", "desc"),
+      fbLimit(max + 1),
+    ),
+  );
+  return snapToListings(snap)
+    .filter((l) => l.id !== opts.excludeId)
+    .slice(0, max);
+}
+
 export async function updateListingStatus(id: string, status: ListingStatus) {
   await updateDoc(doc(db, COLLECTION, id), { status, updatedAt: serverTimestamp() });
+}
+
+export async function incrementListingViews(id: string) {
+  try {
+    await updateDoc(doc(db, COLLECTION, id), { views: increment(1) });
+  } catch {
+    // ignore — non-critical analytics
+  }
 }
 
 export async function uploadListingImage(uid: string, file: File): Promise<string> {
