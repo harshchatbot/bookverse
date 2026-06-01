@@ -21,6 +21,8 @@ const tracedNodePackages = [
   "gcp-metadata*",
   "protobufjs*",
   "long*",
+  "@js-sdsl/ordered-map*",
+  "@js-sdsl/*",
 ];
 
 const vercelNitro = {
