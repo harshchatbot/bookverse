@@ -26,14 +26,23 @@ const nodeOnlyExternals = [
   "long",
 ];
 
+function isNodeOnlyExternal(id: string) {
+  return nodeOnlyExternals.some((pkg) => id === pkg || id.startsWith(`${pkg}/`));
+}
+
 const vercelNitro = {
   preset: "vercel",
+  node: true,
+  noExternals: false,
+  traceDeps: nodeOnlyExternals,
   output: {
     dir: ".vercel/output",
     serverDir: ".vercel/output/functions/__server.func",
     publicDir: ".vercel/output/static",
   },
-  externals: { external: nodeOnlyExternals },
+  rollupConfig: {
+    external: isNodeOnlyExternal,
+  },
 };
 
 const config = {
@@ -43,7 +52,6 @@ const config = {
   ...(isVercel ? { nitro: vercelNitro } : {}),
 };
 
-// Cast: the wrapper's Nitro type omits `externals`, but Nitro accepts it
-// and the vercel preset forwards it to rollup's external resolution.
+// Cast: the wrapper's Nitro type omits some Nitro options used by Vercel builds.
 export default defineConfig(config as Parameters<typeof defineConfig>[0]);
 

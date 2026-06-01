@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
-  adminDb,
-  FieldValue,
+  adminKit,
   requireAuth,
   jsonError,
   jsonOk,
@@ -44,7 +43,7 @@ export const Route = createFileRoute("/api/checkout/verify")({
         });
         if (!valid) return jsonError(400, "Signature verification failed");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const orderRef = db.collection("orders").doc(parsed.data.orderId);
         const orderSnap = await orderRef.get();
         if (!orderSnap.exists) return jsonError(404, "Order not found");

@@ -7,7 +7,7 @@
 // status string onto our canonical OrderStatus via mapShiprocketStatus and update
 // orders/{id} + shipments/{id}. Firestore stays the source of truth.
 import { createFileRoute } from "@tanstack/react-router";
-import { adminDb, FieldValue, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
 import { mapShiprocketStatus } from "@/lib/shiprocket.server";
 
 export const Route = createFileRoute("/api/public/shiprocket/webhook")({
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/public/shiprocket/webhook")({
         const rawStatus = body.current_status ?? body.shipment_status ?? "";
         const mapped = mapShiprocketStatus(rawStatus);
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const orderRef = db.collection("orders").doc(ourOrderId);
         const orderSnap = await orderRef.get();
         if (!orderSnap.exists) {

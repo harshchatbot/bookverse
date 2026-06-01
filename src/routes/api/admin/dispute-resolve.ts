@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { adminDb, FieldValue, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
 
 const Body = z.object({
   disputeId: z.string().min(1),
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/admin/dispute-resolve")({
         const parsed = Body.safeParse(body);
         if (!parsed.success) return jsonError(400, "Invalid input");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const ref = db.collection("disputes").doc(parsed.data.disputeId);
         const snap = await ref.get();
         if (!snap.exists) return jsonError(404, "Dispute not found");

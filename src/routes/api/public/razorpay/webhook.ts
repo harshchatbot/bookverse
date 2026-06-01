@@ -8,7 +8,7 @@
 // reconciles anything that didn't. Firestore stays the source of truth.
 import { createFileRoute } from "@tanstack/react-router";
 import crypto from "crypto";
-import { adminDb, FieldValue, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
 function verifySignature(rawBody: string, signature: string | null): boolean {
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
           return jsonError(400, "Invalid JSON");
         }
         const event = evt.event ?? "";
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
 
         // ---- payment.captured: reconcile orders/{id} → paid + run fulfillment ----
         // ---- payment.captured / order.paid: both signal a successful payment.

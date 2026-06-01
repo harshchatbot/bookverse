@@ -5,8 +5,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
-  adminDb,
-  FieldValue,
+  adminKit,
   requireAuth,
   jsonError,
   jsonOk,
@@ -45,7 +44,7 @@ export const Route = createFileRoute("/api/seller/reject-order")({
         const parsed = Body.safeParse(body);
         if (!parsed.success) return jsonError(400, "Invalid input");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const orderRef = db.collection("orders").doc(parsed.data.orderId);
         const snap = await orderRef.get();
         if (!snap.exists) return jsonError(404, "Order not found");
@@ -88,7 +87,7 @@ export const Route = createFileRoute("/api/seller/reject-order")({
         // 2) Refund Razorpay (full).
         let refundId: string | null = null;
         try {
-          const refund = await razorpay().payments.refund(payment.razorpayPaymentId, {
+          const refund = await (razorpay().payments as any).refund(payment.razorpayPaymentId, {
             notes: { reason: parsed.data.reason, rejectedBy: "seller" },
           });
           refundId = refund.id;

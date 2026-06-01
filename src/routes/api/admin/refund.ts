@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { adminDb, FieldValue, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
 import { razorpay } from "@/lib/razorpay.server";
 
 const Body = z.object({
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/admin/refund")({
         const parsed = Body.safeParse(body);
         if (!parsed.success) return jsonError(400, "Invalid input");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const orderRef = db.collection("orders").doc(parsed.data.orderId);
         const snap = await orderRef.get();
         if (!snap.exists) return jsonError(404, "Order not found");
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/api/admin/refund")({
         });
 
         try {
-          const refund = await razorpay().payments.refund(payment.razorpayPaymentId, {
+          const refund = await (razorpay().payments as any).refund(payment.razorpayPaymentId, {
             amount: parsed.data.amount ? Math.round(parsed.data.amount * 100) : undefined,
             notes: { reason: parsed.data.reason ?? "" },
           });

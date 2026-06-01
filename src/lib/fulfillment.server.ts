@@ -2,7 +2,7 @@
 // Used by /api/checkout/verify, /api/admin/shipment-retry, and webhooks.
 // Firestore stays the source of truth: every Shiprocket call is mirrored
 // onto orders/{id} and shipments/{id} with a history entry.
-import { adminDb, FieldValue } from "@/lib/admin.server";
+import { adminKit } from "@/lib/admin.server";
 import {
   createShiprocketOrder,
   assignAwb,
@@ -34,7 +34,7 @@ export interface FulfillmentResult {
  * that have already completed (based on orders/{id} fields).
  */
 export async function runFulfillment(orderId: string): Promise<FulfillmentResult> {
-  const db = adminDb();
+  const { db, FieldValue } = await adminKit();
   const orderRef = db.collection("orders").doc(orderId);
   const orderSnap = await orderRef.get();
   if (!orderSnap.exists) return { ok: false, reachedStep: null, error: "Order not found" };

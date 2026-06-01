@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
-  adminDb,
-  FieldValue,
+  adminKit,
   requireAuth,
   jsonError,
   jsonOk,
@@ -50,7 +49,7 @@ export const Route = createFileRoute("/api/checkout/create-order")({
           return jsonError(400, parsed.error.issues[0]?.message ?? "Invalid input");
         }
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const listingSnap = await db.collection("listings").doc(parsed.data.listingId).get();
         if (!listingSnap.exists) return jsonError(404, "Listing not found");
         const listing = listingSnap.data()!;

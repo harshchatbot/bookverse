@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { adminDb, FieldValue, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
 
 const VALID_STATUSES = [
   "pickup_scheduled",
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/admin/shipment-status")({
         const parsed = Body.safeParse(body);
         if (!parsed.success) return jsonError(400, "Invalid input");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const orderRef = db.collection("orders").doc(parsed.data.orderId);
         const orderSnap = await orderRef.get();
         if (!orderSnap.exists) return jsonError(404, "Order not found");

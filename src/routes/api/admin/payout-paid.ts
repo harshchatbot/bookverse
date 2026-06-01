@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { adminDb, FieldValue, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
+import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
 
 const Body = z.object({
   payoutId: z.string().min(1),
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/admin/payout-paid")({
         const parsed = Body.safeParse(body);
         if (!parsed.success) return jsonError(400, "Invalid input");
 
-        const db = adminDb();
+        const { db, FieldValue } = await adminKit();
         const payoutRef = db.collection("seller_payouts").doc(parsed.data.payoutId);
         const snap = await payoutRef.get();
         if (!snap.exists) return jsonError(404, "Payout not found");

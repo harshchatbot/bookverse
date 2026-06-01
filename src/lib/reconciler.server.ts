@@ -2,7 +2,7 @@
 // fulfillment states and safely re-runs the pipeline. Designed to be
 // idempotent — `runFulfillment` already skips completed steps, and
 // expired pending_payment orders are only failed once.
-import { adminDb, FieldValue } from "@/lib/admin.server";
+import { adminKit } from "@/lib/admin.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
 export interface ReconcileBucketResult {
@@ -40,7 +40,7 @@ async function pushError(
 
 /** Bucket 1: pending_payment orders older than 30 minutes → mark failed. */
 async function expirePendingPayments(): Promise<ReconcileBucketResult> {
-  const db = adminDb();
+  const { db, FieldValue } = await adminKit();
   const cutoff = new Date(Date.now() - PENDING_PAYMENT_TTL_MS);
   const result = empty();
 
@@ -76,7 +76,7 @@ async function expirePendingPayments(): Promise<ReconcileBucketResult> {
 
 /** Bucket 2: paid orders that never created a Shiprocket shipment. */
 async function fulfillPaidOrders(): Promise<ReconcileBucketResult> {
-  const db = adminDb();
+  const { db, FieldValue } = await adminKit();
   const result = empty();
   const snap = await db
     .collection("orders")
@@ -99,7 +99,7 @@ async function fulfillPaidOrders(): Promise<ReconcileBucketResult> {
 
 /** Bucket 3: shipment_created orders without an AWB. */
 async function assignMissingAwbs(): Promise<ReconcileBucketResult> {
-  const db = adminDb();
+  const { db, FieldValue } = await adminKit();
   const result = empty();
   const snap = await db
     .collection("orders")
@@ -124,7 +124,7 @@ async function assignMissingAwbs(): Promise<ReconcileBucketResult> {
 
 /** Bucket 4: pickup_scheduled orders missing tracking URL/AWB. */
 async function backfillTracking(): Promise<ReconcileBucketResult> {
-  const db = adminDb();
+  const { db, FieldValue } = await adminKit();
   const result = empty();
   const snap = await db
     .collection("orders")
@@ -168,12 +168,11 @@ export async function runReconciler(): Promise<ReconcileReport> {
 
   // Persist an audit row so we can see history in Firestore.
   try {
-    await adminDb()
-      .collection("reconcilerRuns")
-      .add({
-        ...report,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+    const { db, FieldValue } = await adminKit();
+    await db.collection("reconcilerRuns").add({
+      ...report,
+      createdAt: FieldValue.serverTimestamp(),
+    });
   } catch (e) {
     console.error("[reconciler] failed to write audit log", e);
   }
