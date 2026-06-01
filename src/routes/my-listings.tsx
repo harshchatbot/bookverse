@@ -119,7 +119,7 @@ function MyListingsContent({ user }: { user: User }) {
                 <div key={l.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center">
                   <Link to="/book/$id" params={{ id: l.id }} className="flex flex-1 items-center gap-4">
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-secondary">
-                      {l.images[0] && <img src={l.images[0]} alt="" className="h-full w-full object-cover" />}
+                      {l.images[0] && <img loading="lazy" decoding="async" src={l.images[0]} alt="" className="h-full w-full object-cover" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold">{l.title}</div>

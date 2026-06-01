@@ -103,7 +103,7 @@ function BookDetail() {
           <div>
             <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary">
               {listing.images[activeImg] ? (
-                <img src={listing.images[activeImg]} alt={listing.title} className="h-full w-full object-cover" />
+                <img src={listing.images[activeImg]} alt={listing.title} decoding="async" fetchPriority="high" className="h-full w-full object-cover" />
               ) : (
                 <div className="grid h-full w-full place-items-center text-muted-foreground">No image</div>
               )}
@@ -128,7 +128,7 @@ function BookDetail() {
                       activeImg === i ? "border-primary" : "border-transparent"
                     }`}
                   >
-                    <img src={img} alt="" className="h-full w-full object-cover" />
+                    <img src={img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>

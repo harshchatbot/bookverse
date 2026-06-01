@@ -217,6 +217,11 @@ function ProfileContent({ user }: { user: User }) {
                     <img
                       src={form.photoURL}
                       alt=""
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
                       className="h-20 w-20 rounded-full object-cover"
                     />
                   ) : (

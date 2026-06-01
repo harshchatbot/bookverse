@@ -79,7 +79,7 @@ function OrdersList({ user }: { user: User }) {
                 className="flex gap-4 rounded-2xl border border-border bg-card p-4 transition hover:border-primary/50 hover:shadow-card"
               >
                 <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-                  {o.listing.image && <img src={o.listing.image} alt="" className="h-full w-full object-cover" />}
+                  {o.listing.image && <img loading="lazy" decoding="async" src={o.listing.image} alt="" className="h-full w-full object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">

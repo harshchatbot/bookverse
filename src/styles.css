@@ -204,6 +204,14 @@
 			0% { background-color: var(--color-secondary); }
 			100% { background-color: transparent; }
 		}
+		@keyframes bell-swing {
+			0%, 100% { transform: rotate(0); }
+			15% { transform: rotate(-14deg); }
+			30% { transform: rotate(11deg); }
+			45% { transform: rotate(-8deg); }
+			60% { transform: rotate(5deg); }
+			75% { transform: rotate(-2deg); }
+		}
 		.animate-badge-pop {
 			animation: badge-pop 0.35s ease-out;
 		}
@@ -213,7 +221,26 @@
 		.animate-item-settle {
 			animation: item-settle 0.5s ease-out forwards;
 		}
+		.animate-bell-swing {
+			animation: bell-swing 1.2s ease-in-out;
+			transform-origin: 50% 10%;
+		}
 		.transition-read {
 			transition: background-color 0.35s ease, opacity 0.35s ease;
+		}
+		.glass-panel {
+			background-color: color-mix(in oklab, var(--color-card) 70%, transparent);
+			backdrop-filter: blur(18px) saturate(140%);
+			border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+		}
+		button, [role="button"] {
+			transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+		}
+		button:active:not(:disabled), [role="button"]:active {
+			transform: scale(0.96);
+		}
+		@media (prefers-reduced-motion: reduce) {
+			button:active, [role="button"]:active { transform: none; }
+			.animate-bell-swing { animation: none; }
 		}
 	}

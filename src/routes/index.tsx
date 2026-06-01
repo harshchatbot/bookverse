@@ -5,9 +5,9 @@ import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
 import { getApprovedListings } from "@/lib/listings";
 import { CATEGORIES } from "@/lib/constants";
-import aaravPhoto from "@/assets/aarav.png.asset.json";
-import sanyaPhoto from "@/assets/sanya.png.asset.json";
-import vikramPhoto from "@/assets/vikram.png.asset.json";
+const aaravPhoto = { url: "/assets/testimonials/aarav.webp" };
+const sanyaPhoto = { url: "/assets/testimonials/sanya.webp" };
+const vikramPhoto = { url: "/assets/testimonials/vikram.webp" };
 import {
   Accordion,
   AccordionItem,
@@ -393,7 +393,10 @@ function Home() {
                     <img
                       src={t.photo}
                       alt={`${t.name} headshot`}
+                      width={44}
+                      height={44}
                       loading="lazy"
+                      decoding="async"
                       className="h-11 w-11 rounded-full object-cover ring-2 ring-primary/20"
                     />
                     <div>

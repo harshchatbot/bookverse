@@ -1,7 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import type { Listing } from "@/lib/types";
 
-function getWhatsAppUrl(listing: Listing) {
+export function getWhatsAppUrl(listing: Listing) {
   const message = `Hi ${listing.sellerName}, I found your book listing on BookVerse and I'm interested in purchasing it.\n\nBook: ${listing.title}\nPrice: ₹${listing.sellingPrice.toLocaleString("en-IN")}\nLocation: ${listing.city}\n\nIs this book still available? Thanks.`;
 
   const digits = listing.sellerMobile.replace(/\D/g, "");

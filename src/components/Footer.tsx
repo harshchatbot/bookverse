@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
+const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export function Footer() {
   return (
@@ -9,7 +9,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
               <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
-                <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
+                <img src={bookverseLogo.url} alt="" width={48} height={48} loading="lazy" decoding="async" className="h-full w-full object-contain p-1" />
               </span>
               BookVerse
             </Link>

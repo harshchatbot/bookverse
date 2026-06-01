@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { celebrate } from "@/lib/confetti";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
@@ -310,6 +311,7 @@ function SellForm({ user }: { user: User }) {
       );
       console.log(`[sell] listing created`);
       toast.success("Listing submitted! It'll appear after admin approval.");
+      celebrate();
       navigate({ to: "/my-listings" });
     } catch (e: unknown) {
       console.error("[sell] submit failed", e);
@@ -347,6 +349,8 @@ function SellForm({ user }: { user: User }) {
                     <img
                       src={getPreviewUrl(file)}
                       alt={`Preview ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                     <span
@@ -674,6 +678,7 @@ function Lightbox({
       <img
         src={getPreviewUrl(file)}
         alt={`Preview ${index + 1}`}
+        decoding="async"
         className={`max-h-[80vh] max-w-[90vw] rounded-xl object-contain shadow-2xl transition-transform duration-200 ${
           swipeDir === "left"
             ? "-translate-x-4 opacity-80"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { CheckCircle2, HandCoins, Loader2, Pencil, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import {
   type Offer,
 } from "@/lib/offers";
 import type { Listing } from "@/lib/types";
+import { getWhatsAppUrl } from "@/components/WhatsAppButton";
 
 export function MakeOfferButton({ listing, className = "" }: { listing: Listing; className?: string }) {
   const { user, signInWithGoogle } = useAuth();
@@ -200,9 +202,30 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
           </div>
         </div>
       ) : isExistingAccepted && existing ? (
-        <div className={`rounded-2xl border border-success/30 bg-success/10 px-4 py-3 ${className}`}>
+        <motion.div
+          key="offer-accepted"
+          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+          onAnimationComplete={() =>
+            toast.success("Offer accepted!", {
+              action: {
+                label: "View conversation",
+                onClick: () =>
+                  window.open(getWhatsAppUrl(listing), "_blank", "noopener,noreferrer"),
+              },
+            })
+          }
+          className={`rounded-2xl border border-success/30 bg-success/10 px-4 py-3 ${className}`}
+        >
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            <motion.div
+              initial={{ scale: 0.6, rotate: -12 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 14, delay: 0.05 }}
+            >
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            </motion.div>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-success">Offer accepted</div>
               <div className="truncate text-sm">
@@ -214,7 +237,7 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       ) : isExistingDeclined && existing ? (
         <div className={`space-y-2 ${className}`}>
           <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3">

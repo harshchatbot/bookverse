@@ -66,7 +66,7 @@ function SellerPage() {
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
               <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
                 {photoURL ? (
-                  <img src={photoURL} alt={displayName} className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={photoURL} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
                   <UserIcon className="h-8 w-8" />
                 )}

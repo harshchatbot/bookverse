@@ -141,7 +141,7 @@ function AdminDashboard() {
               listings.map((l) => (
                 <div key={l.id} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 md:flex-row">
                   <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-secondary md:h-28 md:w-28">
-                    {l.images[0] && <img src={l.images[0]} alt="" className="h-full w-full object-cover" />}
+                    {l.images[0] && <img loading="lazy" decoding="async" src={l.images[0]} alt="" className="h-full w-full object-cover" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">

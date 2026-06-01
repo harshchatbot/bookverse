@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { Spinner } from "@/components/Spinner";
 import { Illustration } from "@/components/Illustration";
-import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
+const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -32,7 +32,7 @@ function Login() {
         ) : (
           <>
             <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
-              <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
+              <img src={bookverseLogo.url} alt="" width={64} height={64} decoding="async" fetchPriority="high" className="h-full w-full object-contain p-1" />
             </span>
             <h1 className="mt-6 font-display text-3xl font-bold">Welcome to BookVerse</h1>
             <p className="mt-2 text-muted-foreground">Sign in to browse, list books, and pick up where you left off.</p>

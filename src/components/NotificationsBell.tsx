@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getNotificationsForUser,
@@ -89,25 +90,42 @@ export function NotificationsBell() {
 
   return (
     <div className="relative">
-      <button
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.06 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
         className="relative grid h-9 w-9 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-secondary"
       >
-        <Bell className="h-4 w-4" />
-        {unread > 0 && (
-          <span
-            className={`absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground ${badgeAnim ? "animate-badge-pop" : ""}`}
-          >
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
+        <Bell className={`h-4 w-4 ${unread > 0 ? "animate-bell-swing text-primary" : ""}`} />
+        <AnimatePresence>
+          {unread > 0 && (
+            <motion.span
+              key="badge"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: badgeAnim ? [1, 1.35, 1] : 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              className="absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground shadow-[0_0_0_3px_var(--color-background)]"
+            >
+              {unread > 9 ? "9+" : unread}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-2xl border border-border bg-popover shadow-elegant">
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="glass-panel absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-2xl shadow-elegant"
+            >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="text-sm font-semibold">Notifications</p>
               {unread > 0 && (
@@ -190,9 +208,10 @@ export function NotificationsBell() {
             >
               View all notifications
             </Link>
-          </div>
-        </>
-      )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

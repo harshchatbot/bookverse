@@ -4,7 +4,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { useState } from "react";
 import { Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package, BarChart3 } from "lucide-react";
-import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
+const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export function Header() {
   const { signInWithGoogle, signOut } = useAuth();
@@ -40,11 +40,11 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header className="glass-panel sticky top-0 z-40 border-x-0 border-t-0">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
           <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
-            <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
+            <img src={bookverseLogo.url} alt="" width={40} height={40} decoding="async" fetchPriority="high" className="h-full w-full object-contain p-1" />
           </span>
           <span className="hidden sm:inline">BookVerse</span>
         </Link>
@@ -83,7 +83,7 @@ export function Header() {
                   className="flex items-center gap-2 rounded-full border border-border bg-card px-1.5 py-1.5 transition-shadow hover:shadow-card"
                 >
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full" />
+                    <img src={user.photoURL} alt="" width={28} height={28} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-7 w-7 rounded-full" />
                   ) : (
                     <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {user.displayName?.[0] ?? user.email?.[0] ?? "U"}

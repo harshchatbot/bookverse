@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { celebrate } from "@/lib/confetti";
 import { Loader2, ShoppingCart, MapPin, Truck, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -267,6 +268,7 @@ function CheckoutContent({ user }: { user: User }) {
                 }),
               });
               toast.success("Payment successful");
+              celebrate();
               navigate({ to: "/order/$id", params: { id: createRes.orderId } });
               resolve();
             } catch (err) {
@@ -394,7 +396,7 @@ function Summary({
       <h2 className="font-display text-lg font-semibold">Order summary</h2>
       <div className="mt-3 flex gap-3">
         {listing.images[0] && (
-          <img src={listing.images[0]} alt="" className="h-16 w-16 rounded-lg object-cover" />
+          <img loading="lazy" decoding="async" src={listing.images[0]} alt="" className="h-16 w-16 rounded-lg object-cover" />
         )}
         <div className="min-w-0">
           <div className="truncate font-semibold">{listing.title}</div>

@@ -104,7 +104,7 @@ function OrderDetail({ user }: { user: User }) {
         <section className="mt-6 rounded-2xl border border-border bg-card p-5">
           <div className="flex gap-4">
             <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-              {order.listing.image && <img src={order.listing.image} alt="" className="h-full w-full object-cover" />}
+              {order.listing.image && <img loading="lazy" decoding="async" src={order.listing.image} alt="" className="h-full w-full object-cover" />}
             </div>
             <div className="min-w-0 flex-1">
               <Link to="/book/$id" params={{ id: order.listing.id }} className="truncate font-semibold hover:underline">

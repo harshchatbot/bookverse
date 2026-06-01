@@ -15,6 +15,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { useAuth } from "@/hooks/useAuth";
+import { celebrate } from "@/lib/confetti";
 import {
   cancelOffer,
   getOffersForBuyer,
@@ -243,7 +244,12 @@ function ReceivedOfferRow({ offer }: { offer: Offer }) {
     onSuccess: (_d, status) => {
       queryClient.invalidateQueries({ queryKey: ["offers", "received", user?.uid] });
       queryClient.invalidateQueries({ queryKey: ["my-offer", offer.listingId] });
-      toast.success(status === "accepted" ? "Offer accepted." : "Offer declined.");
+      if (status === "accepted") {
+        celebrate();
+        toast.success("Offer accepted!");
+      } else {
+        toast.success("Offer declined.");
+      }
     },
     onError: () => toast.error("Could not update offer. Please try again."),
   });
