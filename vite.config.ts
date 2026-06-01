@@ -28,7 +28,11 @@ export default defineConfig({
           // Restore all three paths the `vercel` preset expects.
           output: {
             dir: ".vercel/output",
-            serverDir: ".vercel/output/functions/__nitro.func",
+            // The function directory name becomes the route destination in
+            // config.json. Nitro's vercel preset routes to `/__server`, so
+            // the function MUST be emitted as `__server.func` — not
+            // `__nitro.func` — or every request 404s.
+            serverDir: ".vercel/output/functions/__server.func",
             publicDir: ".vercel/output/static",
           },
         },
