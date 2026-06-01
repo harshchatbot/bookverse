@@ -22,6 +22,12 @@ export default defineConfig({
     ? {
         nitro: {
           preset: "vercel",
+          // The Lovable wrapper defaults output.dir to "dist", which
+          // suppresses Nitro's vercel preset default of ".vercel/output"
+          // and causes Vercel to 404. Restore the preset's expected dir.
+          output: {
+            dir: ".vercel/output",
+          },
         },
       }
     : {}),
