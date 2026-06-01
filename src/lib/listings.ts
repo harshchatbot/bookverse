@@ -16,7 +16,7 @@ import {
   type QueryDocumentSnapshot,
   type DocumentData,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "@/integrations/firebase/client";
 import type { Listing } from "./types";
 import type { ListingStatus } from "./constants";
@@ -155,7 +155,6 @@ export async function getSellerApprovedListings(uid: string): Promise<Listing[]>
   return snapToListings(snap);
 }
 
-
 export async function getRelatedListings(opts: {
   category: string;
   excludeId: string;
@@ -188,12 +187,52 @@ export async function incrementListingViews(id: string) {
   }
 }
 
-export async function uploadListingImage(uid: string, file: File): Promise<string> {
+export async function uploadListingImage(
+  uid: string,
+  file: File,
+  options?: { onProgress?: (progress: number) => void; timeoutMs?: number },
+): Promise<string> {
   const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const path = `listings/${uid}/${safeName}`;
   const r = ref(storage, path);
-  await uploadBytes(r, file, { contentType: file.type });
-  return getDownloadURL(r);
+  const task = uploadBytesResumable(r, file, { contentType: file.type || "image/jpeg" });
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeout = globalThis.setTimeout(() => {
+      if (settled) return;
+      task.cancel();
+      settled = true;
+      reject(new Error("Image upload timed out. Please check your connection and try again."));
+    }, options?.timeoutMs ?? 45_000);
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      globalThis.clearTimeout(timeout);
+      fn();
+    };
+
+    task.on(
+      "state_changed",
+      (snapshot) => {
+        const progress =
+          snapshot.totalBytes > 0 ? snapshot.bytesTransferred / snapshot.totalBytes : 0;
+        options?.onProgress?.(Math.round(progress * 100));
+      },
+      (error) => {
+        finish(() => reject(error));
+      },
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          finish(() => resolve(url));
+        } catch (error) {
+          finish(() => reject(error));
+        }
+      },
+    );
+  });
 }
 
 export async function deleteListingImage(url: string) {

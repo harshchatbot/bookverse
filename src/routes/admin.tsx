@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { getListingsByStatus, updateListingStatus } from "@/lib/listings";
+import { AdminMarketplace } from "@/components/AdminMarketplace";
 import { seedSampleListings } from "@/lib/seed";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
@@ -205,6 +206,8 @@ function AdminDashboard() {
               ))
             )}
           </div>
+
+          <AdminMarketplace />
         </div>
       </main>
       <Footer />

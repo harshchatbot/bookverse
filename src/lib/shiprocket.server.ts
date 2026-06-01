@@ -1,0 +1,192 @@
+// Minimal Shiprocket REST client. Token cached in module scope per worker.
+// Docs: https://apidocs.shiprocket.in/
+
+const BASE = "https://apiv2.shiprocket.in/v1/external";
+
+interface CachedToken {
+  token: string;
+  expiresAt: number;
+}
+let cached: CachedToken | null = null;
+
+async function getToken(): Promise<string> {
+  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
+  const email = process.env.SHIPROCKET_EMAIL;
+  const password = process.env.SHIPROCKET_PASSWORD;
+  if (!email || !password) throw new Error("SHIPROCKET_EMAIL/PASSWORD not set");
+
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Shiprocket auth failed (${res.status}): ${text}`);
+  }
+  const data = (await res.json()) as { token: string };
+  cached = { token: data.token, expiresAt: Date.now() + 9 * 24 * 60 * 60 * 1000 };
+  return data.token;
+}
+
+async function srFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(init.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Shiprocket ${path} failed (${res.status}): ${text}`);
+  }
+  return (await res.json()) as T;
+}
+
+export interface ServiceabilityResult {
+  available: boolean;
+  rate: number;
+  courierId: number;
+  courierName: string;
+  etd: string | null;
+  raw: unknown;
+}
+
+export async function checkServiceability(opts: {
+  pickupPincode: string;
+  deliveryPincode: string;
+  weightKg: number; // kg, e.g. 0.5
+  declaredValue: number; // INR
+  cod?: boolean;
+}): Promise<ServiceabilityResult> {
+  const params = new URLSearchParams({
+    pickup_postcode: opts.pickupPincode,
+    delivery_postcode: opts.deliveryPincode,
+    weight: String(opts.weightKg),
+    cod: opts.cod ? "1" : "0",
+    declared_value: String(opts.declaredValue),
+  });
+  type Resp = {
+    status: number;
+    data?: {
+      available_courier_companies?: Array<{
+        courier_company_id: number;
+        courier_name: string;
+        rate: number;
+        etd: string;
+      }>;
+    };
+  };
+  const data = await srFetch<Resp>(`/courier/serviceability/?${params.toString()}`);
+  const couriers = data.data?.available_courier_companies ?? [];
+  if (couriers.length === 0) {
+    return { available: false, rate: 0, courierId: 0, courierName: "", etd: null, raw: data };
+  }
+  // Pick cheapest.
+  const cheapest = couriers.reduce((a, b) => (a.rate <= b.rate ? a : b));
+  return {
+    available: true,
+    rate: Math.ceil(cheapest.rate),
+    courierId: cheapest.courier_company_id,
+    courierName: cheapest.courier_name,
+    etd: cheapest.etd ?? null,
+    raw: data,
+  };
+}
+
+export interface CreateOrderInput {
+  orderId: string;
+  orderDate: string; // YYYY-MM-DD HH:mm
+  pickup: {
+    name: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    location?: string; // Shiprocket pickup nickname; defaults to "Primary"
+  };
+  buyer: {
+    name: string;
+    phone: string;
+    email: string;
+    address1: string;
+    address2: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+  };
+  item: {
+    name: string;
+    sku: string;
+    unitsPriceInr: number;
+    quantity: number;
+  };
+  weightKg: number;
+  paymentMethod: "Prepaid" | "COD";
+  subtotalInr: number;
+}
+
+export interface CreateOrderResult {
+  shiprocketOrderId: number;
+  shipmentId: number;
+  status: string;
+  raw: unknown;
+}
+
+export async function createShiprocketOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+  const body = {
+    order_id: input.orderId,
+    order_date: input.orderDate,
+    pickup_location: input.pickup.location ?? "Primary",
+    billing_customer_name: input.buyer.name.split(" ")[0] || input.buyer.name,
+    billing_last_name: input.buyer.name.split(" ").slice(1).join(" ") || ".",
+    billing_address: input.buyer.address1,
+    billing_address_2: input.buyer.address2,
+    billing_city: input.buyer.city,
+    billing_pincode: input.buyer.pincode,
+    billing_state: input.buyer.state,
+    billing_country: input.buyer.country,
+    billing_email: input.buyer.email,
+    billing_phone: input.buyer.phone,
+    shipping_is_billing: true,
+    order_items: [
+      {
+        name: input.item.name,
+        sku: input.item.sku,
+        units: input.item.quantity,
+        selling_price: input.item.unitsPriceInr,
+      },
+    ],
+    payment_method: input.paymentMethod,
+    sub_total: input.subtotalInr,
+    length: 22,
+    breadth: 16,
+    height: 4,
+    weight: input.weightKg,
+  };
+  type Resp = {
+    order_id: number;
+    shipment_id: number;
+    status: string;
+    status_code?: number;
+  };
+  const data = await srFetch<Resp>(`/orders/create/adhoc`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return {
+    shiprocketOrderId: data.order_id,
+    shipmentId: data.shipment_id,
+    status: data.status,
+    raw: data,
+  };
+}
+
+export async function trackShipment(shipmentId: number) {
+  return srFetch<unknown>(`/courier/track/shipment/${shipmentId}`);
+}

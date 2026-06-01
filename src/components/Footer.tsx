@@ -27,12 +27,11 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold">Categories</h4>
+            <h4 className="text-sm font-semibold">Legal</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/browse" search={{ category: "engineering" } as never} className="hover:text-foreground">Engineering</Link></li>
-              <li><Link to="/browse" search={{ category: "medical" } as never} className="hover:text-foreground">Medical</Link></li>
-              <li><Link to="/browse" search={{ category: "jee" } as never} className="hover:text-foreground">JEE</Link></li>
-              <li><Link to="/browse" search={{ category: "neet" } as never} className="hover:text-foreground">NEET</Link></li>
+              <li><Link to="/terms" className="hover:text-foreground">Terms</Link></li>
+              <li><Link to="/privacy" className="hover:text-foreground">Privacy</Link></li>
+              <li><Link to="/refunds" className="hover:text-foreground">Refunds & Returns</Link></li>
             </ul>
           </div>
         </div>

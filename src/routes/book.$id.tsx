@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { BuyNowButton } from "@/components/BuyNowButton";
 import { MakeOfferButton } from "@/components/MakeOfferButton";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { VerifiedBadge, hasValidMobile } from "@/components/VerifiedBadge";
@@ -201,10 +202,11 @@ function BookDetail() {
 
             {!isSold && (
               <div className="mt-6 space-y-2">
+                <BuyNowButton listing={listing} className="w-full" />
                 <WhatsAppButton listing={listing} className="w-full" />
                 <MakeOfferButton listing={listing} className="w-full" />
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                  WhatsApp the seller, or propose your price with an offer.
+                  Buy Now uses secure prepaid checkout. WhatsApp or Make Offer to negotiate directly.
                 </p>
               </div>
             )}

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/AuthGate";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { useState } from "react";
-import { BookOpen, Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins } from "lucide-react";
+import { BookOpen, Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package } from "lucide-react";
 
 export function Header() {
   const { signInWithGoogle, signOut } = useAuth();
@@ -117,6 +117,20 @@ export function Header() {
                         className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
                       >
                         <ListChecks className="h-4 w-4" /> My listings
+                      </Link>
+                      <Link
+                        to="/orders"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <ShoppingBag className="h-4 w-4" /> My orders
+                      </Link>
+                      <Link
+                        to="/sell-orders"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <Package className="h-4 w-4" /> My sales
                       </Link>
                       <Link
                         to="/offers"

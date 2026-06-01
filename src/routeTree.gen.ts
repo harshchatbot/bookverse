@@ -10,8 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SellOrdersRouteImport } from './routes/sell-orders'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OffersRouteImport } from './routes/offers'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
@@ -21,11 +26,31 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SellerUidRouteImport } from './routes/seller.$uid'
+import { Route as OrderIdRouteImport } from './routes/order.$id'
+import { Route as CheckoutListingIdRouteImport } from './routes/checkout.$listingId'
 import { Route as BookIdRouteImport } from './routes/book.$id'
+import { Route as ApiShippingRatesRouteImport } from './routes/api/shipping/rates'
+import { Route as ApiCheckoutVerifyRouteImport } from './routes/api/checkout/verify'
+import { Route as ApiCheckoutCreateOrderRouteImport } from './routes/api/checkout/create-order'
+import { Route as ApiAdminShipmentStatusRouteImport } from './routes/api/admin/shipment-status'
+import { Route as ApiAdminShipmentRetryRouteImport } from './routes/api/admin/shipment-retry'
+import { Route as ApiAdminRefundRouteImport } from './routes/api/admin/refund'
+import { Route as ApiAdminPayoutPaidRouteImport } from './routes/api/admin/payout-paid'
+import { Route as ApiAdminDisputeResolveRouteImport } from './routes/api/admin/dispute-resolve'
 
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
   path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellOrdersRoute = SellOrdersRouteImport.update({
+  id: '/sell-orders',
+  path: '/sell-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -33,9 +58,24 @@ const SellRoute = SellRouteImport.update({
   path: '/sell',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OffersRoute = OffersRouteImport.update({
@@ -83,9 +123,59 @@ const SellerUidRoute = SellerUidRouteImport.update({
   path: '/seller/$uid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderIdRoute = OrderIdRouteImport.update({
+  id: '/order/$id',
+  path: '/order/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutListingIdRoute = CheckoutListingIdRouteImport.update({
+  id: '/checkout/$listingId',
+  path: '/checkout/$listingId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookIdRoute = BookIdRouteImport.update({
   id: '/book/$id',
   path: '/book/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShippingRatesRoute = ApiShippingRatesRouteImport.update({
+  id: '/api/shipping/rates',
+  path: '/api/shipping/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutVerifyRoute = ApiCheckoutVerifyRouteImport.update({
+  id: '/api/checkout/verify',
+  path: '/api/checkout/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutCreateOrderRoute = ApiCheckoutCreateOrderRouteImport.update({
+  id: '/api/checkout/create-order',
+  path: '/api/checkout/create-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminShipmentStatusRoute = ApiAdminShipmentStatusRouteImport.update({
+  id: '/api/admin/shipment-status',
+  path: '/api/admin/shipment-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminShipmentRetryRoute = ApiAdminShipmentRetryRouteImport.update({
+  id: '/api/admin/shipment-retry',
+  path: '/api/admin/shipment-retry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminRefundRoute = ApiAdminRefundRouteImport.update({
+  id: '/api/admin/refund',
+  path: '/api/admin/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPayoutPaidRoute = ApiAdminPayoutPaidRouteImport.update({
+  id: '/api/admin/payout-paid',
+  path: '/api/admin/payout-paid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminDisputeResolveRoute = ApiAdminDisputeResolveRouteImport.update({
+  id: '/api/admin/dispute-resolve',
+  path: '/api/admin/dispute-resolve',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -98,11 +188,26 @@ export interface FileRoutesByFullPath {
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/orders': typeof OrdersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
+  '/sell-orders': typeof SellOrdersRoute
+  '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/checkout/$listingId': typeof CheckoutListingIdRoute
+  '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/refund': typeof ApiAdminRefundRoute
+  '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
+  '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
+  '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
+  '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -113,11 +218,26 @@ export interface FileRoutesByTo {
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/orders': typeof OrdersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
+  '/sell-orders': typeof SellOrdersRoute
+  '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/checkout/$listingId': typeof CheckoutListingIdRoute
+  '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/refund': typeof ApiAdminRefundRoute
+  '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
+  '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
+  '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
+  '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,11 +249,26 @@ export interface FileRoutesById {
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/orders': typeof OrdersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
+  '/sell-orders': typeof SellOrdersRoute
+  '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
+  '/checkout/$listingId': typeof CheckoutListingIdRoute
+  '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/refund': typeof ApiAdminRefundRoute
+  '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
+  '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
+  '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
+  '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,11 +281,26 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/notifications'
     | '/offers'
+    | '/orders'
+    | '/privacy'
     | '/profile'
+    | '/refunds'
     | '/sell'
+    | '/sell-orders'
+    | '/terms'
     | '/wishlist'
     | '/book/$id'
+    | '/checkout/$listingId'
+    | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dispute-resolve'
+    | '/api/admin/payout-paid'
+    | '/api/admin/refund'
+    | '/api/admin/shipment-retry'
+    | '/api/admin/shipment-status'
+    | '/api/checkout/create-order'
+    | '/api/checkout/verify'
+    | '/api/shipping/rates'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,11 +311,26 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/notifications'
     | '/offers'
+    | '/orders'
+    | '/privacy'
     | '/profile'
+    | '/refunds'
     | '/sell'
+    | '/sell-orders'
+    | '/terms'
     | '/wishlist'
     | '/book/$id'
+    | '/checkout/$listingId'
+    | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dispute-resolve'
+    | '/api/admin/payout-paid'
+    | '/api/admin/refund'
+    | '/api/admin/shipment-retry'
+    | '/api/admin/shipment-status'
+    | '/api/checkout/create-order'
+    | '/api/checkout/verify'
+    | '/api/shipping/rates'
   id:
     | '__root__'
     | '/'
@@ -176,11 +341,26 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/notifications'
     | '/offers'
+    | '/orders'
+    | '/privacy'
     | '/profile'
+    | '/refunds'
     | '/sell'
+    | '/sell-orders'
+    | '/terms'
     | '/wishlist'
     | '/book/$id'
+    | '/checkout/$listingId'
+    | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dispute-resolve'
+    | '/api/admin/payout-paid'
+    | '/api/admin/refund'
+    | '/api/admin/shipment-retry'
+    | '/api/admin/shipment-status'
+    | '/api/checkout/create-order'
+    | '/api/checkout/verify'
+    | '/api/shipping/rates'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -192,11 +372,26 @@ export interface RootRouteChildren {
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
   OffersRoute: typeof OffersRoute
+  OrdersRoute: typeof OrdersRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  RefundsRoute: typeof RefundsRoute
   SellRoute: typeof SellRoute
+  SellOrdersRoute: typeof SellOrdersRoute
+  TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
   BookIdRoute: typeof BookIdRoute
+  CheckoutListingIdRoute: typeof CheckoutListingIdRoute
+  OrderIdRoute: typeof OrderIdRoute
   SellerUidRoute: typeof SellerUidRoute
+  ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
+  ApiAdminPayoutPaidRoute: typeof ApiAdminPayoutPaidRoute
+  ApiAdminRefundRoute: typeof ApiAdminRefundRoute
+  ApiAdminShipmentRetryRoute: typeof ApiAdminShipmentRetryRoute
+  ApiAdminShipmentStatusRoute: typeof ApiAdminShipmentStatusRoute
+  ApiCheckoutCreateOrderRoute: typeof ApiCheckoutCreateOrderRoute
+  ApiCheckoutVerifyRoute: typeof ApiCheckoutVerifyRoute
+  ApiShippingRatesRoute: typeof ApiShippingRatesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +403,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WishlistRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell-orders': {
+      id: '/sell-orders'
+      path: '/sell-orders'
+      fullPath: '/sell-orders'
+      preLoaderRoute: typeof SellOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sell': {
       id: '/sell'
       path: '/sell'
@@ -215,11 +424,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offers': {
@@ -285,11 +515,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellerUidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order/$id': {
+      id: '/order/$id'
+      path: '/order/$id'
+      fullPath: '/order/$id'
+      preLoaderRoute: typeof OrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/$listingId': {
+      id: '/checkout/$listingId'
+      path: '/checkout/$listingId'
+      fullPath: '/checkout/$listingId'
+      preLoaderRoute: typeof CheckoutListingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book/$id': {
       id: '/book/$id'
       path: '/book/$id'
       fullPath: '/book/$id'
       preLoaderRoute: typeof BookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shipping/rates': {
+      id: '/api/shipping/rates'
+      path: '/api/shipping/rates'
+      fullPath: '/api/shipping/rates'
+      preLoaderRoute: typeof ApiShippingRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/verify': {
+      id: '/api/checkout/verify'
+      path: '/api/checkout/verify'
+      fullPath: '/api/checkout/verify'
+      preLoaderRoute: typeof ApiCheckoutVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/create-order': {
+      id: '/api/checkout/create-order'
+      path: '/api/checkout/create-order'
+      fullPath: '/api/checkout/create-order'
+      preLoaderRoute: typeof ApiCheckoutCreateOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/shipment-status': {
+      id: '/api/admin/shipment-status'
+      path: '/api/admin/shipment-status'
+      fullPath: '/api/admin/shipment-status'
+      preLoaderRoute: typeof ApiAdminShipmentStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/shipment-retry': {
+      id: '/api/admin/shipment-retry'
+      path: '/api/admin/shipment-retry'
+      fullPath: '/api/admin/shipment-retry'
+      preLoaderRoute: typeof ApiAdminShipmentRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/refund': {
+      id: '/api/admin/refund'
+      path: '/api/admin/refund'
+      fullPath: '/api/admin/refund'
+      preLoaderRoute: typeof ApiAdminRefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/payout-paid': {
+      id: '/api/admin/payout-paid'
+      path: '/api/admin/payout-paid'
+      fullPath: '/api/admin/payout-paid'
+      preLoaderRoute: typeof ApiAdminPayoutPaidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/dispute-resolve': {
+      id: '/api/admin/dispute-resolve'
+      path: '/api/admin/dispute-resolve'
+      fullPath: '/api/admin/dispute-resolve'
+      preLoaderRoute: typeof ApiAdminDisputeResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -304,12 +604,37 @@ const rootRouteChildren: RootRouteChildren = {
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
   OffersRoute: OffersRoute,
+  OrdersRoute: OrdersRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  RefundsRoute: RefundsRoute,
   SellRoute: SellRoute,
+  SellOrdersRoute: SellOrdersRoute,
+  TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,
   BookIdRoute: BookIdRoute,
+  CheckoutListingIdRoute: CheckoutListingIdRoute,
+  OrderIdRoute: OrderIdRoute,
   SellerUidRoute: SellerUidRoute,
+  ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,
+  ApiAdminPayoutPaidRoute: ApiAdminPayoutPaidRoute,
+  ApiAdminRefundRoute: ApiAdminRefundRoute,
+  ApiAdminShipmentRetryRoute: ApiAdminShipmentRetryRoute,
+  ApiAdminShipmentStatusRoute: ApiAdminShipmentStatusRoute,
+  ApiCheckoutCreateOrderRoute: ApiCheckoutCreateOrderRoute,
+  ApiCheckoutVerifyRoute: ApiCheckoutVerifyRoute,
+  ApiShippingRatesRoute: ApiShippingRatesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

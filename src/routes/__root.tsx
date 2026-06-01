@@ -82,12 +82,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "BookVerse — Buy & Sell Educational Books Across India" },
       { name: "description", content: "India's marketplace for educational books. Engineering, Medical, JEE, NEET, GATE, UPSC and more." },
       { name: "author", content: "BookVerse" },
+      { name: "theme-color", content: "#2563EB" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "BookVerse" },
       { property: "og:title", content: "BookVerse — Educational Books Marketplace" },
       { property: "og:description", content: "Buy and sell educational books across India." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-192x192.png" },
+      { rel: "apple-touch-icon", sizes: "192x192", href: "/icon-192x192.png" },
+      { rel: "apple-touch-icon", sizes: "512x512", href: "/icon-512x512.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -116,6 +125,25 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch (e) {
+        return true;
+      }
+    })();
+    const isPreviewHost =
+      window.location.hostname.includes("id-preview--") ||
+      window.location.hostname.includes("lovableproject.com");
+    if (isPreviewHost || isInIframe) return;
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

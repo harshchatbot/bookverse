@@ -8,7 +8,7 @@ import type { User } from "firebase/auth";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
-import { getProfile, saveProfile, uploadAvatar, type UserProfile } from "@/lib/profiles";
+import { getProfile, saveProfile, uploadAvatar, type UserProfile, type PickupAddress } from "@/lib/profiles";
 import { VerifiedBadge, hasValidMobile } from "@/components/VerifiedBadge";
 
 export const Route = createFileRoute("/profile")({
@@ -78,12 +78,22 @@ function ProfileContent({ user }: { user: User }) {
     queryFn: () => getProfile(user.uid),
   });
 
+  const emptyPickup: PickupAddress = {
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+  };
+
   const [form, setForm] = useState<Omit<UserProfile, "uid">>({
     displayName: "",
     photoURL: "",
     bio: "",
     city: "",
     mobile: "",
+    pickupAddress: emptyPickup,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [uploading, setUploading] = useState(false);
@@ -96,7 +106,9 @@ function ProfileContent({ user }: { user: User }) {
       bio: data?.bio ?? "",
       city: data?.city ?? "",
       mobile: data?.mobile ?? "",
+      pickupAddress: data?.pickupAddress ?? emptyPickup,
     });
+     
   }, [data, user]);
 
   const save = useMutation({
@@ -275,6 +287,81 @@ function ProfileContent({ user }: { user: User }) {
                         : undefined
                   }
                 />
+              </div>
+
+              <div className="border-t border-border pt-5">
+                <div className="flex items-baseline justify-between">
+                  <h2 className="font-display text-lg font-semibold">Pickup address (sellers)</h2>
+                  <span className="text-xs text-muted-foreground">Required to receive orders</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This is where the courier will pick up the book when someone buys it. Only used when you sell.
+                </p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Pickup contact name"
+                    value={form.pickupAddress?.name ?? ""}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), name: v } }))
+                    }
+                    maxLength={100}
+                  />
+                  <Field
+                    label="Pickup phone"
+                    value={form.pickupAddress?.phone ?? ""}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), phone: v } }))
+                    }
+                    maxLength={20}
+                    type="tel"
+                  />
+                </div>
+                <div className="mt-4">
+                  <label className="text-sm font-medium">Pickup address</label>
+                  <textarea
+                    value={form.pickupAddress?.address ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        pickupAddress: { ...(f.pickupAddress ?? emptyPickup), address: e.target.value },
+                      }))
+                    }
+                    rows={2}
+                    maxLength={250}
+                    placeholder="House/flat, street, area"
+                    className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                  />
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <Field
+                    label="City"
+                    value={form.pickupAddress?.city ?? ""}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), city: v } }))
+                    }
+                    maxLength={60}
+                  />
+                  <Field
+                    label="State"
+                    value={form.pickupAddress?.state ?? ""}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), state: v } }))
+                    }
+                    maxLength={60}
+                  />
+                  <Field
+                    label="Pincode"
+                    value={form.pickupAddress?.pincode ?? ""}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        pickupAddress: { ...(f.pickupAddress ?? emptyPickup), pincode: v.replace(/\D/g, "").slice(0, 6) },
+                      }))
+                    }
+                    maxLength={6}
+                    placeholder="6 digits"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-border pt-5">

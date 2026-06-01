@@ -1,40 +1,85 @@
 rules_version = '2';
 
 // BookVerse Firestore security rules
-// Copy these into Firebase Console → Firestore Database → Rules
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
+    function isSignedIn() { return request.auth != null; }
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email in [
-        'harshveernirwan@gmail.com'
-      ];
+      return isSignedIn() && request.auth.token.email in ['harshveernirwan@gmail.com'];
     }
 
     match /listings/{listingId} {
-      // Public can read approved or sold listings
-      // Owner and admin can read any of their own
       allow read: if resource.data.status in ['approved', 'sold']
                   || (isSignedIn() && resource.data.sellerUid == request.auth.uid)
                   || isAdmin();
-
-      // Anyone signed-in can create a listing (forced to pending)
       allow create: if isSignedIn()
                     && request.resource.data.sellerUid == request.auth.uid
                     && request.resource.data.status == 'pending';
-
-      // Admins can update anything; owners can mark their own approved listing as sold
       allow update: if isAdmin()
                     || (isSignedIn()
                         && resource.data.sellerUid == request.auth.uid
                         && resource.data.status == 'approved'
                         && request.resource.data.status == 'sold');
-
       allow delete: if isAdmin();
+    }
+
+    match /profiles/{uid} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Orders, payments, shipments, payouts are written by the server (Admin SDK
+    // bypasses rules). Clients only read. Buyer reads own; seller reads own; admin all.
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid
+        || resource.data.sellerUid == request.auth.uid
+        || isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid
+        || resource.data.sellerUid == request.auth.uid
+        || isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    match /shipments/{shipmentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /seller_payouts/{payoutId} {
+      allow read: if isSignedIn() && (
+        resource.data.sellerUid == request.auth.uid || isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    // Buyers/sellers can raise disputes; only admin can update/resolve.
+    match /disputes/{disputeId} {
+      allow read: if isSignedIn() && (
+        resource.data.raisedBy == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn()
+                    && request.resource.data.raisedBy == request.auth.uid
+                    && request.resource.data.status == 'open';
+      allow update, delete: if isAdmin();
+    }
+
+    match /carts/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /notifications/{id} {
+      allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userUid == request.auth.uid;
+      allow create, delete: if isAdmin();
     }
   }
 }

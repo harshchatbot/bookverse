@@ -5,6 +5,15 @@ import { auth, db, storage } from "@/integrations/firebase/client";
 
 const COLLECTION = "profiles";
 
+export interface PickupAddress {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -12,6 +21,21 @@ export interface UserProfile {
   bio: string;
   city: string;
   mobile: string;
+  pickupAddress: PickupAddress | null;
+}
+
+const EMPTY_PICKUP: PickupAddress = {
+  name: "",
+  phone: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+};
+
+export function hasCompletePickupAddress(p: PickupAddress | null | undefined): boolean {
+  if (!p) return false;
+  return !!(p.name && p.phone && p.address && p.city && p.state && /^\d{6}$/.test(p.pincode));
 }
 
 export async function getProfile(uid: string): Promise<UserProfile | null> {
@@ -25,6 +49,9 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     bio: d.bio ?? "",
     city: d.city ?? "",
     mobile: d.mobile ?? "",
+    pickupAddress: d.pickupAddress
+      ? { ...EMPTY_PICKUP, ...d.pickupAddress }
+      : null,
   };
 }
 
@@ -34,13 +61,21 @@ export async function saveProfile(uid: string, input: Omit<UserProfile, "uid">):
     { ...input, updatedAt: serverTimestamp() },
     { merge: true },
   );
-  
+
   if (auth.currentUser && auth.currentUser.uid === uid) {
     await updateProfile(auth.currentUser, {
       displayName: input.displayName || null,
       photoURL: input.photoURL || null,
     });
   }
+}
+
+export async function savePickupAddress(uid: string, pickup: PickupAddress): Promise<void> {
+  await setDoc(
+    doc(db, COLLECTION, uid),
+    { pickupAddress: pickup, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
 }
 
 export async function uploadAvatar(uid: string, file: File): Promise<string> {
