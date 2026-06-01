@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/integrations/firebase/client";
 import type { Listing } from "./types";
+import { serializeFirestore } from "./serialize";
 
 const COLLECTION = "wishlists";
 const LISTINGS = "listings";
@@ -52,7 +53,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
   const map = new Map<string, Listing>();
   for (const snap of results) {
     for (const d of snap.docs) {
-      map.set(d.id, { id: d.id, ...(d.data() as Omit<Listing, "id">) });
+      map.set(d.id, serializeFirestore({ id: d.id, ...(d.data() as Omit<Listing, "id">) }));
     }
   }
   // preserve order of input ids (most-recently-saved first if caller reverses)

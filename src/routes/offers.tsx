@@ -220,7 +220,8 @@ function StatusBadge({ status }: { status: OfferStatus }) {
 }
 
 function formatDate(offer: Offer) {
-  return offer.createdAt?.toDate().toLocaleDateString("en-IN", {
+  if (!offer.createdAt) return undefined;
+  return new Date(offer.createdAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",

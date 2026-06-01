@@ -10,10 +10,10 @@ import {
   serverTimestamp,
   updateDoc,
   where,
-  type Timestamp,
 } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/integrations/firebase/client";
+import { serializeFirestore } from "./serialize";
 
 export const OFFERS_COLLECTION = "offers";
 
@@ -52,7 +52,7 @@ export interface Offer {
   amount: number;
   message: string;
   status: OfferStatus;
-  createdAt: Timestamp | null;
+  createdAt: string | null;
 }
 
 export async function createOffer(input: NewOfferInput): Promise<string> {
@@ -97,7 +97,9 @@ export async function getOffersForSeller(uid: string): Promise<Offer[]> {
       orderBy("createdAt", "desc"),
     ),
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Offer, "id">) }));
+  return snap.docs.map((d) =>
+    serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }),
+  );
 }
 
 export async function getOffersForBuyer(uid: string): Promise<Offer[]> {
@@ -108,7 +110,9 @@ export async function getOffersForBuyer(uid: string): Promise<Offer[]> {
       orderBy("createdAt", "desc"),
     ),
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Offer, "id">) }));
+  return snap.docs.map((d) =>
+    serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }),
+  );
 }
 
 export async function getMyPendingOfferForListing(
@@ -125,7 +129,7 @@ export async function getMyPendingOfferForListing(
   );
   if (snap.empty) return null;
   const d = snap.docs[0];
-  return { id: d.id, ...(d.data() as Omit<Offer, "id">) };
+  return serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) });
 }
 
 export async function getMyLatestOfferForListing(
@@ -143,7 +147,7 @@ export async function getMyLatestOfferForListing(
   );
   if (snap.empty) return null;
   const d = snap.docs[0];
-  return { id: d.id, ...(d.data() as Omit<Offer, "id">) };
+  return serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) });
 }
 
 

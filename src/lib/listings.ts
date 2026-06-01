@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 import { db, storage } from "@/integrations/firebase/client";
 import type { Listing } from "./types";
 import type { ListingStatus } from "./constants";
+import { serializeFirestore } from "./serialize";
 
 const COLLECTION = "listings";
 
@@ -54,11 +55,13 @@ export async function createListing(input: NewListingInput): Promise<string> {
 export async function getListing(id: string): Promise<Listing | null> {
   const snap = await getDoc(doc(db, COLLECTION, id));
   if (!snap.exists()) return null;
-  return { id: snap.id, ...(snap.data() as Omit<Listing, "id">) };
+  return serializeFirestore({ id: snap.id, ...(snap.data() as Omit<Listing, "id">) });
 }
 
 function snapToListings(snap: Awaited<ReturnType<typeof getDocs>>): Listing[] {
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Listing, "id">) }));
+  return snap.docs.map((d) =>
+    serializeFirestore({ id: d.id, ...(d.data() as Omit<Listing, "id">) }),
+  );
 }
 
 export type ListingCursor = QueryDocumentSnapshot<DocumentData>;
@@ -119,7 +122,9 @@ export async function getApprovedListings(options?: {
   constraints.push(fbLimit(pageSize));
 
   const snap = await getDocs(query(collection(db, COLLECTION), ...constraints));
-  const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Listing, "id">) }));
+  const items = snap.docs.map((d) =>
+    serializeFirestore({ id: d.id, ...(d.data() as Omit<Listing, "id">) }),
+  );
   const cursor = snap.docs.length === pageSize ? snap.docs[snap.docs.length - 1] : null;
   return { items, cursor };
 }

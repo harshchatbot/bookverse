@@ -159,7 +159,7 @@ function NotificationsList() {
                 <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
                 {n.createdAt && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {n.createdAt.toDate().toLocaleString("en-IN", {
+                    {new Date(n.createdAt).toLocaleString("en-IN", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",

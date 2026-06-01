@@ -153,7 +153,7 @@ export function NotificationsBell() {
                           </p>
                           {n.createdAt && (
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              {n.createdAt.toDate().toLocaleString("en-IN", {
+                              {new Date(n.createdAt).toLocaleString("en-IN", {
                                 day: "numeric",
                                 month: "short",
                                 hour: "numeric",

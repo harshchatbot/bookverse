@@ -1,4 +1,3 @@
-import type { Timestamp } from "firebase/firestore";
 import type { CategoryValue, ConditionValue, DeliveryType, ListingStatus } from "./constants";
 
 export interface Listing {
@@ -19,7 +18,7 @@ export interface Listing {
   sellerUid: string;
   sellerEmail: string;
   status: ListingStatus;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   views?: number;
 }

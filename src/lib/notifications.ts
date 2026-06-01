@@ -10,9 +10,9 @@ import {
   doc,
   where,
   writeBatch,
-  type Timestamp,
 } from "firebase/firestore";
 import { db } from "@/integrations/firebase/client";
+import { serializeFirestore } from "./serialize";
 
 export const NOTIFICATIONS_COLLECTION = "notifications";
 
@@ -42,7 +42,7 @@ export interface AppNotification {
   listingId?: string;
   offerId?: string;
   read: boolean;
-  createdAt: Timestamp | null;
+  createdAt: string | null;
 }
 
 export async function createNotification(input: NewNotificationInput): Promise<string> {
@@ -72,7 +72,9 @@ export async function getNotificationsForUser(
       fbLimit(max),
     ),
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AppNotification, "id">) }));
+  return snap.docs.map((d) =>
+    serializeFirestore({ id: d.id, ...(d.data() as Omit<AppNotification, "id">) }),
+  );
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
