@@ -3,39 +3,47 @@
 //   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro (build-only using cloudflare as a default target),
 //     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
 //     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// When building on Vercel, force Nitro on with the `vercel` preset so the
-// output uses Vercel's Build Output API (.vercel/output). Locally and in the
-// Lovable sandbox we leave `nitro` undefined so the wrapper's auto-detection
-// keeps Cloudflare-based preview/publish working exactly as before.
 const isVercel = !!process.env.VERCEL;
 
-export default defineConfig({
+// firebase-admin and the Google gRPC stack are Node CJS packages that use
+// __dirname/require at runtime. When Nitro rewrites them to ESM they crash
+// with "__dirname is not defined in ES module scope". Keep them external so
+// Vercel's Node runtime require()s them as CJS.
+const nodeOnlyExternals = [
+  "firebase-admin",
+  "firebase-admin/app",
+  "firebase-admin/auth",
+  "firebase-admin/firestore",
+  "@google-cloud/firestore",
+  "@grpc/grpc-js",
+  "@grpc/proto-loader",
+  "google-gax",
+  "google-auth-library",
+  "gcp-metadata",
+  "protobufjs",
+  "long",
+];
+
+const vercelNitro = {
+  preset: "vercel",
+  output: {
+    dir: ".vercel/output",
+    serverDir: ".vercel/output/functions/__server.func",
+    publicDir: ".vercel/output/static",
+  },
+  externals: { external: nodeOnlyExternals },
+};
+
+const config = {
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
     server: { entry: "server" },
   },
-  ...(isVercel
-    ? {
-        nitro: {
-          preset: "vercel",
-          // The Lovable wrapper hard-codes output.{dir,serverDir,publicDir}
-          // to "dist/..." which suppresses Nitro's vercel preset defaults
-          // and leaves Vercel with no Build Output API tree to serve (404).
-          // Restore all three paths the `vercel` preset expects.
-          output: {
-            dir: ".vercel/output",
-            // The function directory name becomes the route destination in
-            // config.json. Nitro's vercel preset routes to `/__server`, so
-            // the function MUST be emitted as `__server.func` — not
-            // `__nitro.func` — or every request 404s.
-            serverDir: ".vercel/output/functions/__server.func",
-            publicDir: ".vercel/output/static",
-          },
-        },
-      }
-    : {}),
-});
+  ...(isVercel ? { nitro: vercelNitro } : {}),
+};
+
+// Cast: the wrapper's Nitro type omits `externals`, but Nitro accepts it
+// and the vercel preset forwards it to rollup's external resolution.
+export default defineConfig(config as Parameters<typeof defineConfig>[0]);
+

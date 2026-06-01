@@ -37,6 +37,7 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
           payload?: {
             payment?: { entity?: { id?: string; order_id?: string; notes?: Record<string, string> } };
             refund?: { entity?: { id?: string; payment_id?: string; status?: string; amount?: number } };
+            order?: { entity?: { id?: string } };
           };
         };
         try {
@@ -48,7 +49,9 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
         const db = adminDb();
 
         // ---- payment.captured: reconcile orders/{id} → paid + run fulfillment ----
-        if (event === "payment.captured") {
+        // ---- payment.captured / order.paid: both signal a successful payment.
+        // We handle them identically so either one fully reconciles the order.
+        if (event === "payment.captured" || event === "order.paid") {
           const pay = evt.payload?.payment?.entity;
           const rzpOrderId = pay?.order_id;
           if (!rzpOrderId) return jsonOk({ ok: true, skipped: "no order_id" });
