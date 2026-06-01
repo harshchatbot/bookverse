@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:vercel": "vite build && test -f .vercel/output/config.json && echo 'Vercel output exists'",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

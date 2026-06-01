@@ -22,11 +22,14 @@ export default defineConfig({
     ? {
         nitro: {
           preset: "vercel",
-          // The Lovable wrapper defaults output.dir to "dist", which
-          // suppresses Nitro's vercel preset default of ".vercel/output"
-          // and causes Vercel to 404. Restore the preset's expected dir.
+          // The Lovable wrapper hard-codes output.{dir,serverDir,publicDir}
+          // to "dist/..." which suppresses Nitro's vercel preset defaults
+          // and leaves Vercel with no Build Output API tree to serve (404).
+          // Restore all three paths the `vercel` preset expects.
           output: {
             dir: ".vercel/output",
+            serverDir: ".vercel/output/functions/__nitro.func",
+            publicDir: ".vercel/output/static",
           },
         },
       }
