@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
+import { Illustration } from "@/components/Illustration";
 import { getApprovedListings, type ListingCursor } from "@/lib/listings";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { Loader2, Search, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
@@ -318,7 +319,8 @@ function Browse() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
-                <p className="font-semibold">No books match your filters</p>
+                <Illustration variant="search" size={200} className="mx-auto" />
+                <p className="mt-6 font-semibold">No books match your filters</p>
                 <p className="mt-1 text-sm text-muted-foreground">Try widening your search or clearing filters.</p>
                 {activeFilters > 0 && (
                   <button onClick={clearAll} className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">

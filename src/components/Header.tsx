@@ -3,7 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/AuthGate";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { useState } from "react";
-import { BookOpen, Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package } from "lucide-react";
+import { Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package, BarChart3 } from "lucide-react";
+import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
 
 export function Header() {
   const { signInWithGoogle, signOut } = useAuth();
@@ -41,11 +42,11 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
-            <BookOpen className="h-4 w-4" />
+        <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
+          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
+            <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
           </span>
-          <span>BookVerse</span>
+          <span className="hidden sm:inline">BookVerse</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -131,6 +132,20 @@ export function Header() {
                         className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
                       >
                         <Package className="h-4 w-4" /> My sales
+                      </Link>
+                      <Link
+                        to="/seller-dashboard"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <BarChart3 className="h-4 w-4" /> Seller dashboard
+                      </Link>
+                      <Link
+                        to="/buyer-dashboard"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <BarChart3 className="h-4 w-4" /> Buyer dashboard
                       </Link>
                       <Link
                         to="/offers"

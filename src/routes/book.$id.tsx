@@ -13,7 +13,7 @@ import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { categoryLabel, conditionLabel, deliveryLabel } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MapPin, Truck, User, Tag, BookOpen, Share2, Link2, Check, Eye } from "lucide-react";
+import { ArrowLeft, MapPin, Truck, User, Tag, BookOpen, Share2, Link2, Check, Eye, Store, Package } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -137,8 +137,19 @@ function BookDetail() {
 
           {/* Details */}
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
-              <BookOpen className="h-3 w-3" /> {categoryLabel(listing.category)}
+          <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
+                <BookOpen className="h-3 w-3" /> {categoryLabel(listing.category)}
+              </div>
+              {listing.deliveryType === "shipping" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  <Package className="h-3.5 w-3.5" /> Nationwide Shipping
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-3 py-1 text-xs font-bold text-teal">
+                  <Store className="h-3.5 w-3.5" /> Local Pickup
+                </span>
+              )}
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">{listing.title}</h1>
             <p className="mt-2 text-lg text-muted-foreground">by {listing.author}</p>

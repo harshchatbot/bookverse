@@ -20,7 +20,9 @@ export type NotificationType =
   | "offer_received"
   | "offer_accepted"
   | "offer_declined"
-  | "listing_sold";
+  | "listing_sold"
+  | "order_delivered"
+  | "order_cancelled_by_seller";
 
 export interface NewNotificationInput {
   userUid: string;

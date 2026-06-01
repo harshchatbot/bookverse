@@ -409,10 +409,14 @@ function SellForm({ user }: { user: User }) {
                 <Field label="Edition (optional)">
                   <Input {...register("edition")} placeholder="2nd edition, 2022" />
                 </Field>
-                <Field label="Original purchase price (₹)" error={errors.originalPrice?.message}>
+                <Field
+                  label="Original purchase price (₹) — optional"
+                  error={errors.originalPrice?.message}
+                >
                   <Input
                     type="number"
                     min={0}
+                    placeholder="Leave 0 if unknown"
                     {...register("originalPrice", { valueAsNumber: true })}
                   />
                 </Field>
@@ -633,7 +637,7 @@ function Lightbox({
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-red-500/80 transition"
+        className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-destructive/80 transition"
         aria-label="Remove photo"
       >
         <Trash2 className="h-5 w-5" />

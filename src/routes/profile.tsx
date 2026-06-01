@@ -8,6 +8,7 @@ import type { User } from "firebase/auth";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { PickupMapPreview } from "@/components/PickupMapPreview";
 import { getProfile, saveProfile, uploadAvatar, type UserProfile, type PickupAddress } from "@/lib/profiles";
 import { VerifiedBadge, hasValidMobile } from "@/components/VerifiedBadge";
 
@@ -98,6 +99,7 @@ function ProfileContent({ user }: { user: User }) {
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [uploading, setUploading] = useState(false);
   const [mobileTouched, setMobileTouched] = useState(false);
+  const [pickupMismatch, setPickupMismatch] = useState(false);
 
   useEffect(() => {
     setForm({
@@ -155,6 +157,27 @@ function ProfileContent({ user }: { user: User }) {
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
+      return;
+    }
+    // Validate pickup address: if any field filled, all must be valid
+    const p = form.pickupAddress ?? emptyPickup;
+    const anyFilled = !!(p.name || p.phone || p.address || p.city || p.state || p.pincode);
+    if (anyFilled) {
+      const missing: string[] = [];
+      if (!p.name.trim()) missing.push("contact name");
+      if (!/^[0-9+\-\s()]{10,20}$/.test(p.phone) || p.phone.replace(/\D/g, "").length < 10)
+        missing.push("valid phone");
+      if (!p.address.trim()) missing.push("address");
+      if (!p.city.trim()) missing.push("city");
+      if (!p.state.trim()) missing.push("state");
+      if (!/^\d{6}$/.test(p.pincode)) missing.push("6-digit pincode");
+      if (missing.length) {
+        toast.error(`Pickup address needs: ${missing.join(", ")}`);
+        return;
+      }
+    }
+    if (pickupMismatch) {
+      toast.error("Pickup pincode doesn't match the selected map point. Update one before saving.");
       return;
     }
     setErrors({});
@@ -362,6 +385,35 @@ function ProfileContent({ user }: { user: User }) {
                     placeholder="6 digits"
                   />
                 </div>
+                <PickupMapPreview
+                  pincode={form.pickupAddress?.pincode ?? ""}
+                  address={form.pickupAddress?.address ?? ""}
+                  city={form.pickupAddress?.city ?? ""}
+                  state={form.pickupAddress?.state ?? ""}
+                  coords={
+                    form.pickupAddress?.lat != null && form.pickupAddress?.lon != null
+                      ? { lat: form.pickupAddress.lat, lon: form.pickupAddress.lon }
+                      : null
+                  }
+                  onMismatchChange={setPickupMismatch}
+                  onUseLocation={({ coords, address, city, state, pincode }) =>
+                    setForm((f) => ({
+                      ...f,
+                      pickupAddress: {
+                        ...(f.pickupAddress ?? emptyPickup),
+                        address: address ?? f.pickupAddress?.address ?? "",
+                        city: city ?? f.pickupAddress?.city ?? "",
+                        state: state ?? f.pickupAddress?.state ?? "",
+                        pincode:
+                          pincode && /^\d{6}$/.test(pincode)
+                            ? pincode
+                            : f.pickupAddress?.pincode ?? "",
+                        lat: coords.lat,
+                        lon: coords.lon,
+                      },
+                    }))
+                  }
+                />
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
@@ -373,7 +425,8 @@ function ProfileContent({ user }: { user: User }) {
                 </Link>
                 <button
                   type="submit"
-                  disabled={save.isPending || uploading}
+                  disabled={save.isPending || uploading || pickupMismatch}
+                  title={pickupMismatch ? "Resolve pincode/map mismatch first" : undefined}
                   className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
                 >
                   {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -79,6 +79,9 @@ export const Route = createFileRoute("/api/checkout/create-order")({
         const total = subtotal + gatewayFee;
         const platformFee = 0;
         const sellerAmount = bookPrice;
+        const originalPriceRaw = Number(listing.originalPrice);
+        const originalPriceSnapshot =
+          Number.isFinite(originalPriceRaw) && originalPriceRaw > 0 ? originalPriceRaw : null;
 
         // Create order doc first (pending_payment) so we can store our orderId on Razorpay receipt.
         const orderRef = db.collection("orders").doc();
@@ -113,6 +116,7 @@ export const Route = createFileRoute("/api/checkout/create-order")({
             image: Array.isArray(listing.images) ? listing.images[0] ?? "" : "",
             condition: listing.condition,
             category: listing.category,
+            originalPrice: originalPriceSnapshot,
           },
           shippingAddress: parsed.data.shippingAddress,
           courierId: parsed.data.courierId,

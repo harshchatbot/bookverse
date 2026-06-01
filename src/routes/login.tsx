@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen } from "lucide-react";
+import { Spinner } from "@/components/Spinner";
+import { Illustration } from "@/components/Illustration";
+import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -18,32 +20,42 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    if (!loading && user) navigate({ to: "/browse" });
   }, [loading, user, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-20 text-center">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
-          <BookOpen className="h-6 w-6" />
-        </div>
-        <h1 className="mt-6 font-display text-3xl font-bold">Welcome to BookVerse</h1>
-        <p className="mt-2 text-muted-foreground">Sign in to list books or manage your listings.</p>
-        <button
-          onClick={() => signInWithGoogle().catch((e) => toast.error(e?.message ?? "Sign-in failed"))}
-          className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold hover:bg-secondary"
-        >
-          <GoogleIcon /> Continue with Google
-        </button>
-        <Link to="/" className="mt-4 text-sm text-muted-foreground hover:text-foreground">
-          Back to home
-        </Link>
+        {loading ? (
+          <Spinner size={72} label="Just a moment…" />
+        ) : (
+          <>
+            <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
+              <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
+            </span>
+            <h1 className="mt-6 font-display text-3xl font-bold">Welcome to BookVerse</h1>
+            <p className="mt-2 text-muted-foreground">Sign in to browse, list books, and pick up where you left off.</p>
+            <button
+              onClick={() => signInWithGoogle().catch((e) => toast.error(e?.message ?? "Sign-in failed"))}
+              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold hover:bg-secondary"
+            >
+              <GoogleIcon /> Continue with Google
+            </button>
+            <Link to="/" className="mt-4 text-sm text-muted-foreground hover:text-foreground">
+              Back to home
+            </Link>
+            <div className="mt-10 opacity-90">
+              <Illustration variant="books" size={240} />
+            </div>
+          </>
+        )}
       </main>
       <Footer />
     </div>
   );
 }
+
 
 function GoogleIcon() {
   return (

@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
+import { Illustration } from "@/components/Illustration";
 import { useAuth } from "@/hooks/useAuth";
 import { getListingsByIds, getWishlistIds } from "@/lib/wishlist";
 
@@ -90,8 +91,8 @@ function WishlistContent() {
   if (listings.length === 0) {
     return (
       <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
-        <Heart className="h-10 w-10 text-muted-foreground" />
-        <p className="mt-3 font-semibold">No saved books yet</p>
+        <Illustration variant="wishlist" size={200} />
+        <p className="mt-4 font-semibold">No saved books yet</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Tap the heart on any listing to save it for later.
         </p>

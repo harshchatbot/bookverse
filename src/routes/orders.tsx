@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
+import { Illustration } from "@/components/Illustration";
 import { getMyOrdersAsBuyer } from "@/lib/orders";
 import type { User } from "firebase/auth";
 
@@ -60,10 +61,12 @@ function OrdersList({ user }: { user: User }) {
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center text-muted-foreground">
-            You haven't bought any books yet.{" "}
-            <Link to="/browse" className="font-semibold text-foreground underline">
-              Browse books →
+          <div className="mt-8 grid place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
+            <Illustration variant="orders" size={200} />
+            <p className="mt-4 font-semibold">No orders yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">When you buy a book, it shows up here.</p>
+            <Link to="/browse" className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">
+              Browse books
             </Link>
           </div>
         ) : (

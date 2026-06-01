@@ -187,6 +187,134 @@ export async function createShiprocketOrder(input: CreateOrderInput): Promise<Cr
   };
 }
 
+export interface AssignAwbResult {
+  awb: string;
+  courierCompanyId: number;
+  courierName: string;
+  raw: unknown;
+}
+
+/**
+ * Assign an AWB (waybill) to a Shiprocket shipment.
+ * If courierId is omitted, Shiprocket picks the recommended courier.
+ */
+export async function assignAwb(opts: {
+  shipmentId: number;
+  courierId?: number;
+}): Promise<AssignAwbResult> {
+  type Resp = {
+    awb_assign_status?: number;
+    status?: number;
+    message?: string;
+    response?: {
+      data?: {
+        awb_code?: string;
+        courier_company_id?: number;
+        courier_name?: string;
+      };
+    };
+  };
+  const body: Record<string, unknown> = { shipment_id: opts.shipmentId };
+  if (opts.courierId) body.courier_id = opts.courierId;
+  const data = await srFetch<Resp>(`/courier/assign/awb`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  const awb = data.response?.data?.awb_code;
+  if (!awb) {
+    throw new Error(`Shiprocket AWB assignment returned no awb: ${JSON.stringify(data)}`);
+  }
+  return {
+    awb,
+    courierCompanyId: data.response?.data?.courier_company_id ?? 0,
+    courierName: data.response?.data?.courier_name ?? "",
+    raw: data,
+  };
+}
+
+export interface PickupResult {
+  scheduledDate: string | null;
+  pickupTokenNumber: string | null;
+  raw: unknown;
+}
+
+/** Generate a pickup request for one or more shipment ids. */
+export async function generatePickup(shipmentId: number): Promise<PickupResult> {
+  type Resp = {
+    pickup_status?: number;
+    response?: {
+      pickup_scheduled_date?: string;
+      pickup_token_number?: string | number;
+    };
+    message?: string;
+  };
+  const data = await srFetch<Resp>(`/courier/generate/pickup`, {
+    method: "POST",
+    body: JSON.stringify({ shipment_id: [shipmentId] }),
+  });
+  return {
+    scheduledDate: data.response?.pickup_scheduled_date ?? null,
+    pickupTokenNumber:
+      data.response?.pickup_token_number != null
+        ? String(data.response.pickup_token_number)
+        : null,
+    raw: data,
+  };
+}
+
+/** Cancel a Shiprocket order (before AWB) or an AWB (after). Best-effort. */
+export async function cancelShiprocketShipment(opts: {
+  shiprocketOrderId?: number;
+  awb?: string;
+}): Promise<{ ok: boolean; raw: unknown }> {
+  try {
+    if (opts.awb) {
+      const data = await srFetch<unknown>(`/orders/cancel/shipment/awbs`, {
+        method: "POST",
+        body: JSON.stringify({ awbs: [opts.awb] }),
+      });
+      return { ok: true, raw: data };
+    }
+    if (opts.shiprocketOrderId) {
+      const data = await srFetch<unknown>(`/orders/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ ids: [opts.shiprocketOrderId] }),
+      });
+      return { ok: true, raw: data };
+    }
+    return { ok: false, raw: null };
+  } catch (e) {
+    return { ok: false, raw: e instanceof Error ? e.message : "cancel failed" };
+  }
+}
+
 export async function trackShipment(shipmentId: number) {
   return srFetch<unknown>(`/courier/track/shipment/${shipmentId}`);
+}
+
+/**
+ * Map free-text Shiprocket statuses (from webhooks / tracking) to our canonical
+ * OrderStatus values. Anything unknown returns null.
+ */
+export function mapShiprocketStatus(s: string | null | undefined):
+  | "pickup_scheduled"
+  | "in_transit"
+  | "delivered"
+  | "cancelled"
+  | "failed"
+  | null {
+  if (!s) return null;
+  const v = s.toLowerCase().trim();
+  if (v.includes("delivered")) return "delivered";
+  if (v.includes("rto") || v.includes("returned")) return "failed";
+  if (v.includes("cancel")) return "cancelled";
+  if (v.includes("pickup scheduled") || v === "manifested") return "pickup_scheduled";
+  if (
+    v.includes("picked up") ||
+    v.includes("in transit") ||
+    v.includes("out for delivery") ||
+    v.includes("shipped")
+  )
+    return "in_transit";
+  return null;
 }

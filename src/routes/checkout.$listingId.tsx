@@ -296,7 +296,7 @@ function CheckoutContent({ user }: { user: User }) {
             <h1 className="font-display text-3xl font-bold">Checkout</h1>
 
             {!pickupReady && (
-              <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="flex items-start gap-3 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-sm text-foreground">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
                   <p className="font-semibold">Seller hasn't set up pickup yet</p>

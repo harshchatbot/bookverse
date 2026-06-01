@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SellerDashboardRouteImport } from './routes/seller-dashboard'
 import { Route as SellOrdersRouteImport } from './routes/sell-orders'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as RefundsRouteImport } from './routes/refunds'
@@ -21,6 +22,7 @@ import { Route as OffersRouteImport } from './routes/offers'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as BuyerDashboardRouteImport } from './routes/buyer-dashboard'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
@@ -30,13 +32,18 @@ import { Route as OrderIdRouteImport } from './routes/order.$id'
 import { Route as CheckoutListingIdRouteImport } from './routes/checkout.$listingId'
 import { Route as BookIdRouteImport } from './routes/book.$id'
 import { Route as ApiShippingRatesRouteImport } from './routes/api/shipping/rates'
+import { Route as ApiSellerRejectOrderRouteImport } from './routes/api/seller/reject-order'
 import { Route as ApiCheckoutVerifyRouteImport } from './routes/api/checkout/verify'
 import { Route as ApiCheckoutCreateOrderRouteImport } from './routes/api/checkout/create-order'
 import { Route as ApiAdminShipmentStatusRouteImport } from './routes/api/admin/shipment-status'
 import { Route as ApiAdminShipmentRetryRouteImport } from './routes/api/admin/shipment-retry'
 import { Route as ApiAdminRefundRouteImport } from './routes/api/admin/refund'
+import { Route as ApiAdminReconcileRouteImport } from './routes/api/admin/reconcile'
 import { Route as ApiAdminPayoutPaidRouteImport } from './routes/api/admin/payout-paid'
 import { Route as ApiAdminDisputeResolveRouteImport } from './routes/api/admin/dispute-resolve'
+import { Route as ApiPublicShiprocketWebhookRouteImport } from './routes/api/public/shiprocket/webhook'
+import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay/webhook'
+import { Route as ApiPublicCronReconcileRouteImport } from './routes/api/public/cron/reconcile'
 
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
@@ -46,6 +53,11 @@ const WishlistRoute = WishlistRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellerDashboardRoute = SellerDashboardRouteImport.update({
+  id: '/seller-dashboard',
+  path: '/seller-dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellOrdersRoute = SellOrdersRouteImport.update({
@@ -98,6 +110,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuyerDashboardRoute = BuyerDashboardRouteImport.update({
+  id: '/buyer-dashboard',
+  path: '/buyer-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
@@ -143,6 +160,11 @@ const ApiShippingRatesRoute = ApiShippingRatesRouteImport.update({
   path: '/api/shipping/rates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSellerRejectOrderRoute = ApiSellerRejectOrderRouteImport.update({
+  id: '/api/seller/reject-order',
+  path: '/api/seller/reject-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCheckoutVerifyRoute = ApiCheckoutVerifyRouteImport.update({
   id: '/api/checkout/verify',
   path: '/api/checkout/verify',
@@ -168,6 +190,11 @@ const ApiAdminRefundRoute = ApiAdminRefundRouteImport.update({
   path: '/api/admin/refund',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminReconcileRoute = ApiAdminReconcileRouteImport.update({
+  id: '/api/admin/reconcile',
+  path: '/api/admin/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPayoutPaidRoute = ApiAdminPayoutPaidRouteImport.update({
   id: '/api/admin/payout-paid',
   path: '/api/admin/payout-paid',
@@ -178,12 +205,30 @@ const ApiAdminDisputeResolveRoute = ApiAdminDisputeResolveRouteImport.update({
   path: '/api/admin/dispute-resolve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicShiprocketWebhookRoute =
+  ApiPublicShiprocketWebhookRouteImport.update({
+    id: '/api/public/shiprocket/webhook',
+    path: '/api/public/shiprocket/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRazorpayWebhookRoute =
+  ApiPublicRazorpayWebhookRouteImport.update({
+    id: '/api/public/razorpay/webhook',
+    path: '/api/public/razorpay/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCronReconcileRoute = ApiPublicCronReconcileRouteImport.update({
+  id: '/api/public/cron/reconcile',
+  path: '/api/public/cron/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/buyer-dashboard': typeof BuyerDashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -194,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
   '/sell-orders': typeof SellOrdersRoute
+  '/seller-dashboard': typeof SellerDashboardRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
@@ -202,18 +248,24 @@ export interface FileRoutesByFullPath {
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
   '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
+  '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
+  '/api/public/razorpay/webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/shiprocket/webhook': typeof ApiPublicShiprocketWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/buyer-dashboard': typeof BuyerDashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -224,6 +276,7 @@ export interface FileRoutesByTo {
   '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
   '/sell-orders': typeof SellOrdersRoute
+  '/seller-dashboard': typeof SellerDashboardRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
@@ -232,12 +285,17 @@ export interface FileRoutesByTo {
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
   '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
+  '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
+  '/api/public/razorpay/webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/shiprocket/webhook': typeof ApiPublicShiprocketWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -245,6 +303,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
+  '/buyer-dashboard': typeof BuyerDashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -255,6 +314,7 @@ export interface FileRoutesById {
   '/refunds': typeof RefundsRoute
   '/sell': typeof SellRoute
   '/sell-orders': typeof SellOrdersRoute
+  '/seller-dashboard': typeof SellerDashboardRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
   '/book/$id': typeof BookIdRoute
@@ -263,12 +323,17 @@ export interface FileRoutesById {
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
+  '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
   '/api/admin/shipment-retry': typeof ApiAdminShipmentRetryRoute
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
+  '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
+  '/api/public/razorpay/webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/shiprocket/webhook': typeof ApiPublicShiprocketWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -277,6 +342,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/browse'
+    | '/buyer-dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -287,6 +353,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/sell'
     | '/sell-orders'
+    | '/seller-dashboard'
     | '/terms'
     | '/wishlist'
     | '/book/$id'
@@ -295,18 +362,24 @@ export interface FileRouteTypes {
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
     | '/api/admin/payout-paid'
+    | '/api/admin/reconcile'
     | '/api/admin/refund'
     | '/api/admin/shipment-retry'
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/seller/reject-order'
     | '/api/shipping/rates'
+    | '/api/public/cron/reconcile'
+    | '/api/public/razorpay/webhook'
+    | '/api/public/shiprocket/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/admin'
     | '/browse'
+    | '/buyer-dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -317,6 +390,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/sell'
     | '/sell-orders'
+    | '/seller-dashboard'
     | '/terms'
     | '/wishlist'
     | '/book/$id'
@@ -325,18 +399,24 @@ export interface FileRouteTypes {
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
     | '/api/admin/payout-paid'
+    | '/api/admin/reconcile'
     | '/api/admin/refund'
     | '/api/admin/shipment-retry'
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/seller/reject-order'
     | '/api/shipping/rates'
+    | '/api/public/cron/reconcile'
+    | '/api/public/razorpay/webhook'
+    | '/api/public/shiprocket/webhook'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/admin'
     | '/browse'
+    | '/buyer-dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -347,6 +427,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/sell'
     | '/sell-orders'
+    | '/seller-dashboard'
     | '/terms'
     | '/wishlist'
     | '/book/$id'
@@ -355,12 +436,17 @@ export interface FileRouteTypes {
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
     | '/api/admin/payout-paid'
+    | '/api/admin/reconcile'
     | '/api/admin/refund'
     | '/api/admin/shipment-retry'
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/seller/reject-order'
     | '/api/shipping/rates'
+    | '/api/public/cron/reconcile'
+    | '/api/public/razorpay/webhook'
+    | '/api/public/shiprocket/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -368,6 +454,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   BrowseRoute: typeof BrowseRoute
+  BuyerDashboardRoute: typeof BuyerDashboardRoute
   LoginRoute: typeof LoginRoute
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -378,6 +465,7 @@ export interface RootRouteChildren {
   RefundsRoute: typeof RefundsRoute
   SellRoute: typeof SellRoute
   SellOrdersRoute: typeof SellOrdersRoute
+  SellerDashboardRoute: typeof SellerDashboardRoute
   TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
   BookIdRoute: typeof BookIdRoute
@@ -386,12 +474,17 @@ export interface RootRouteChildren {
   SellerUidRoute: typeof SellerUidRoute
   ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
   ApiAdminPayoutPaidRoute: typeof ApiAdminPayoutPaidRoute
+  ApiAdminReconcileRoute: typeof ApiAdminReconcileRoute
   ApiAdminRefundRoute: typeof ApiAdminRefundRoute
   ApiAdminShipmentRetryRoute: typeof ApiAdminShipmentRetryRoute
   ApiAdminShipmentStatusRoute: typeof ApiAdminShipmentStatusRoute
   ApiCheckoutCreateOrderRoute: typeof ApiCheckoutCreateOrderRoute
   ApiCheckoutVerifyRoute: typeof ApiCheckoutVerifyRoute
+  ApiSellerRejectOrderRoute: typeof ApiSellerRejectOrderRoute
   ApiShippingRatesRoute: typeof ApiShippingRatesRoute
+  ApiPublicCronReconcileRoute: typeof ApiPublicCronReconcileRoute
+  ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
+  ApiPublicShiprocketWebhookRoute: typeof ApiPublicShiprocketWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -408,6 +501,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seller-dashboard': {
+      id: '/seller-dashboard'
+      path: '/seller-dashboard'
+      fullPath: '/seller-dashboard'
+      preLoaderRoute: typeof SellerDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell-orders': {
@@ -480,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buyer-dashboard': {
+      id: '/buyer-dashboard'
+      path: '/buyer-dashboard'
+      fullPath: '/buyer-dashboard'
+      preLoaderRoute: typeof BuyerDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/browse': {
       id: '/browse'
       path: '/browse'
@@ -543,6 +650,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShippingRatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/seller/reject-order': {
+      id: '/api/seller/reject-order'
+      path: '/api/seller/reject-order'
+      fullPath: '/api/seller/reject-order'
+      preLoaderRoute: typeof ApiSellerRejectOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/checkout/verify': {
       id: '/api/checkout/verify'
       path: '/api/checkout/verify'
@@ -578,6 +692,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminRefundRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/reconcile': {
+      id: '/api/admin/reconcile'
+      path: '/api/admin/reconcile'
+      fullPath: '/api/admin/reconcile'
+      preLoaderRoute: typeof ApiAdminReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/payout-paid': {
       id: '/api/admin/payout-paid'
       path: '/api/admin/payout-paid'
@@ -592,6 +713,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminDisputeResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/shiprocket/webhook': {
+      id: '/api/public/shiprocket/webhook'
+      path: '/api/public/shiprocket/webhook'
+      fullPath: '/api/public/shiprocket/webhook'
+      preLoaderRoute: typeof ApiPublicShiprocketWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/razorpay/webhook': {
+      id: '/api/public/razorpay/webhook'
+      path: '/api/public/razorpay/webhook'
+      fullPath: '/api/public/razorpay/webhook'
+      preLoaderRoute: typeof ApiPublicRazorpayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/reconcile': {
+      id: '/api/public/cron/reconcile'
+      path: '/api/public/cron/reconcile'
+      fullPath: '/api/public/cron/reconcile'
+      preLoaderRoute: typeof ApiPublicCronReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -600,6 +742,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   BrowseRoute: BrowseRoute,
+  BuyerDashboardRoute: BuyerDashboardRoute,
   LoginRoute: LoginRoute,
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
@@ -610,6 +753,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundsRoute: RefundsRoute,
   SellRoute: SellRoute,
   SellOrdersRoute: SellOrdersRoute,
+  SellerDashboardRoute: SellerDashboardRoute,
   TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,
   BookIdRoute: BookIdRoute,
@@ -618,12 +762,17 @@ const rootRouteChildren: RootRouteChildren = {
   SellerUidRoute: SellerUidRoute,
   ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,
   ApiAdminPayoutPaidRoute: ApiAdminPayoutPaidRoute,
+  ApiAdminReconcileRoute: ApiAdminReconcileRoute,
   ApiAdminRefundRoute: ApiAdminRefundRoute,
   ApiAdminShipmentRetryRoute: ApiAdminShipmentRetryRoute,
   ApiAdminShipmentStatusRoute: ApiAdminShipmentStatusRoute,
   ApiCheckoutCreateOrderRoute: ApiCheckoutCreateOrderRoute,
   ApiCheckoutVerifyRoute: ApiCheckoutVerifyRoute,
+  ApiSellerRejectOrderRoute: ApiSellerRejectOrderRoute,
   ApiShippingRatesRoute: ApiShippingRatesRoute,
+  ApiPublicCronReconcileRoute: ApiPublicCronReconcileRoute,
+  ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
+  ApiPublicShiprocketWebhookRoute: ApiPublicShiprocketWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -8,7 +8,7 @@ import {
   jsonOk,
 } from "@/lib/admin.server";
 import { verifyRazorpaySignature } from "@/lib/razorpay.server";
-import { createShiprocketOrder } from "@/lib/shiprocket.server";
+import { runFulfillment } from "@/lib/fulfillment.server";
 
 const Body = z.object({
   orderId: z.string().min(1),
@@ -17,13 +17,6 @@ const Body = z.object({
   razorpaySignature: z.string().min(1),
 });
 
-function nowYMDHM(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(
-    d.getUTCHours(),
-  )}:${pad(d.getUTCMinutes())}`;
-}
 
 export const Route = createFileRoute("/api/checkout/verify")({
   server: {
@@ -113,66 +106,21 @@ export const Route = createFileRoute("/api/checkout/verify")({
         });
         await orderRef.update({ payoutId: payoutRef.id });
 
-        // Try Shiprocket order creation. Failure is non-fatal — admin can retry.
-        const sellerProfileSnap = await db.collection("profiles").doc(order.sellerUid).get();
-        const pickup = sellerProfileSnap.exists ? sellerProfileSnap.data()?.pickupAddress : null;
-
-        let shipmentResult: { ok: boolean; error?: string } = { ok: false };
-        if (pickup) {
-          try {
-            const sr = await createShiprocketOrder({
-              orderId: orderRef.id,
-              orderDate: nowYMDHM(),
-              pickup: {
-                name: pickup.name,
-                phone: pickup.phone,
-                address: pickup.address,
-                city: pickup.city,
-                state: pickup.state,
-                pincode: pickup.pincode,
-                location: pickup.location ?? "Primary",
-              },
-              buyer: order.shippingAddress,
-              item: {
-                name: order.listing.title,
-                sku: order.listing.id,
-                unitsPriceInr: order.bookPrice,
-                quantity: 1,
-              },
-              weightKg: 0.5,
-              paymentMethod: "Prepaid",
-              subtotalInr: order.bookPrice + order.shippingFee,
-            });
-
-            const shipmentRef = db.collection("shipments").doc();
-            await shipmentRef.set({
-              orderId: orderRef.id,
-              shiprocketOrderId: sr.shiprocketOrderId,
-              shiprocketShipmentId: sr.shipmentId,
-              status: sr.status,
-              awb: null,
-              courierName: order.courierName ?? null,
-              trackingUrl: null,
-              history: [{ status: sr.status, at: new Date().toISOString() }],
-              createdAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-            });
-
-            await orderRef.update({
-              status: "shipment_created",
-              shipmentId: shipmentRef.id,
-              shiprocketOrderId: sr.shiprocketOrderId,
-              shiprocketShipmentId: sr.shipmentId,
-              updatedAt: FieldValue.serverTimestamp(),
-            });
-            shipmentResult = { ok: true };
-          } catch (e) {
-            console.error("[verify] shiprocket failed", e);
-            shipmentResult = { ok: false, error: e instanceof Error ? e.message : "Shiprocket failed" };
-          }
-        } else {
-          shipmentResult = { ok: false, error: "Seller pickup address missing" };
+        // Run Shiprocket pipeline: create order → AWB → pickup.
+        // Failure of any sub-step is non-fatal; admin retry endpoint can resume.
+        let shipmentResult: { ok: boolean; reachedStep: string | null; error?: string };
+        try {
+          const r = await runFulfillment(orderRef.id);
+          shipmentResult = { ok: r.ok, reachedStep: r.reachedStep, error: r.error };
+        } catch (e) {
+          console.error("[verify] fulfillment threw", e);
+          shipmentResult = {
+            ok: false,
+            reachedStep: null,
+            error: e instanceof Error ? e.message : "Fulfillment failed",
+          };
         }
+
 
         // Best-effort notifications.
         try {

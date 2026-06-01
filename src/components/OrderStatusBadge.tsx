@@ -1,19 +1,19 @@
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 
 const STYLES: Record<OrderStatus, string> = {
-  pending_payment: "bg-amber-100 text-amber-900",
-  paid: "bg-blue-100 text-blue-900",
-  shipment_created: "bg-blue-100 text-blue-900",
-  pickup_scheduled: "bg-indigo-100 text-indigo-900",
-  in_transit: "bg-indigo-100 text-indigo-900",
-  delivered: "bg-emerald-100 text-emerald-900",
-  dispute_window: "bg-amber-100 text-amber-900",
-  payout_ready: "bg-emerald-100 text-emerald-900",
-  completed: "bg-emerald-600 text-white",
-  cancelled: "bg-zinc-200 text-zinc-700",
-  refund_pending: "bg-orange-100 text-orange-900",
-  refunded: "bg-zinc-200 text-zinc-700",
-  failed: "bg-red-100 text-red-900",
+  pending_payment: "bg-gold/15 text-gold-foreground border border-gold/30",
+  paid: "bg-primary/10 text-primary border border-primary/20",
+  shipment_created: "bg-primary/10 text-primary border border-primary/20",
+  pickup_scheduled: "bg-primary/15 text-primary border border-primary/25",
+  in_transit: "bg-primary/15 text-primary border border-primary/25",
+  delivered: "bg-success/15 text-success border border-success/30",
+  dispute_window: "bg-gold/15 text-gold-foreground border border-gold/30",
+  payout_ready: "bg-success/15 text-success border border-success/30",
+  completed: "bg-success text-success-foreground",
+  cancelled: "bg-muted text-muted-foreground border border-border",
+  refund_pending: "bg-gold/15 text-gold-foreground border border-gold/30",
+  refunded: "bg-muted text-muted-foreground border border-border",
+  failed: "bg-destructive/10 text-destructive border border-destructive/25",
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {

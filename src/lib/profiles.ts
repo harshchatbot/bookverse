@@ -12,6 +12,8 @@ export interface PickupAddress {
   city: string;
   state: string;
   pincode: string;
+  lat?: number;
+  lon?: number;
 }
 
 export interface UserProfile {

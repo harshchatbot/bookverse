@@ -65,6 +65,8 @@ export interface OrderListingSnapshot {
   image: string;
   condition: string;
   category: string;
+  /** Optional original purchase price snapshot (₹), used for buyer "money saved" metric. */
+  originalPrice?: number;
 }
 
 export interface Order {

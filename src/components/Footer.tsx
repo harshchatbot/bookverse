@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen } from "lucide-react";
+import bookverseLogo from "@/assets/bookverse-logo.png.asset.json";
 
 export function Footer() {
   return (
@@ -7,9 +7,9 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
-            <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
-                <BookOpen className="h-4 w-4" />
+            <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
+              <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
+                <img src={bookverseLogo.url} alt="" className="h-full w-full scale-125 object-contain" />
               </span>
               BookVerse
             </Link>
@@ -35,8 +35,31 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        <div className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} BookVerse. Made for learners across India.
+        <div className="mt-10 space-y-2 border-t border-border pt-6 text-xs text-muted-foreground">
+          <p>© 2026 BookVerse. Made for learners across India.</p>
+          <p>
+            A unit of{" "}
+            <a
+              href="https://www.thetechnologyfiction.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-primary"
+            >
+              The Technology Fiction
+            </a>
+            .
+          </p>
+          <p>
+            Made with <span aria-label="love" className="text-destructive">♥</span> by{" "}
+            <a
+              href="https://www.techfilabs.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-primary"
+            >
+              TechFi Labs
+            </a>
+          </p>
         </div>
       </div>
     </footer>
