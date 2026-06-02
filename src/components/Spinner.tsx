@@ -76,3 +76,72 @@ export function PageSpinner({ label = "Loading your shelf…" }: { label?: strin
     </div>
   );
 }
+
+
+
+type FullScreenLoaderProps = {
+  open: boolean;
+  title?: string;
+  message?: string;
+  progress?: number;
+};
+
+export function FullScreenLoader({
+  open,
+  title = "Please wait…",
+  message = "We are working on it.",
+  progress,
+}: FullScreenLoaderProps) {
+  if (!open) return null;
+
+  const safeProgress =
+    typeof progress === "number" ? Math.min(100, Math.max(0, Math.round(progress))) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/85 px-6 backdrop-blur-md"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="fullscreen-loader-title"
+      aria-describedby="fullscreen-loader-message"
+    >
+      <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-elegant">
+        <Spinner size={84} label={title} />
+
+        <p id="fullscreen-loader-title" className="sr-only">
+          {title}
+        </p>
+
+        <p id="fullscreen-loader-message" className="mt-3 text-sm text-muted-foreground">
+          {message}
+        </p>
+
+        {safeProgress !== null ? (
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span>Upload progress</span>
+              <span>{safeProgress}%</span>
+            </div>
+            <div
+              className="h-2 overflow-hidden rounded-full bg-secondary"
+              role="progressbar"
+              aria-label="Listing upload progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={safeProgress}
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${safeProgress}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Please don’t close this tab until your listing is submitted.
+        </p>
+      </div>
+    </div>
+  );
+}

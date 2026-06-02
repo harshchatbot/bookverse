@@ -7,6 +7,78 @@ import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { createBookInquiry } from "@/lib/inquiries";
 import { getUserProfile } from "@/lib/users";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Unknown error";
+}
+
+async function openListingWhatsApp({
+  listing,
+  access,
+}: {
+  listing: Listing;
+  access: ReturnType<typeof useMarketplaceAccess>;
+}) {
+  if (!access.ensureAccess("contact") || !access.user) return;
+
+  if (listing.sellerUid === access.user.uid) {
+    toast.error("This is your own listing. Buyers will contact you on WhatsApp after approval.");
+    return;
+  }
+
+  const seller = await getUserProfile(listing.sellerUid);
+  const mobile = seller?.whatsappNumber || seller?.mobile || "";
+
+  if (!mobile) {
+    toast.error("Seller contact is not available yet.");
+    console.error("[whatsapp] seller mobile missing", {
+      sellerUid: listing.sellerUid,
+      seller,
+    });
+    return;
+  }
+
+  let whatsappUrl = "";
+  try {
+    whatsappUrl = getWhatsAppUrl(listing, mobile);
+  } catch (error) {
+    console.error("[whatsapp] invalid seller mobile", {
+      sellerUid: listing.sellerUid,
+      mobile,
+      error,
+    });
+    toast.error("Seller WhatsApp number is invalid.");
+    return;
+  }
+
+  try {
+    await createBookInquiry({
+      listingId: listing.id,
+      listingTitle: listing.title,
+      sellerUid: listing.sellerUid,
+      buyerUid: access.user.uid,
+      buyerName: access.profile?.name || access.user.displayName || access.user.email || "Buyer",
+    });
+  } catch (error) {
+    console.error("[whatsapp] failed to create inquiry", {
+      listingId: listing.id,
+      sellerUid: listing.sellerUid,
+      buyerUid: access.user.uid,
+      error,
+    });
+    toast.error(`Could not create inquiry: ${getErrorMessage(error)}`);
+    return;
+  }
+
+  const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+  if (!opened) {
+    console.error("[whatsapp] window.open blocked", { whatsappUrl });
+    toast.error("Popup blocked. Please allow popups for BookVerse and try again.");
+    return;
+  }
+}
+
 export function WhatsAppButton({
   listing,
   className = "",
@@ -19,25 +91,13 @@ export function WhatsAppButton({
 
   const openWhatsApp = async () => {
     if (opening) return;
-    if (!access.ensureAccess("contact") || !access.user) return;
     setOpening(true);
+
     try {
-      const seller = await getUserProfile(listing.sellerUid);
-      const mobile = seller?.whatsappNumber || seller?.mobile || "";
-      if (!mobile) {
-        toast.error("Seller contact is not available yet.");
-        return;
-      }
-      await createBookInquiry({
-        listingId: listing.id,
-        listingTitle: listing.title,
-        sellerUid: listing.sellerUid,
-        buyerUid: access.user.uid,
-        buyerName: access.profile?.name || access.user.displayName || access.user.email || "Buyer",
-      });
-      window.open(getWhatsAppUrl(listing, mobile), "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Could not open WhatsApp. Please try again.");
+      await openListingWhatsApp({ listing, access });
+    } catch (error) {
+      console.error("[whatsapp] unexpected failure", error);
+      toast.error(`Could not open WhatsApp: ${getErrorMessage(error)}`);
     } finally {
       setOpening(false);
     }
@@ -73,26 +133,15 @@ export function WhatsAppIconLink({
   const openWhatsApp = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
+
     if (opening) return;
-    if (!access.ensureAccess("contact") || !access.user) return;
     setOpening(true);
+
     try {
-      const seller = await getUserProfile(listing.sellerUid);
-      const mobile = seller?.whatsappNumber || seller?.mobile || "";
-      if (!mobile) {
-        toast.error("Seller contact is not available yet.");
-        return;
-      }
-      await createBookInquiry({
-        listingId: listing.id,
-        listingTitle: listing.title,
-        sellerUid: listing.sellerUid,
-        buyerUid: access.user.uid,
-        buyerName: access.profile?.name || access.user.displayName || access.user.email || "Buyer",
-      });
-      window.open(getWhatsAppUrl(listing, mobile), "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Could not open WhatsApp. Please try again.");
+      await openListingWhatsApp({ listing, access });
+    } catch (error) {
+      console.error("[whatsapp] unexpected failure", error);
+      toast.error(`Could not open WhatsApp: ${getErrorMessage(error)}`);
     } finally {
       setOpening(false);
     }

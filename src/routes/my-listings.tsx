@@ -24,7 +24,7 @@ const statusStyle: Record<ListingStatus, string> = {
 };
 
 const statusLabel: Record<ListingStatus, string> = {
-  pending: "Pending review",
+  pending: "Pending admin approval",
   approved: "Live",
   rejected: "Rejected",
   sold: "Sold",
@@ -99,7 +99,13 @@ function StatCounts({ listings }: { listings: Listing[] }) {
 function MyListingsContent({ user }: { user: User }) {
   const qc = useQueryClient();
 
-  const { data: listings = [], isLoading } = useQuery({
+  const {
+    data: listings = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["my-listings", user.uid],
     queryFn: () => getMyListings(user.uid),
   });
@@ -146,15 +152,30 @@ function MyListingsContent({ user }: { user: User }) {
           {!isLoading && listings.length > 0 && <StatCounts listings={listings} />}
 
           <div className="mt-8 space-y-3">
-            {isLoading ? (
+            {isError ? (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm">
+                <p className="font-semibold text-destructive">Could not load your listings</p>
+                <p className="mt-1 text-muted-foreground">
+                  {error instanceof Error ? error.message : "Something went wrong while loading your listings."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="mt-4 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-24 animate-pulse rounded-2xl bg-secondary" />
               ))
             ) : listings.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
-                <p className="font-semibold">No listings yet</p>
+                <p className="font-semibold">No listings found</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  List your first book to get started.
+                  If you just submitted a book, refresh once. Your pending listings should appear here before
+                  admin approval.
                 </p>
                 <Link
                   to="/sell"
@@ -199,6 +220,11 @@ function MyListingsContent({ user }: { user: User }) {
                     >
                       {statusLabel[l.status]}
                     </span>
+                    {l.status === "pending" && (
+                      <span className="text-xs text-muted-foreground">
+                        Visible only to you until admin approval
+                      </span>
+                    )}
                     {l.status === "approved" && (
                       <button
                         onClick={() => markSold(l.id)}

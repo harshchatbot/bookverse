@@ -136,10 +136,35 @@ export async function getListingsByStatus(status: ListingStatus): Promise<Listin
 }
 
 export async function getMyListings(uid: string): Promise<Listing[]> {
-  const snap = await getDocs(
-    query(collection(db, COLLECTION), where("sellerUid", "==", uid), orderBy("createdAt", "desc")),
-  );
-  return snapToListings(snap);
+  const snap = await getDocs(query(collection(db, COLLECTION), where("sellerUid", "==", uid)));
+
+  return snapToListings(snap).sort((a, b) => {
+    const getTime = (value: unknown) => {
+      if (!value) return 0;
+
+      if (typeof value === "number") return value;
+
+      if (value instanceof Date) return value.getTime();
+
+      if (typeof value === "string") {
+        const parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        "toMillis" in value &&
+        typeof (value as { toMillis: unknown }).toMillis === "function"
+      ) {
+        return (value as { toMillis: () => number }).toMillis();
+      }
+
+      return 0;
+    };
+
+    return getTime(b.createdAt) - getTime(a.createdAt);
+  });
 }
 
 export async function getSellerApprovedListings(uid: string): Promise<Listing[]> {

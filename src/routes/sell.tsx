@@ -8,7 +8,6 @@ import { celebrate } from "@/lib/confetti";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
-import { PageSpinner } from "@/components/Spinner";
 import { useAuth } from "@/hooks/useAuth";
 import { CATEGORIES, CONDITIONS, DELIVERY_TYPES } from "@/lib/constants";
 import { createListing, uploadListingImage } from "@/lib/listings";
@@ -18,6 +17,8 @@ import { LocationSelect } from "@/components/LocationSelect";
 import { citiesForState, OTHER_CITY } from "@/data/indiaLocations";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { indianMobileNational } from "@/lib/users";
+import { FullScreenLoader, Spinner } from "@/components/Spinner";
+
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -125,6 +126,7 @@ function SellForm({ user }: { user: User }) {
   const navigate = useNavigate();
   const access = useMarketplaceAccess();
   const [images, setImages] = useState<File[]>([]);
+  const [coverImageIndex, setCoverImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -149,13 +151,35 @@ function SellForm({ user }: { user: User }) {
 
   const undoneRef = useRef<Set<string>>(new Set());
 
+  const getOrderedImages = (files: File[], coverIndex: number) => {
+    if (files.length === 0) return [];
+    const safeCoverIndex = Math.min(Math.max(coverIndex, 0), files.length - 1);
+    return [files[safeCoverIndex], ...files.filter((_, index) => index !== safeCoverIndex)];
+  };
+
+  const setAsCover = (index: number) => {
+    setCoverImageIndex(index);
+    toast.success("Cover photo selected.");
+  };
+
   const removeImage = (index: number) => {
     const file = images[index];
     if (!file) return;
     const undoKey = `${file.name}-${file.size}-${file.lastModified}-${index}`;
     // Keep the cached object URL so undo can restore the preview instantly.
     // Final cleanup happens on unmount.
-    setImages((prev) => prev.filter((_, j) => j !== index));
+    setImages((prev) => {
+      const next = prev.filter((_, j) => j !== index);
+
+      setCoverImageIndex((current) => {
+        if (next.length === 0) return 0;
+        if (index === current) return 0;
+        if (index < current) return current - 1;
+        return Math.min(current, next.length - 1);
+      });
+
+      return next;
+    });
     const toastId = toast("Photo removed", {
       action: {
         label: "Undo",
@@ -178,7 +202,13 @@ function SellForm({ user }: { user: User }) {
               return prev;
             }
             const next = [...prev];
-            next.splice(Math.min(index, next.length), 0, file);
+            const insertAt = Math.min(index, next.length);
+            next.splice(insertAt, 0, file);
+            setCoverImageIndex((current) => {
+              if (prev.length === 0) return 0;
+              if (insertAt <= current) return current + 1;
+              return current;
+            });
             return next;
           });
           toast.dismiss(toastId);
@@ -290,7 +320,15 @@ function SellForm({ user }: { user: User }) {
       );
     }
     if (toAdd.length > 0) {
-      setImages([...images, ...toAdd]);
+      setImages((prev) => {
+        const next = [...prev, ...toAdd];
+
+        if (prev.length === 0) {
+          setCoverImageIndex(0);
+        }
+
+        return next;
+      });
     }
   };
 
@@ -319,13 +357,15 @@ function SellForm({ user }: { user: User }) {
         ),
       ]);
     try {
+      const orderedImages = getOrderedImages(images, coverImageIndex);
       const imageUrls: string[] = [];
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
-        setSubmitStatus(`Uploading photo ${i + 1} of ${images.length}…`);
-        setUploadProgress(0);
+
+      for (let i = 0; i < orderedImages.length; i++) {
+        const file = orderedImages[i];
+        setSubmitStatus(`Uploading photo ${i + 1} of ${orderedImages.length}…`);
+        setUploadProgress(Math.round((i / orderedImages.length) * 85));
         console.log(
-          `[sell] uploading image ${i + 1}/${images.length}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+          `[sell] uploading image ${i + 1}/${orderedImages.length}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
         );
         try {
           const url = await uploadListingImage(user.uid, file, {
@@ -333,15 +373,16 @@ function SellForm({ user }: { user: User }) {
             onProgress: setUploadProgress,
           });
           imageUrls.push(url);
-          console.log(`[sell] uploaded ${i + 1}/${images.length}`);
+          setUploadProgress(Math.round(((i + 1) / orderedImages.length) * 85));
+          console.log(`[sell] uploaded ${i + 1}/${orderedImages.length}`);
         } catch (err) {
           console.error(`[sell] upload failed for ${file.name}`, err);
           throw err;
         }
       }
 
-      setSubmitStatus("Saving listing…");
-      setUploadProgress(100);
+      setSubmitStatus("Saving listing for admin review…");
+      setUploadProgress(92);
       console.log(`[sell] all images uploaded, creating listing doc...`);
       const city = data.city === OTHER_CITY ? manualCity.trim() : data.city;
       const { sellerMobile: _sellerMobile, ...publicListingData } = data;
@@ -359,6 +400,8 @@ function SellForm({ user }: { user: User }) {
         "Listing create",
       );
       console.log(`[sell] listing created`);
+      setSubmitStatus("Listing submitted successfully.");
+      setUploadProgress(100);
       toast.success("Listing submitted! It'll appear after admin approval.");
       celebrate();
       navigate({ to: "/my-listings" });
@@ -374,253 +417,286 @@ function SellForm({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
-        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">List a book for sale</h1>
-          <p className="mt-2 text-muted-foreground">
-            Fill the details below. Your listing goes live after admin approval — usually within a
-            day.
-          </p>
-          {!access.canUseMarketplace && (
-            <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm">
-              <p className="font-semibold">Verification required before listing</p>
-              <p className="mt-1 text-muted-foreground">
-                Please verify your email, complete your profile, and verify your mobile number to
-                continue.
-              </p>
-              <Link
-                to="/profile"
-                className="mt-3 inline-flex rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
-              >
-                Complete profile
-              </Link>
-            </div>
-          )}
+    <>
+      <FullScreenLoader
+        open={submitting}
+        title="Listing your book…"
+        message={submitStatus || "Please wait while we upload your photos and submit your listing."}
+        progress={uploadProgress}
+      />
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-8">
-            {/* Photos */}
-            <Section title="Photos" subtitle="Up to 6. The first photo will be the cover.">
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {images.map((file, i) => (
-                  <button
-                    key={`${file.name}-${file.size}-${file.lastModified}`}
-                    type="button"
-                    onClick={() => setLightboxIndex(i)}
-                    className="relative aspect-square overflow-hidden rounded-xl border border-border text-left focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <img
-                      src={getPreviewUrl(file)}
-                      alt={`Preview ${i + 1}`}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImage(i);
-                      }}
-                      className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-foreground/80 text-background hover:bg-foreground transition-colors cursor-pointer"
-                      role="button"
-                      aria-label={`Remove photo ${i + 1}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </span>
-                    {i === 0 && (
-                      <div className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                        Cover
-                      </div>
-                    )}
-                  </button>
-                ))}
-                {images.length < 6 && (
-                  <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                    <ImagePlus className="h-5 w-5" />
-                    <span className="text-xs font-medium">Add photo</span>
-                    <span className="text-[10px] text-muted-foreground">{images.length}/6</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => onFiles(e.target.files)}
-                    />
-                  </label>
-                )}
-              </div>
-              {images.length > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {images.length} photo{images.length !== 1 ? "s" : ""} selected.{" "}
-                  {6 - images.length} slot{6 - images.length !== 1 ? "s" : ""} remaining.
+      <div className="flex min-h-screen flex-col" aria-busy={submitting}>
+        <Header />
+        <main className="flex-1">
+          <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+            <h1 className="font-display text-3xl font-bold sm:text-4xl">List a book for sale</h1>
+            <p className="mt-2 text-muted-foreground">
+              Fill the details below. Your listing goes live after admin approval — usually within a
+              day.
+            </p>
+            {!access.canUseMarketplace && (
+              <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm">
+                <p className="font-semibold">Verification required before listing</p>
+                <p className="mt-1 text-muted-foreground">
+                  Please verify your email, complete your profile, and verify your mobile number to
+                  continue.
                 </p>
-              )}
-            </Section>
-
-            <Section title="Book details">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Book title" error={errors.title?.message}>
-                  <Input {...register("title")} placeholder="HC Verma Concepts of Physics Vol 1" />
-                </Field>
-                <Field label="Author name" error={errors.author?.message}>
-                  <Input {...register("author")} placeholder="H.C. Verma" />
-                </Field>
-                <Field label="Category" error={errors.category?.message}>
-                  <Select
-                    value={category}
-                    onChange={(v) => setValue("category", v, { shouldValidate: true })}
-                    options={CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
-                    placeholder="Select category"
-                  />
-                </Field>
-                <Field label="Edition (optional)">
-                  <Input {...register("edition")} placeholder="2nd edition, 2022" />
-                </Field>
-                <Field
-                  label="Original purchase price (₹) — optional"
-                  error={errors.originalPrice?.message}
+                <Link
+                  to="/profile"
+                  className="mt-3 inline-flex rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
                 >
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder="Leave 0 if unknown"
-                    {...register("originalPrice", { valueAsNumber: true })}
-                  />
-                </Field>
-                <Field label="Selling price (₹)" error={errors.sellingPrice?.message}>
-                  <Input
-                    type="number"
-                    min={1}
-                    {...register("sellingPrice", { valueAsNumber: true })}
-                  />
-                </Field>
-                <Field label="Condition" error={errors.condition?.message}>
-                  <Select
-                    value={condition}
-                    onChange={(v) => setValue("condition", v, { shouldValidate: true })}
-                    options={CONDITIONS.map((c) => ({ value: c.value, label: c.label }))}
-                    placeholder="Select condition"
-                  />
-                </Field>
-                <Field label="Delivery type" error={errors.deliveryType?.message}>
-                  <Select
-                    value={deliveryType}
-                    onChange={(v) => setValue("deliveryType", v, { shouldValidate: true })}
-                    options={DELIVERY_TYPES.map((d) => ({ value: d.value, label: d.label }))}
-                    placeholder="Select delivery"
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <LocationSelect
-                    state={stateValue}
-                    city={cityValue}
-                    manualCity={manualCity}
-                    onStateChange={(v) => setValue("state", v, { shouldValidate: true })}
-                    onCityChange={(v) => setValue("city", v, { shouldValidate: true })}
-                    onManualCityChange={setManualCity}
-                    stateError={errors.state?.message}
-                    cityError={errors.city?.message}
-                  />
-                </div>
+                  Complete profile
+                </Link>
               </div>
-              <Field label="Description" className="mt-4">
-                <textarea
-                  {...register("description")}
-                  rows={4}
-                  placeholder="Mention any highlights, notes, missing pages, etc."
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-              </Field>
-            </Section>
+            )}
 
-            <Section title="Seller contact">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Seller name" error={errors.sellerName?.message}>
-                  <Input {...register("sellerName")} placeholder="Your name" />
-                </Field>
-                <Field label="WhatsApp mobile number" error={errors.sellerMobile?.message}>
-                  <Input
-                    {...register("sellerMobile", {
-                      onChange: (e) => {
-                        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      },
-                    })}
-                    inputMode="numeric"
-                    autoComplete="tel-national"
-                    placeholder="10-digit number"
-                    maxLength={10}
-                  />
-                </Field>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Buyers will contact you on this number via WhatsApp.
-              </p>
-            </Section>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-8">
+              {/* Photos */}
+              <Section
+                title="Upload photos"
+                subtitle="Up to 6 photos. Choose a clear front-cover photo as your cover image."
+              >
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {images.map((file, i) => {
+                    const isCover = i === coverImageIndex;
 
-            <button
-              type="submit"
-              disabled={submitting || !access.canUseMarketplace}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-4 text-base font-semibold text-background shadow-elegant transition hover:scale-[1.01] disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Submitting…
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" /> Submit for review
-                </>
-              )}
-            </button>
-            {submitting && submitStatus && (
-              <div className="space-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between gap-3">
-                  <span>{submitStatus}</span>
-                  {uploadProgress > 0 && (
-                    <span className="font-medium text-foreground">{uploadProgress}%</span>
+                    return (
+                      <div
+                        key={`${file.name}-${file.size}-${file.lastModified}`}
+                        className={`relative aspect-square overflow-hidden rounded-xl border bg-secondary ${isCover ? "border-primary ring-2 ring-primary/40" : "border-border"
+                          }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setLightboxIndex(i)}
+                          className="h-full w-full text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          <img
+                            src={getPreviewUrl(file)}
+                            alt={`Preview ${i + 1}`}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-foreground/80 text-background transition-colors hover:bg-foreground"
+                          aria-label={`Remove photo ${i + 1}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+
+                        {isCover ? (
+                          <div className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            Cover
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setAsCover(i)}
+                            className="absolute bottom-1 left-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold text-foreground shadow-sm hover:bg-background"
+                          >
+                            Set as cover
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {images.length < 6 && (
+                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                      <ImagePlus className="h-5 w-5" />
+                      <span className="text-xs font-medium">Add photo</span>
+                      <span className="text-[10px] text-muted-foreground">{images.length}/6</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => onFiles(e.target.files)}
+                      />
+                    </label>
                   )}
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-300"
-                    style={{ width: `${Math.max(uploadProgress, 8)}%` }}
-                  />
-                </div>
-              </div>
-            )}
 
-            {/* Lightbox */}
-            {lightboxIndex !== null && images[lightboxIndex] && (
-              <Lightbox
-                file={images[lightboxIndex]}
-                index={lightboxIndex}
-                total={images.length}
-                onClose={() => setLightboxIndex(null)}
-                onPrev={() =>
-                  setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev))
-                }
-                onNext={() =>
-                  setLightboxIndex((prev) =>
-                    prev !== null && prev < images.length - 1 ? prev + 1 : prev,
-                  )
-                }
-                onRemove={() => {
-                  removeImage(lightboxIndex);
-                  if (images.length <= 1) {
-                    setLightboxIndex(null);
-                  } else if (lightboxIndex >= images.length - 1) {
-                    setLightboxIndex(images.length - 2);
+                {images.length > 0 && (
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      {images.length} photo{images.length !== 1 ? "s" : ""} selected.{" "}
+                      {6 - images.length} slot{6 - images.length !== 1 ? "s" : ""} remaining.
+                    </p>
+                    <p>The selected cover photo will appear in browse, search, and listing cards.</p>
+                  </div>
+                )}
+              </Section>
+
+              <Section title="Book details">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Book title" error={errors.title?.message}>
+                    <Input {...register("title")} placeholder="HC Verma Concepts of Physics Vol 1" />
+                  </Field>
+                  <Field label="Author name" error={errors.author?.message}>
+                    <Input {...register("author")} placeholder="H.C. Verma" />
+                  </Field>
+                  <Field label="Category" error={errors.category?.message}>
+                    <Select
+                      value={category}
+                      onChange={(v) => setValue("category", v, { shouldValidate: true })}
+                      options={CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
+                      placeholder="Select category"
+                    />
+                  </Field>
+                  <Field label="Edition (optional)">
+                    <Input {...register("edition")} placeholder="2nd edition, 2022" />
+                  </Field>
+                  <Field
+                    label="Original purchase price (₹) — optional"
+                    error={errors.originalPrice?.message}
+                  >
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Leave 0 if unknown"
+                      {...register("originalPrice", { valueAsNumber: true })}
+                    />
+                  </Field>
+                  <Field label="Selling price (₹)" error={errors.sellingPrice?.message}>
+                    <Input
+                      type="number"
+                      min={1}
+                      {...register("sellingPrice", { valueAsNumber: true })}
+                    />
+                  </Field>
+                  <Field label="Condition" error={errors.condition?.message}>
+                    <Select
+                      value={condition}
+                      onChange={(v) => setValue("condition", v, { shouldValidate: true })}
+                      options={CONDITIONS.map((c) => ({ value: c.value, label: c.label }))}
+                      placeholder="Select condition"
+                    />
+                  </Field>
+                  <Field label="Delivery type" error={errors.deliveryType?.message}>
+                    <Select
+                      value={deliveryType}
+                      onChange={(v) => setValue("deliveryType", v, { shouldValidate: true })}
+                      options={DELIVERY_TYPES.map((d) => ({ value: d.value, label: d.label }))}
+                      placeholder="Select delivery"
+                    />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <LocationSelect
+                      state={stateValue}
+                      city={cityValue}
+                      manualCity={manualCity}
+                      onStateChange={(v) => setValue("state", v, { shouldValidate: true })}
+                      onCityChange={(v) => setValue("city", v, { shouldValidate: true })}
+                      onManualCityChange={setManualCity}
+                      stateError={errors.state?.message}
+                      cityError={errors.city?.message}
+                    />
+                  </div>
+                </div>
+                <Field label="Description" className="mt-4">
+                  <textarea
+                    {...register("description")}
+                    rows={4}
+                    placeholder="Mention any highlights, notes, missing pages, etc."
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </Field>
+              </Section>
+
+              <Section title="Seller contact">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Seller name" error={errors.sellerName?.message}>
+                    <Input {...register("sellerName")} placeholder="Your name" />
+                  </Field>
+                  <Field label="WhatsApp mobile number" error={errors.sellerMobile?.message}>
+                    <Input
+                      {...register("sellerMobile", {
+                        onChange: (e) => {
+                          e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        },
+                      })}
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      placeholder="10-digit number"
+                      maxLength={10}
+                    />
+                  </Field>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Buyers will contact you on this number via WhatsApp.
+                </p>
+              </Section>
+
+              <button
+                type="submit"
+                disabled={submitting || !access.canUseMarketplace}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-4 text-base font-semibold text-background shadow-elegant transition hover:scale-[1.01] disabled:opacity-60"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Submitting…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" /> Submit for review
+                  </>
+                )}
+              </button>
+              {submitting && submitStatus && (
+                <div className="space-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{submitStatus}</span>
+                    {uploadProgress > 0 && (
+                      <span className="font-medium text-foreground">{uploadProgress}%</span>
+                    )}
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${Math.max(uploadProgress, 8)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Lightbox */}
+              {lightboxIndex !== null && images[lightboxIndex] && (
+                <Lightbox
+                  file={images[lightboxIndex]}
+                  index={lightboxIndex}
+                  total={images.length}
+                  onClose={() => setLightboxIndex(null)}
+                  onPrev={() =>
+                    setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev))
                   }
-                }}
-                getPreviewUrl={getPreviewUrl}
-              />
-            )}
-          </form>
-        </div>
-      </main>
-      <Footer />
-    </div>
+                  onNext={() =>
+                    setLightboxIndex((prev) =>
+                      prev !== null && prev < images.length - 1 ? prev + 1 : prev,
+                    )
+                  }
+                  onRemove={() => {
+                    removeImage(lightboxIndex);
+                    if (images.length <= 1) {
+                      setLightboxIndex(null);
+                    } else if (lightboxIndex >= images.length - 1) {
+                      setLightboxIndex(images.length - 2);
+                    }
+                  }}
+                  getPreviewUrl={getPreviewUrl}
+                />
+              )}
+            </form>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 }
 
@@ -752,15 +828,14 @@ function Lightbox({
         src={getPreviewUrl(file)}
         alt={`Preview ${index + 1}`}
         decoding="async"
-        className={`max-h-[80vh] max-w-[90vw] rounded-xl object-contain shadow-2xl transition-transform duration-200 ${
-          swipeDir === "left"
-            ? "-translate-x-4 opacity-80"
-            : swipeDir === "right"
-              ? "translate-x-4 opacity-80"
-              : swipeDir === "down"
-                ? "translate-y-4 opacity-80"
-                : ""
-        }`}
+        className={`max-h-[80vh] max-w-[90vw] rounded-xl object-contain shadow-2xl transition-transform duration-200 ${swipeDir === "left"
+          ? "-translate-x-4 opacity-80"
+          : swipeDir === "right"
+            ? "translate-x-4 opacity-80"
+            : swipeDir === "down"
+              ? "translate-y-4 opacity-80"
+              : ""
+          }`}
         onClick={(e) => e.stopPropagation()}
       />
 
