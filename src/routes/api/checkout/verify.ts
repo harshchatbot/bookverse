@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
+import { getStoredOrderItems, getStoredOrderSummary } from "@/lib/order-server";
 import { verifyRazorpaySignature } from "@/lib/razorpay.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
@@ -68,16 +69,23 @@ export const Route = createFileRoute("/api/checkout/verify")({
 
         await orderRef.update({
           status: "paid",
+          paymentStatus: "captured",
           paymentId: paymentRef.id,
           updatedAt: FieldValue.serverTimestamp(),
         });
 
-        // Reserve/mark listing sold.
+        const items = getStoredOrderItems(order);
+
+        // Reserve/mark all listings in the seller group as sold.
         try {
-          await db
-            .collection("listings")
-            .doc(order.listing.id)
-            .update({ status: "sold", updatedAt: FieldValue.serverTimestamp() });
+          const batch = db.batch();
+          for (const item of items) {
+            batch.update(db.collection("listings").doc(item.listingId), {
+              status: "sold",
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
         } catch (e) {
           console.error("[verify] listing update failed", e);
         }
@@ -116,11 +124,12 @@ export const Route = createFileRoute("/api/checkout/verify")({
 
         // Best-effort notifications.
         try {
+          const summary = getStoredOrderSummary(order);
           await db.collection("notifications").add({
             userUid: decoded.uid,
             type: "order_placed",
             title: "Payment received",
-            body: `Your order for "${order.listing.title}" is confirmed.`,
+            body: `Your protected delivery order for "${summary}" is confirmed.`,
             link: `/order/${orderRef.id}`,
             read: false,
             createdAt: FieldValue.serverTimestamp(),
@@ -129,7 +138,7 @@ export const Route = createFileRoute("/api/checkout/verify")({
             userUid: order.sellerUid,
             type: "order_received",
             title: "You have a new order",
-            body: `"${order.listing.title}" was purchased. Please prepare for pickup.`,
+            body: `"${summary}" was purchased. Please pack the books together for pickup.`,
             link: `/sell-orders`,
             read: false,
             createdAt: FieldValue.serverTimestamp(),

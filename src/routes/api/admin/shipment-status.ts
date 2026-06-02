@@ -44,6 +44,7 @@ export const Route = createFileRoute("/api/admin/shipment-status")({
 
         const updates: Record<string, unknown> = {
           status: parsed.data.status,
+          shipmentStatus: parsed.data.status,
           updatedAt: FieldValue.serverTimestamp(),
         };
         if (parsed.data.awb) updates.awb = parsed.data.awb;

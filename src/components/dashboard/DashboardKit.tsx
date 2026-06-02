@@ -4,6 +4,9 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -68,7 +71,7 @@ interface ChartCardProps {
 }
 export function ChartCard({ title, children, right }: ChartCardProps) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-card">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="font-display text-base font-semibold">{title}</h3>
         {right}
@@ -149,6 +152,64 @@ export function GroupedBars({
         ))}
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+const PIE_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--primary)",
+];
+
+export function PieBreakdown({
+  data,
+  valueLabel = "Count",
+}: {
+  data: Array<{ label: string; value: number }>;
+  valueLabel?: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Tooltip
+          contentStyle={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+          }}
+          formatter={(value: number) => [value, valueLabel]}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="label"
+          cx="50%"
+          cy="50%"
+          innerRadius={58}
+          outerRadius={92}
+          paddingAngle={3}
+        >
+          {data.map((entry, index) => (
+            <Cell key={entry.label} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+          ))}
+        </Pie>
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function EmptyChartState({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="grid h-full place-items-center rounded-2xl border border-dashed border-border bg-secondary/20 px-6 text-center">
+      <div>
+        <p className="font-medium">{title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+      </div>
+    </div>
   );
 }
 

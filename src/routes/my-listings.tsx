@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
 import { getMyListings, updateListingStatus } from "@/lib/listings";
 import { categoryLabel } from "@/lib/constants";
@@ -34,17 +33,14 @@ function MyListings() {
   return (
     <AuthGate
       loading={
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        <AppPageShell>
           <main className="flex-1">
             <PageSpinner label="Loading your listings…" />
           </main>
-          <Footer />
-        </div>
+        </AppPageShell>
       }
       fallback={
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        <AppPageShell>
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
             <Link
@@ -54,8 +50,7 @@ function MyListings() {
               Sign in
             </Link>
           </main>
-          <Footer />
-        </div>
+        </AppPageShell>
       }
     >
       {({ user }) => <MyListingsContent user={user} />}
@@ -132,8 +127,7 @@ function MyListingsContent({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AppPageShell>
       <main className="flex-1">
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between">
@@ -156,7 +150,9 @@ function MyListingsContent({ user }: { user: User }) {
               <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm">
                 <p className="font-semibold text-destructive">Could not load your listings</p>
                 <p className="mt-1 text-muted-foreground">
-                  {error instanceof Error ? error.message : "Something went wrong while loading your listings."}
+                  {error instanceof Error
+                    ? error.message
+                    : "Something went wrong while loading your listings."}
                 </p>
                 <button
                   type="button"
@@ -174,8 +170,8 @@ function MyListingsContent({ user }: { user: User }) {
               <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
                 <p className="font-semibold">No listings found</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  If you just submitted a book, refresh once. Your pending listings should appear here before
-                  admin approval.
+                  If you just submitted a book, refresh once. Your pending listings should appear
+                  here before admin approval.
                 </p>
                 <Link
                   to="/sell"
@@ -248,7 +244,6 @@ function MyListingsContent({ user }: { user: User }) {
           </div>
         </div>
       </main>
-      <Footer />
-    </div>
+    </AppPageShell>
   );
 }

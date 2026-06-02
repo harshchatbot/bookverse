@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
+import { getStoredOrderItems } from "@/lib/order-server";
 import { razorpay } from "@/lib/razorpay.server";
 
 interface RazorpayPaymentsWithRefund {
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/api/admin/refund")({
 
         await orderRef.update({
           status: "refund_pending",
+          paymentStatus: "pending",
           updatedAt: FieldValue.serverTimestamp(),
         });
 
@@ -57,8 +59,21 @@ export const Route = createFileRoute("/api/admin/refund")({
           });
           await orderRef.update({
             status: "refunded",
+            paymentStatus: "refunded",
             updatedAt: FieldValue.serverTimestamp(),
           });
+          try {
+            const batch = db.batch();
+            for (const item of getStoredOrderItems(order)) {
+              batch.update(db.collection("listings").doc(item.listingId), {
+                status: "approved",
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+            }
+            await batch.commit();
+          } catch (error) {
+            console.error("[admin refund] listing restore failed", error);
+          }
           await db
             .collection("payments")
             .doc(order.paymentId)

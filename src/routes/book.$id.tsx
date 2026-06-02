@@ -7,6 +7,7 @@ import { MakeOfferButton } from "@/components/MakeOfferButton";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SaveButton } from "@/components/SaveButton";
+import { ProtectedDeliveryPanel } from "@/components/ProtectedDeliveryPanel";
 import { getListing, getRelatedListings, incrementListingViews } from "@/lib/listings";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
@@ -326,6 +327,8 @@ function BookDetail() {
                 <div className="text-xs text-muted-foreground">View seller profile →</div>
               </div>
             </Link>
+
+            <ProtectedDeliveryPanel listing={listing} isOwner={isOwn} />
 
             {!isSold && (
               <div className="mt-6 space-y-2">

@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, HandCoins, Loader2, Mail, MessageCircle, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { AppPageShell } from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
 import { celebrate } from "@/lib/confetti";
 import {
@@ -37,8 +36,7 @@ function OffersPage() {
   const [tab, setTab] = useState<Tab>("received");
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AppPageShell>
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-secondary">
@@ -74,8 +72,7 @@ function OffersPage() {
           {() => (tab === "received" ? <ReceivedOffers /> : <SentOffers />)}
         </AuthGate>
       </main>
-      <Footer />
-    </div>
+    </AppPageShell>
   );
 }
 
@@ -86,7 +83,7 @@ function TabButton({
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button

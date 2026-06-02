@@ -3,6 +3,12 @@
 // Firestore stays the source of truth: every Shiprocket call is mirrored
 // onto orders/{id} and shipments/{id} with a history entry.
 import { adminKit } from "@/lib/admin.server";
+import { getStoredOrderItems } from "@/lib/order-server";
+import {
+  estimateParcelDimensions,
+  getOrderItemsSubtotal,
+  getOrderTotalWeight,
+} from "@/lib/protected-delivery";
 import {
   createShiprocketOrder,
   assignAwb,
@@ -48,6 +54,11 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
     return { ok: false, reachedStep: null, error: "Seller pickup address missing" };
   }
 
+  const items = getStoredOrderItems(order);
+  if (items.length === 0) {
+    return { ok: false, reachedStep: null, error: "Order items missing" };
+  }
+
   let shipmentId = order.shiprocketShipmentId as number | null;
   let shipmentDocId = order.shipmentId as string | null;
   let reached: FulfillmentStep | null = null;
@@ -67,15 +78,27 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         location: pickup.location ?? "Primary",
       },
       buyer: order.shippingAddress,
-      item: {
-        name: order.listing.title,
-        sku: order.listing.id,
-        unitsPriceInr: order.bookPrice,
-        quantity: 1,
-      },
-      weightKg: 0.5,
+      items: items.map((item) => ({
+        name: item.title,
+        sku: item.listingId,
+        unitsPriceInr: item.price,
+        quantity: item.quantity,
+      })),
+      weightKg:
+        typeof order.totalWeightKg === "number" ? order.totalWeightKg : getOrderTotalWeight(items),
+      parcel:
+        order.parcelDimensions && typeof order.parcelDimensions === "object"
+          ? {
+              lengthCm: Number(order.parcelDimensions.lengthCm ?? 22),
+              breadthCm: Number(order.parcelDimensions.breadthCm ?? 16),
+              heightCm: Number(order.parcelDimensions.heightCm ?? 4),
+            }
+          : estimateParcelDimensions(items.length),
       paymentMethod: "Prepaid",
-      subtotalInr: order.bookPrice + order.shippingFee,
+      subtotalInr:
+        typeof order.subtotal === "number"
+          ? order.subtotal + order.shippingFee
+          : getOrderItemsSubtotal(items) + order.shippingFee,
     };
     try {
       const sr = await createShiprocketOrder(input);
@@ -96,6 +119,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       shipmentId = sr.shipmentId;
       await orderRef.update({
         status: "shipment_created",
+        shipmentStatus: "shipment_created",
         shipmentId: shipmentDocId,
         shiprocketOrderId: sr.shiprocketOrderId,
         shiprocketShipmentId: shipmentId,
@@ -177,6 +201,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       }
       await orderRef.update({
         status: "pickup_scheduled",
+        shipmentStatus: "pickup_scheduled",
         pickupScheduledAt: pr.scheduledDate,
         updatedAt: FieldValue.serverTimestamp(),
       });

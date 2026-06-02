@@ -14,6 +14,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/integrations/firebase/client";
 import { serializeFirestore } from "./serialize";
+import type {
+  CheckoutDeliveryAddress,
+  FulfillmentMode,
+  OrderItemSnapshot,
+  PickupAddressSnapshot,
+} from "./types";
 
 export type OrderStatus =
   | "pending_payment"
@@ -28,6 +34,16 @@ export type OrderStatus =
   | "cancelled"
   | "refund_pending"
   | "refunded"
+  | "failed";
+
+export type PaymentStatus = "pending" | "captured" | "refunded" | "failed";
+export type ShipmentStatus =
+  | "pending"
+  | "shipment_created"
+  | "pickup_scheduled"
+  | "in_transit"
+  | "delivered"
+  | "cancelled"
   | "failed";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
@@ -46,18 +62,6 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   failed: "Failed",
 };
 
-export interface ShippingAddress {
-  name: string;
-  phone: string;
-  email: string;
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  pincode: string;
-  country: string;
-}
-
 export interface OrderListingSnapshot {
   id: string;
   title: string;
@@ -75,8 +79,13 @@ export interface Order {
   buyerEmail: string;
   sellerUid: string;
   sellerEmail: string;
-  listing: OrderListingSnapshot;
-  shippingAddress: ShippingAddress;
+  fulfillmentMode?: FulfillmentMode;
+  listing?: OrderListingSnapshot;
+  items: OrderItemSnapshot[];
+  itemCount: number;
+  pickupAddress?: PickupAddressSnapshot | null;
+  shippingAddress: CheckoutDeliveryAddress;
+  subtotal: number;
   // amounts in INR (whole rupees)
   bookPrice: number;
   shippingFee: number;
@@ -98,6 +107,8 @@ export interface Order {
   deliveredAt: string | null;
   payoutEligibleAt: string | null;
   cancelledAt: string | null;
+  paymentStatus?: PaymentStatus;
+  shipmentStatus?: ShipmentStatus;
   createdAt: string | null;
   updatedAt: string | null;
 }

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/integrations/firebase/client";
 import {
   getNotificationsForUser,
   markAllNotificationsRead,
@@ -11,29 +13,52 @@ import {
   type AppNotification,
 } from "@/lib/notifications";
 
-export function NotificationsBell() {
+function formatBadgeCount(count: number) {
+  if (count > 99) return "99+";
+  if (count > 9) return "9+";
+  return String(count);
+}
+
+export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [badgeAnim, setBadgeAnim] = useState(false);
+  const [adminPendingCount, setAdminPendingCount] = useState(0);
   const prevUnreadRef = useRef(0);
+  const isAdminBell = mode === "admin";
 
   const queryKey = ["notifications", user?.uid ?? "anon"] as const;
   const { data, refetch } = useQuery({
     queryKey,
     queryFn: () => getNotificationsForUser(user!.uid, 20),
-    enabled: !!user,
+    enabled: !!user && !isAdminBell,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
+  useEffect(() => {
+    if (!user || !isAdminBell) return;
+
+    const pendingListingsQuery = query(
+      collection(db, "listings"),
+      where("status", "==", "pending"),
+    );
+
+    const unsubscribe = onSnapshot(pendingListingsQuery, (snapshot) => {
+      setAdminPendingCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, [isAdminBell, user]);
+
   // Refresh when the dropdown opens so the badge reflects the latest server state.
   useEffect(() => {
-    if (open && user) void refetch();
-  }, [open, user, refetch]);
+    if (!isAdminBell && open && user) void refetch();
+  }, [isAdminBell, open, user, refetch]);
 
   const items = data ?? [];
-  const unread = items.filter((n) => !n.read).length;
+  const unread = isAdminBell ? adminPendingCount : items.filter((n) => !n.read).length;
 
   // Animate badge when unread count changes (increases or decreases to/from non-zero)
   useEffect(() => {
@@ -88,6 +113,32 @@ export function NotificationsBell() {
 
   if (!user) return null;
 
+  if (isAdminBell) {
+    return (
+      <a
+        href="/admin#pending-listings"
+        aria-label="Pending listings"
+        className="relative grid h-9 w-9 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-secondary"
+      >
+        <Bell className={`h-4 w-4 ${unread > 0 ? "animate-bell-swing text-primary" : ""}`} />
+        <AnimatePresence>
+          {unread > 0 && (
+            <motion.span
+              key="admin-badge"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: badgeAnim ? [1, 1.35, 1] : 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              className="absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground shadow-[0_0_0_3px_var(--color-background)]"
+            >
+              {formatBadgeCount(unread)}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </a>
+    );
+  }
+
   return (
     <div className="relative">
       <motion.button
@@ -109,7 +160,7 @@ export function NotificationsBell() {
               transition={{ duration: 0.35 }}
               className="absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground shadow-[0_0_0_3px_var(--color-background)]"
             >
-              {unread > 9 ? "9+" : unread}
+              {formatBadgeCount(unread)}
             </motion.span>
           )}
         </AnimatePresence>

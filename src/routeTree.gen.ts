@@ -22,6 +22,8 @@ import { Route as OffersRouteImport } from './routes/offers'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as BuyerDashboardRouteImport } from './routes/buyer-dashboard'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -110,6 +112,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyerDashboardRoute = BuyerDashboardRouteImport.update({
   id: '/buyer-dashboard',
   path: '/buyer-dashboard',
@@ -146,9 +158,9 @@ const OrderIdRoute = OrderIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutListingIdRoute = CheckoutListingIdRouteImport.update({
-  id: '/checkout/$listingId',
-  path: '/checkout/$listingId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$listingId',
+  path: '/$listingId',
+  getParentRoute: () => CheckoutRoute,
 } as any)
 const BookIdRoute = BookIdRouteImport.update({
   id: '/book/$id',
@@ -229,6 +241,8 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
   '/buyer-dashboard': typeof BuyerDashboardRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -266,6 +280,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
   '/buyer-dashboard': typeof BuyerDashboardRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -304,6 +320,8 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/browse': typeof BrowseRoute
   '/buyer-dashboard': typeof BuyerDashboardRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -343,6 +361,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/browse'
     | '/buyer-dashboard'
+    | '/checkout'
+    | '/dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -380,6 +400,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/browse'
     | '/buyer-dashboard'
+    | '/checkout'
+    | '/dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -417,6 +439,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/browse'
     | '/buyer-dashboard'
+    | '/checkout'
+    | '/dashboard'
     | '/login'
     | '/my-listings'
     | '/notifications'
@@ -455,6 +479,8 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   BrowseRoute: typeof BrowseRoute
   BuyerDashboardRoute: typeof BuyerDashboardRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -469,7 +495,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
   BookIdRoute: typeof BookIdRoute
-  CheckoutListingIdRoute: typeof CheckoutListingIdRoute
   OrderIdRoute: typeof OrderIdRoute
   SellerUidRoute: typeof SellerUidRoute
   ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
@@ -580,6 +605,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buyer-dashboard': {
       id: '/buyer-dashboard'
       path: '/buyer-dashboard'
@@ -631,10 +670,10 @@ declare module '@tanstack/react-router' {
     }
     '/checkout/$listingId': {
       id: '/checkout/$listingId'
-      path: '/checkout/$listingId'
+      path: '/$listingId'
       fullPath: '/checkout/$listingId'
       preLoaderRoute: typeof CheckoutListingIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CheckoutRoute
     }
     '/book/$id': {
       id: '/book/$id'
@@ -737,12 +776,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CheckoutRouteChildren {
+  CheckoutListingIdRoute: typeof CheckoutListingIdRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutListingIdRoute: CheckoutListingIdRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   BrowseRoute: BrowseRoute,
   BuyerDashboardRoute: BuyerDashboardRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
+  DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
@@ -757,7 +810,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,
   BookIdRoute: BookIdRoute,
-  CheckoutListingIdRoute: CheckoutListingIdRoute,
   OrderIdRoute: OrderIdRoute,
   SellerUidRoute: SellerUidRoute,
   ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,

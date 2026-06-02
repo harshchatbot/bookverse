@@ -22,3 +22,47 @@ export interface Listing {
   updatedAt: string | null;
   views?: number;
 }
+
+export type FulfillmentMode = "protected_delivery";
+
+export interface CheckoutDeliveryAddress {
+  name: string;
+  phone: string;
+  email: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export interface PickupAddressSnapshot {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  location?: string | null;
+}
+
+export interface OrderItemSnapshot {
+  listingId: string;
+  sellerUid: string;
+  title: string;
+  author: string;
+  image: string;
+  category: string;
+  condition: string;
+  price: number;
+  quantity: 1;
+  estimatedWeightKg: number;
+}
+
+export function summarizeOrderItems(items: OrderItemSnapshot[]): string {
+  if (items.length === 0) return "your books";
+  if (items.length === 1) return items[0]?.title || "your book";
+  const [first] = items;
+  return `${first?.title || "Your book"} + ${items.length - 1} more book${items.length > 2 ? "s" : ""}`;
+}

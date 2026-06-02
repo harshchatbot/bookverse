@@ -5,6 +5,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
+import { getStoredOrderItems, getStoredOrderSummary } from "@/lib/order-server";
 import { razorpay } from "@/lib/razorpay.server";
 import { cancelShiprocketShipment } from "@/lib/shiprocket.server";
 
@@ -60,6 +61,7 @@ export const Route = createFileRoute("/api/seller/reject-order")({
         // Mark as cancelling first so concurrent retries / webhooks stop.
         await orderRef.update({
           status: "refund_pending",
+          paymentStatus: "pending",
           rejectedBy: "seller",
           rejectionReason: parsed.data.reason,
           updatedAt: FieldValue.serverTimestamp(),
@@ -112,16 +114,22 @@ export const Route = createFileRoute("/api/seller/reject-order")({
         // 3) Finalise order state.
         await orderRef.update({
           status: "refunded",
+          paymentStatus: "refunded",
+          shipmentStatus: "cancelled",
           cancelledAt: new Date().toISOString(),
           updatedAt: FieldValue.serverTimestamp(),
         });
 
-        // 4) Make the listing available again (was set to "sold" on payment).
+        // 4) Make all listings in the seller parcel available again.
         try {
-          await db.collection("listings").doc(order.listing.id).update({
-            status: "approved",
-            updatedAt: FieldValue.serverTimestamp(),
-          });
+          const batch = db.batch();
+          for (const item of getStoredOrderItems(order)) {
+            batch.update(db.collection("listings").doc(item.listingId), {
+              status: "approved",
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
         } catch (e) {
           console.error("[reject] listing restore failed", e);
         }
@@ -140,11 +148,12 @@ export const Route = createFileRoute("/api/seller/reject-order")({
 
         // 6) Notify buyer.
         try {
+          const summary = getStoredOrderSummary(order);
           await db.collection("notifications").add({
             userUid: order.buyerUid,
             type: "order_cancelled_by_seller",
             title: "Order cancelled by seller",
-            body: `Your order for "${order.listing.title}" was cancelled. A full refund of ₹${order.totalAmount} is on its way.`,
+            body: `Your order for "${summary}" was cancelled. A full refund of ₹${order.totalAmount} is on its way.`,
             link: `/order/${parsed.data.orderId}`,
             read: false,
             createdAt: FieldValue.serverTimestamp(),

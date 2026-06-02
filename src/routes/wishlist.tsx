@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { Illustration } from "@/components/Illustration";
+import { AppPageShell } from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
-import { getListingsByIds, getWishlistIds } from "@/lib/wishlist";
+import { getListingsByIds } from "@/lib/listings";
+import { getWishlistIds } from "@/lib/wishlist";
 
 export const Route = createFileRoute("/wishlist")({
   head: () => ({
@@ -22,8 +22,7 @@ export const Route = createFileRoute("/wishlist")({
 
 function WishlistPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AppPageShell>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-secondary">
@@ -51,8 +50,7 @@ function WishlistPage() {
           {() => <WishlistContent />}
         </AuthGate>
       </main>
-      <Footer />
-    </div>
+    </AppPageShell>
   );
 }
 

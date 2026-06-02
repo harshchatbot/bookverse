@@ -120,13 +120,18 @@ export interface CreateOrderInput {
     pincode: string;
     country: string;
   };
-  item: {
+  items: Array<{
     name: string;
     sku: string;
     unitsPriceInr: number;
     quantity: number;
-  };
+  }>;
   weightKg: number;
+  parcel: {
+    lengthCm: number;
+    breadthCm: number;
+    heightCm: number;
+  };
   paymentMethod: "Prepaid" | "COD";
   subtotalInr: number;
 }
@@ -154,19 +159,17 @@ export async function createShiprocketOrder(input: CreateOrderInput): Promise<Cr
     billing_email: input.buyer.email,
     billing_phone: input.buyer.phone,
     shipping_is_billing: true,
-    order_items: [
-      {
-        name: input.item.name,
-        sku: input.item.sku,
-        units: input.item.quantity,
-        selling_price: input.item.unitsPriceInr,
-      },
-    ],
+    order_items: input.items.map((item) => ({
+      name: item.name,
+      sku: item.sku,
+      units: item.quantity,
+      selling_price: item.unitsPriceInr,
+    })),
     payment_method: input.paymentMethod,
     sub_total: input.subtotalInr,
-    length: 22,
-    breadth: 16,
-    height: 4,
+    length: input.parcel.lengthCm,
+    breadth: input.parcel.breadthCm,
+    height: input.parcel.heightCm,
     weight: input.weightKg,
   };
   type Resp = {

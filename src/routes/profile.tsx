@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   linkWithCredential,
@@ -10,10 +10,9 @@ import {
 } from "firebase/auth";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, MailCheck, Phone, ShieldCheck } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
 import { LocationSelect } from "@/components/LocationSelect";
+import { AppPageShell } from "@/components/PageShell";
 import { auth } from "@/integrations/firebase/client";
 import {
   getUserProfile,
@@ -46,8 +45,7 @@ function ProfilePage() {
   return (
     <AuthGate
       fallback={
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        <AppPageShell>
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -60,8 +58,7 @@ function ProfilePage() {
               Sign in
             </Link>
           </main>
-          <Footer />
-        </div>
+        </AppPageShell>
       }
     >
       {({ user }) => <ProfileContent user={user} />}
@@ -248,8 +245,7 @@ function ProfileContent({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AppPageShell>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div>
           <h1 className="font-display text-3xl font-bold">Complete your BookVerse profile</h1>
@@ -454,8 +450,7 @@ function ProfileContent({ user }: { user: User }) {
           </div>
         )}
       </main>
-      <Footer />
-    </div>
+    </AppPageShell>
   );
 }
 
@@ -501,7 +496,7 @@ function StatusCard({
   ok,
   text,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   ok: boolean;
   text: string;

@@ -9,6 +9,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import crypto from "crypto";
 import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
+import { getStoredOrderItems } from "@/lib/order-server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
 function verifySignature(rawBody: string, signature: string | null): boolean {
@@ -93,14 +94,19 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
             );
             await orderDoc.ref.update({
               status: "paid",
+              paymentStatus: "captured",
               paymentId: paymentRef.id,
               updatedAt: FieldValue.serverTimestamp(),
             });
             try {
-              await db.collection("listings").doc(order.listing.id).update({
-                status: "sold",
-                updatedAt: FieldValue.serverTimestamp(),
-              });
+              const batch = db.batch();
+              for (const item of getStoredOrderItems(order)) {
+                batch.update(db.collection("listings").doc(item.listingId), {
+                  status: "sold",
+                  updatedAt: FieldValue.serverTimestamp(),
+                });
+              }
+              await batch.commit();
             } catch (e) {
               console.error("[razorpay webhook] listing update failed", e);
             }
@@ -126,6 +132,7 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
             if (orderDoc.data().status === "pending_payment") {
               await orderDoc.ref.update({
                 status: "failed",
+                paymentStatus: "failed",
                 updatedAt: FieldValue.serverTimestamp(),
               });
             }
@@ -154,10 +161,28 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
           if (event === "refund.processed") {
             const orderId = pdoc.data().orderId;
             if (orderId) {
-              await db.collection("orders").doc(orderId).update({
+              const orderRef = db.collection("orders").doc(orderId);
+              const orderSnap = await orderRef.get();
+              const order = orderSnap.exists ? orderSnap.data() : null;
+              await orderRef.update({
                 status: "refunded",
+                paymentStatus: "refunded",
                 updatedAt: FieldValue.serverTimestamp(),
               });
+              if (order) {
+                try {
+                  const batch = db.batch();
+                  for (const item of getStoredOrderItems(order)) {
+                    batch.update(db.collection("listings").doc(item.listingId), {
+                      status: "approved",
+                      updatedAt: FieldValue.serverTimestamp(),
+                    });
+                  }
+                  await batch.commit();
+                } catch (error) {
+                  console.error("[razorpay webhook] refund listing restore failed", error);
+                }
+              }
             }
           }
           return jsonOk({ ok: true });

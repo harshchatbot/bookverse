@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   query,
@@ -197,6 +198,29 @@ export async function getRelatedListings(opts: {
   return snapToListings(snap)
     .filter((l) => l.id !== opts.excludeId)
     .slice(0, max);
+}
+
+export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
+  if (ids.length === 0) return [];
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 10) {
+    chunks.push(ids.slice(i, i + 10));
+  }
+
+  const snapshots = await Promise.all(
+    chunks.map((chunk) =>
+      getDocs(query(collection(db, COLLECTION), where(documentId(), "in", chunk))),
+    ),
+  );
+
+  const map = new Map<string, Listing>();
+  for (const snap of snapshots) {
+    for (const d of snap.docs) {
+      map.set(d.id, serializeFirestore({ id: d.id, ...(d.data() as Omit<Listing, "id">) }));
+    }
+  }
+
+  return ids.map((id) => map.get(id)).filter((listing): listing is Listing => !!listing);
 }
 
 export async function updateListingStatus(id: string, status: ListingStatus) {

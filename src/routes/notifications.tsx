@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { AppPageShell } from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getNotificationsForUser,
@@ -24,8 +23,7 @@ export const Route = createFileRoute("/notifications")({
 
 function NotificationsPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AppPageShell>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-secondary">
@@ -50,8 +48,7 @@ function NotificationsPage() {
           {() => <NotificationsList />}
         </AuthGate>
       </main>
-      <Footer />
-    </div>
+    </AppPageShell>
   );
 }
 

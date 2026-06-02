@@ -8,6 +8,7 @@
 // orders/{id} + shipments/{id}. Firestore stays the source of truth.
 import { createFileRoute } from "@tanstack/react-router";
 import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
+import { getStoredOrderSummary } from "@/lib/order-server";
 import { mapShiprocketStatus } from "@/lib/shiprocket.server";
 
 export const Route = createFileRoute("/api/public/shiprocket/webhook")({
@@ -71,6 +72,14 @@ export const Route = createFileRoute("/api/public/shiprocket/webhook")({
         };
         if (awb && !order.awb) orderUpdate.awb = awb;
         if (body.courier_name) orderUpdate.courierAssigned = body.courier_name;
+        if (mapped) {
+          orderUpdate.shipmentStatus =
+            mapped === "delivered"
+              ? "delivered"
+              : mapped === "pickup_scheduled"
+                ? "pickup_scheduled"
+                : mapped;
+        }
 
         if (mapped === "delivered") {
           const deliveredAt = new Date();
@@ -86,11 +95,12 @@ export const Route = createFileRoute("/api/public/shiprocket/webhook")({
             });
           }
           try {
+            const summary = getStoredOrderSummary(order);
             await db.collection("notifications").add({
               userUid: order.buyerUid,
               type: "order_delivered",
               title: "Order delivered",
-              body: `"${order.listing.title}" was delivered. You have 72 hours to raise a dispute.`,
+              body: `"${summary}" was delivered. You have 72 hours to raise a dispute.`,
               link: `/order/${ourOrderId}`,
               read: false,
               createdAt: FieldValue.serverTimestamp(),

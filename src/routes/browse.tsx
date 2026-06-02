@@ -3,11 +3,11 @@ import { infiniteQueryOptions, useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { Illustration } from "@/components/Illustration";
+import { AppPageShell, MarketingPageShell } from "@/components/PageShell";
+import { useAuth } from "@/hooks/useAuth";
 import { getApprovedListings, type ListingCursor } from "@/lib/listings";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { Loader2, Search, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
@@ -91,6 +91,7 @@ function BrowseError({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 function Browse() {
+  const { user } = useAuth();
   const params = Route.useSearch();
   const navigate = useNavigate({ from: "/browse" });
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -281,9 +282,10 @@ function Browse() {
     </div>
   );
 
+  const Shell = user ? AppPageShell : MarketingPageShell;
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <Shell>
       <main className="flex-1">
         <div className="border-b border-border bg-secondary/40">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -433,7 +435,6 @@ function Browse() {
           </div>
         )}
       </main>
-      <Footer />
-    </div>
+    </Shell>
   );
 }

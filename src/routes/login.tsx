@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { MarketingPageShell } from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
 import { Spinner } from "@/components/Spinner";
 import { Illustration } from "@/components/Illustration";
+import { getUserProfile, isProfileCompleted } from "@/lib/users";
 
 const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
@@ -22,6 +23,7 @@ function Login() {
   const {
     user,
     loading,
+    isAdmin,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
@@ -33,10 +35,26 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const profileQuery = useQuery({
+    queryKey: ["user-profile", user?.uid ?? "anon"],
+    queryFn: () => getUserProfile(user!.uid),
+    enabled: !!user,
+  });
 
   useEffect(() => {
-    if (!loading && user?.emailVerified) navigate({ to: "/browse" });
-  }, [loading, user, navigate]);
+    if (loading || (user && profileQuery.isLoading)) return;
+    if (!user) return;
+
+    if (isAdmin) {
+      void navigate({ to: "/admin", replace: true });
+      return;
+    }
+
+    const profile = profileQuery.data ?? null;
+    const complete =
+      !!user.emailVerified && !!profile?.phoneVerified && isProfileCompleted(profile);
+    void navigate({ to: complete ? "/dashboard" : "/profile", replace: true });
+  }, [loading, user, isAdmin, profileQuery.isLoading, profileQuery.data, navigate]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -71,9 +89,8 @@ function Login() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="mx-auto grid w-full max-w-5xl flex-1 gap-10 px-4 py-16 md:grid-cols-[1fr_360px] md:items-center">
+    <MarketingPageShell>
+      <div className="mx-auto grid w-full max-w-5xl flex-1 gap-10 px-4 py-16 md:grid-cols-[1fr_360px] md:items-center">
         {loading ? (
           <div className="md:col-span-2">
             <Spinner size={72} label="Just a moment..." />
@@ -201,9 +218,8 @@ function Login() {
             </section>
           </>
         )}
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </MarketingPageShell>
   );
 }
 

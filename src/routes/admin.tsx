@@ -2,13 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import {
+  ChartCard,
+  EmptyChartState,
+  GroupedBars,
+  PieBreakdown,
+  StatCard,
+} from "@/components/dashboard/DashboardKit";
+import { AdminPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
+import { getAdminDashboard } from "@/lib/adminDashboard";
 import { getListingsByStatus, updateListingStatus } from "@/lib/listings";
-import { AdminMarketplace } from "@/components/AdminMarketplace";
-import { AdminAnalytics } from "@/components/AdminAnalytics";
 import { seedSampleListings } from "@/lib/seed";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
@@ -31,17 +36,14 @@ function Admin() {
     <AuthGate
       requireAdmin
       loading={
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        <AdminPageShell>
           <main className="flex-1">
             <PageSpinner label="Checking access…" />
           </main>
-          <Footer />
-        </div>
+        </AdminPageShell>
       }
       fallback={
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        <AdminPageShell>
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Admins only</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -54,8 +56,7 @@ function Admin() {
               Go home
             </Link>
           </main>
-          <Footer />
-        </div>
+        </AdminPageShell>
       }
     >
       <AdminDashboard />
@@ -71,6 +72,10 @@ function AdminDashboard() {
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["admin-listings", tab],
     queryFn: () => getListingsByStatus(tab),
+  });
+  const { data: dashboard, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: getAdminDashboard,
   });
 
   const act = async (id: string, status: ListingStatus, label: string) => {
@@ -100,8 +105,7 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <AdminPageShell>
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
           <h1 className="font-display text-3xl font-bold">Admin dashboard</h1>
@@ -126,7 +130,105 @@ function AdminDashboard() {
             </p>
           </div>
 
-          <div className="mt-6 flex gap-1 overflow-x-auto rounded-full border border-border bg-card p-1">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {analyticsLoading || !dashboard ? (
+              Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="h-32 animate-pulse rounded-2xl bg-secondary" />
+              ))
+            ) : (
+              <>
+                <StatCard label="Pending approvals" value={dashboard.totals.pendingApprovals} />
+                <StatCard label="Total listings" value={dashboard.totals.totalListings} />
+                <StatCard label="Approved listings" value={dashboard.totals.approvedListings} />
+                <StatCard label="Rejected listings" value={dashboard.totals.rejectedListings} />
+                <StatCard label="Total users" value={dashboard.totals.totalUsers} />
+                <StatCard label="Verified users" value={dashboard.totals.verifiedUsers} />
+                <StatCard label="Total inquiries" value={dashboard.totals.totalInquiries} />
+                <StatCard label="Total offers" value={dashboard.totals.totalOffers} />
+              </>
+            )}
+          </div>
+
+          <div className="mt-8 grid gap-4 xl:grid-cols-2">
+            <ChartCard title="Listings by status">
+              {!dashboard ? (
+                <EmptyChartState title="Loading analytics" body="Pulling live moderation data." />
+              ) : (
+                <PieBreakdown data={dashboard.listingsByStatus} valueLabel="Listings" />
+              )}
+            </ChartCard>
+
+            <ChartCard title="Listings by category">
+              {!dashboard || dashboard.listingsByCategory.length === 0 ? (
+                <EmptyChartState
+                  title="No listing categories yet"
+                  body="Category insights will appear as listings are submitted."
+                />
+              ) : (
+                <GroupedBars
+                  data={dashboard.listingsByCategory.map((entry) => ({
+                    key: categoryLabel(entry.label as Parameters<typeof categoryLabel>[0]),
+                    count: entry.value,
+                  }))}
+                  series={[{ key: "count", label: "Listings", color: "var(--chart-2)" }]}
+                />
+              )}
+            </ChartCard>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <ChartCard title="Top cities">
+              {!dashboard || dashboard.topCities.length === 0 ? (
+                <EmptyChartState
+                  title="No city data yet"
+                  body="City-level moderation insights will show up here."
+                />
+              ) : (
+                <GroupedBars
+                  data={dashboard.topCities.map((entry) => ({
+                    key: entry.label,
+                    count: entry.value,
+                  }))}
+                  series={[{ key: "count", label: "Listings", color: "var(--chart-3)" }]}
+                />
+              )}
+            </ChartCard>
+
+            <ChartCard title="User verification funnel">
+              {!dashboard ? (
+                <EmptyChartState title="Loading funnel" body="Checking user trust progress." />
+              ) : (
+                <GroupedBars
+                  data={dashboard.verificationFunnel.map((entry) => ({
+                    key: entry.label,
+                    count: entry.value,
+                  }))}
+                  series={[{ key: "count", label: "Users", color: "var(--chart-5)" }]}
+                />
+              )}
+            </ChartCard>
+          </div>
+
+          <div className="mt-4">
+            <ChartCard title="New listings trend (last 30 days)">
+              {!dashboard ? (
+                <EmptyChartState title="Loading trend" body="Gathering recent listing activity." />
+              ) : (
+                <GroupedBars
+                  data={dashboard.listingsTrend.map((entry) => ({
+                    key: entry.key,
+                    count: entry.listings,
+                  }))}
+                  series={[{ key: "count", label: "Listings", color: "var(--chart-1)" }]}
+                />
+              )}
+            </ChartCard>
+          </div>
+
+          <div
+            id="pending-listings"
+            className="mt-6 flex gap-1 overflow-x-auto rounded-full border border-border bg-card p-1"
+          >
             {TABS.map((t) => (
               <button
                 key={t.value}
@@ -238,15 +340,8 @@ function AdminDashboard() {
               ))
             )}
           </div>
-
-          <div className="mt-8">
-            <AdminAnalytics />
-          </div>
-
-          <AdminMarketplace />
         </div>
       </main>
-      <Footer />
-    </div>
+    </AdminPageShell>
   );
 }
