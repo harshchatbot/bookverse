@@ -21,8 +21,13 @@ export type NotificationType =
   | "offer_accepted"
   | "offer_declined"
   | "listing_sold"
+  | "listing_approved"
+  | "listing_rejected"
   | "order_delivered"
-  | "order_cancelled_by_seller";
+  | "order_shipped"
+  | "order_cancelled_by_seller"
+  | "pickup_scheduled"
+  | "admin_new_listing";
 
 export interface NewNotificationInput {
   userUid: string;
@@ -92,4 +97,19 @@ export async function markAllNotificationsRead(uid: string): Promise<void> {
   const batch = writeBatch(db);
   snap.docs.forEach((d) => batch.update(d.ref, { read: true }));
   await batch.commit();
+}
+
+export async function getUnreadCount(uid: string): Promise<number> {
+  const snap = await getDocs(
+    query(
+      collection(db, NOTIFICATIONS_COLLECTION),
+      where("userUid", "==", uid),
+      where("read", "==", false),
+    ),
+  );
+  return snap.size;
+}
+
+export async function getNotifications(uid: string): Promise<AppNotification[]> {
+  return getNotificationsForUser(uid, 50);
 }

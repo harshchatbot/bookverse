@@ -272,20 +272,22 @@ service cloud.firestore {
 
     match /notifications/{id} {
       allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
-      allow create: if isSignedIn()
-                    && request.resource.data.read == false
-                    && request.resource.data.offerId is string
-                    && (
-                      (
-                        request.resource.data.type == 'offer_received'
-                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.auth.uid
-                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.resource.data.userUid
-                      )
-                      || (
-                        request.resource.data.type in ['offer_accepted', 'offer_declined', 'listing_sold']
-                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.auth.uid
-                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.resource.data.userUid
-                      )
+      allow create: if isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.read == false
+                        && request.resource.data.offerId is string
+                        && (
+                          (
+                            request.resource.data.type == 'offer_received'
+                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.auth.uid
+                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.resource.data.userUid
+                          )
+                          || (
+                            request.resource.data.type in ['offer_accepted', 'offer_declined', 'listing_sold']
+                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.auth.uid
+                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.resource.data.userUid
+                          )
+                        )
                     );
       allow update: if isSignedIn()
                     && resource.data.userUid == request.auth.uid

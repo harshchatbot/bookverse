@@ -66,3 +66,18 @@ export function summarizeOrderItems(items: OrderItemSnapshot[]): string {
   const [first] = items;
   return `${first?.title || "Your book"} + ${items.length - 1} more book${items.length > 2 ? "s" : ""}`;
 }
+
+export interface Offer {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  listingPrice: number;
+  sellerUid: string;
+  buyerUid: string;
+  buyerName: string;
+  buyerEmail: string | null;
+  amount: number;
+  message: string;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  createdAt: string | null;
+}

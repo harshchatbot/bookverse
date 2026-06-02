@@ -33,7 +33,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
     queryKey,
     queryFn: () => getNotificationsForUser(user!.uid, 20),
     enabled: !!user && !isAdminBell,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 

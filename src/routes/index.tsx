@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
+import { StaggerTestimonials } from "@/components/StaggerTestimonials";
 import { getApprovedListings } from "@/lib/listings";
 import { CATEGORIES } from "@/lib/constants";
 const aaravPhoto = { url: "/assets/testimonials/aarav.webp" };
@@ -39,8 +41,6 @@ import {
   BookOpen,
   Sparkles,
   BadgeCheck,
-  Star,
-  Quote,
   Eye,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -127,56 +127,224 @@ function Home() {
       <Header />
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative overflow-hidden bg-[image:var(--gradient-hero)] pt-16 pb-20 text-hero-foreground lg:pt-28 lg:pb-28">
+        <section className="relative overflow-hidden bg-[image:var(--gradient-hero)] pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-28 lg:pb-28 text-hero-foreground">
           <div aria-hidden className="absolute inset-0 -z-10">
             <div className="absolute -top-32 -left-24 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[120px]" />
             <div className="absolute -bottom-32 -right-24 h-[480px] w-[480px] rounded-full bg-primary-glow/20 blur-[120px]" />
           </div>
 
-          <div className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-hero-foreground/15 bg-hero-foreground/10 px-4 py-1.5 text-xs font-medium text-hero-foreground/80 backdrop-blur">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-              </span>
-              India's educational books marketplace
-            </span>
-
-            <h1 className="mt-8 font-display text-5xl leading-[1.05] tracking-tight text-hero-foreground sm:text-6xl lg:text-7xl">
-              Don't let your books
-              <br />
-              <span className="bg-gradient-to-r from-hero-foreground via-primary-glow to-hero-foreground bg-clip-text text-transparent">
-                become scrap.
-              </span>
-            </h1>
-
-            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-hero-foreground/80 sm:text-lg">
-              Buy and sell educational books across India. Engineering, Medical, Competitive Exams,
-              Certification and Professional Books — at a fraction of the price.
-            </p>
-
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                to="/browse"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-7 py-4 text-sm font-bold text-primary-foreground shadow-elegant transition-all hover:-translate-y-0.5 hover:bg-primary-hover sm:w-auto sm:text-base"
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 items-start gap-8 sm:gap-10 lg:gap-12 lg:items-center lg:grid-cols-2">
+              {/* Left column — text content */}
+              <motion.div
+                className="flex flex-col items-center text-center lg:items-start lg:text-left"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.15 }
+                  }
+                }}
               >
-                <Search className="h-4 w-4 opacity-90 transition-opacity group-hover:opacity-100" />
-                Browse Books
-              </Link>
-              <Link
-                to="/sell"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-hero-foreground/25 bg-hero-foreground/5 px-7 py-4 text-sm font-bold text-hero-foreground backdrop-blur transition-colors hover:bg-hero-foreground/10 sm:w-auto sm:text-base"
-              >
-                Sell My Book
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
+                <motion.span
+                  className="inline-flex items-center gap-2 rounded-full border border-hero-foreground/15 bg-hero-foreground/10 px-4 py-1.5 text-xs font-medium text-hero-foreground/80 backdrop-blur"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                  </span>
+                  India's educational books marketplace
+                </motion.span>
 
-            {/* Trust strip */}
-            <div className="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-6 border-t border-border pt-10 sm:grid-cols-3">
-              <TrustItem icon={ShieldCheck} tint="primary" label="Admin-verified listings" />
-              <TrustItem icon={MessageCircle} tint="teal" label="Direct WhatsApp contact" />
-              <TrustItem icon={IndianRupee} tint="gold" label="No commission, ever" />
+                <motion.h1
+                  className="mt-8 font-display text-5xl leading-[1.05] tracking-tight text-hero-foreground sm:text-6xl lg:text-7xl"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  Your Digital Raddiwala
+                  <br />
+                  <span className="bg-gradient-to-r from-hero-foreground via-primary-glow to-hero-foreground bg-clip-text text-transparent">
+                    for Used Books.
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  className="mt-3 text-sm text-hero-foreground/60 sm:text-base"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  Don't let your books collect dust — or go to the raddiwala by weight.
+                </motion.p>
+
+                <motion.p
+                  className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-hero-foreground/80 sm:text-lg"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  Buy and sell educational books across India. Engineering, Medical, Competitive Exams,
+                  Certification and Professional Books — at a fraction of the price.
+                </motion.p>
+
+                <motion.div
+                  className="mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  <Link
+                    to="/browse"
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-7 py-4 text-sm font-bold text-primary-foreground shadow-elegant transition-all hover:-translate-y-0.5 hover:bg-primary-hover sm:w-auto sm:text-base"
+                  >
+                    <Search className="h-4 w-4 opacity-90 transition-opacity group-hover:opacity-100" />
+                    Browse Books
+                  </Link>
+                  <Link
+                    to="/sell"
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-hero-foreground/25 bg-hero-foreground/5 px-7 py-4 text-sm font-bold text-hero-foreground backdrop-blur transition-colors hover:bg-hero-foreground/10 sm:w-auto sm:text-base"
+                  >
+                    Sell My Book
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </motion.div>
+
+                {/* Stat pills */}
+                <motion.div
+                  className="mt-10 flex flex-wrap gap-4 sm:gap-6 justify-center lg:justify-start"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary text-base">
+                      📚
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">500+ Books</p>
+                      <p className="text-xs text-muted-foreground">Listed & verified</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary text-base">
+                      🎓
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">200+ Students</p>
+                      <p className="text-xs text-muted-foreground">Helped so far</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary text-base">
+                      💸
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">3–5× More</p>
+                      <p className="text-xs text-muted-foreground">Than raddiwala rates</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Trust strip — FIXED: added missing > after variants prop */}
+                <motion.div
+                  className="mt-8 sm:mt-12 grid grid-cols-1 gap-4 border-t border-border/40 pt-6 sm:pt-8 w-full sm:grid-cols-3"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
+                >
+                  <TrustItem icon={ShieldCheck} tint="primary" label="Admin-verified listings" />
+                  <TrustItem icon={MessageCircle} tint="teal" label="Direct WhatsApp contact" />
+                  <TrustItem icon={IndianRupee} tint="gold" label="No commission, ever" />
+                </motion.div>
+              </motion.div>
+
+              {/* Right column — image collage */}
+              <motion.div
+                className="relative h-[320px] w-full sm:h-[420px]"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              >
+                {/* Image 1 — top center, largest */}
+                <motion.div
+                  className="absolute left-1/2 top-0 h-52 w-52 -translate-x-1/2 rounded-2xl border border-border bg-card p-2 shadow-elegant sm:h-64 sm:w-54"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                >
+                  <img
+                    src="/assets/hero/hero_image_1.webp"
+                    alt="JEE student with books"
+                    className="h-full w-full rounded-xl object-cover object-top"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </motion.div>
+
+                {/* Image 2 — right middle */}
+                <motion.div
+                  className="absolute right-0 top-1/3 h-40 w-40 rounded-2xl border border-border bg-card p-2 shadow-elegant sm:h-52 sm:w-52"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.35 }}
+                >
+                  <img
+                    src="/assets/hero/hero_image_22.webp"
+                    alt="NEET student selling books"
+                    className="h-full w-full rounded-xl object-cover object-top"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </motion.div>
+
+                {/* Image 3 — bottom left */}
+                <motion.div
+                  className="absolute bottom-0 left-0 h-36 w-36 rounded-2xl border border-border bg-card p-2 shadow-elegant sm:h-78 sm:w-58"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.5 }}
+                >
+                  <img
+                    src="/assets/hero/hero_image_3.webp"
+                    alt="GATE aspirant with used books"
+                    className="h-full w-full rounded-xl object-cover object-top"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </motion.div>
+
+                {/* Decorative shapes */}
+                <motion.div
+                  className="absolute -top-4 left-1/4 h-14 w-14 rounded-full bg-primary/20"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                />
+                <motion.div
+                  className="absolute bottom-4 right-1/4 h-10 w-10 rounded-xl bg-primary/10"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                />
+                <motion.div
+                  className="absolute bottom-1/4 left-6 h-6 w-6 rounded-full bg-primary/15"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                />
+              </motion.div>
             </div>
           </div>
         </section>
@@ -421,40 +589,7 @@ function Home() {
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
-              {TESTIMONIALS.map((t) => (
-                <div
-                  key={t.name}
-                  className="flex flex-col rounded-3xl border border-border bg-card p-8 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-elegant"
-                >
-                  <Quote className="h-8 w-8 text-primary/20" />
-                  <p className="mt-4 flex-1 text-sm leading-relaxed text-foreground">{t.quote}</p>
-                  <div className="mt-8 flex items-center gap-3">
-                    <img
-                      src={t.photo}
-                      alt={`${t.name} headshot`}
-                      width={44}
-                      height={44}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-11 w-11 rounded-full object-cover ring-2 ring-primary/20"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-3.5 w-3.5 ${i < t.rating ? "fill-gold text-gold" : "text-muted-foreground/30"}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <StaggerTestimonials />
           </div>
         </section>
 

@@ -13,10 +13,11 @@ import {
 import { AdminPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
 import { getAdminDashboard } from "@/lib/adminDashboard";
-import { getListingsByStatus, updateListingStatus } from "@/lib/listings";
+import { getListingsByStatus } from "@/lib/listings";
 import { seedSampleListings } from "@/lib/seed";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
+import { apiFetch } from "@/lib/api-client";
 import { Check, X, Eye, Tag, Sparkles, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -80,7 +81,10 @@ function AdminDashboard() {
 
   const act = async (id: string, status: ListingStatus, label: string) => {
     try {
-      await updateListingStatus(id, status);
+      await apiFetch("/api/admin/listing-decision", {
+        method: "POST",
+        body: JSON.stringify({ listingId: id, status }),
+      });
       toast.success(label);
       qc.invalidateQueries({ queryKey: ["admin-listings"] });
       qc.invalidateQueries({ queryKey: ["listings"] });

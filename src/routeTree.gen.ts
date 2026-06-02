@@ -42,6 +42,7 @@ import { Route as ApiAdminShipmentRetryRouteImport } from './routes/api/admin/sh
 import { Route as ApiAdminRefundRouteImport } from './routes/api/admin/refund'
 import { Route as ApiAdminReconcileRouteImport } from './routes/api/admin/reconcile'
 import { Route as ApiAdminPayoutPaidRouteImport } from './routes/api/admin/payout-paid'
+import { Route as ApiAdminListingDecisionRouteImport } from './routes/api/admin/listing-decision'
 import { Route as ApiAdminDisputeResolveRouteImport } from './routes/api/admin/dispute-resolve'
 import { Route as ApiPublicShiprocketWebhookRouteImport } from './routes/api/public/shiprocket/webhook'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay/webhook'
@@ -212,6 +213,11 @@ const ApiAdminPayoutPaidRoute = ApiAdminPayoutPaidRouteImport.update({
   path: '/api/admin/payout-paid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminListingDecisionRoute = ApiAdminListingDecisionRouteImport.update({
+  id: '/api/admin/listing-decision',
+  path: '/api/admin/listing-decision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminDisputeResolveRoute = ApiAdminDisputeResolveRouteImport.update({
   id: '/api/admin/dispute-resolve',
   path: '/api/admin/dispute-resolve',
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
   '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
   '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
+  '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
   '/api/admin/reconcile': typeof ApiAdminReconcileRoute
   '/api/admin/refund': typeof ApiAdminRefundRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
+    | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
     | '/api/admin/reconcile'
     | '/api/admin/refund'
@@ -420,6 +430,7 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
+    | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
     | '/api/admin/reconcile'
     | '/api/admin/refund'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/seller/$uid'
     | '/api/admin/dispute-resolve'
+    | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
     | '/api/admin/reconcile'
     | '/api/admin/refund'
@@ -498,6 +510,7 @@ export interface RootRouteChildren {
   OrderIdRoute: typeof OrderIdRoute
   SellerUidRoute: typeof SellerUidRoute
   ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
+  ApiAdminListingDecisionRoute: typeof ApiAdminListingDecisionRoute
   ApiAdminPayoutPaidRoute: typeof ApiAdminPayoutPaidRoute
   ApiAdminReconcileRoute: typeof ApiAdminReconcileRoute
   ApiAdminRefundRoute: typeof ApiAdminRefundRoute
@@ -745,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPayoutPaidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/listing-decision': {
+      id: '/api/admin/listing-decision'
+      path: '/api/admin/listing-decision'
+      fullPath: '/api/admin/listing-decision'
+      preLoaderRoute: typeof ApiAdminListingDecisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/dispute-resolve': {
       id: '/api/admin/dispute-resolve'
       path: '/api/admin/dispute-resolve'
@@ -813,6 +833,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrderIdRoute: OrderIdRoute,
   SellerUidRoute: SellerUidRoute,
   ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,
+  ApiAdminListingDecisionRoute: ApiAdminListingDecisionRoute,
   ApiAdminPayoutPaidRoute: ApiAdminPayoutPaidRoute,
   ApiAdminReconcileRoute: ApiAdminReconcileRoute,
   ApiAdminRefundRoute: ApiAdminRefundRoute,

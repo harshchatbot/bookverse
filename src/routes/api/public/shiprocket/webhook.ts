@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
 import { getStoredOrderSummary } from "@/lib/order-server";
 import { mapShiprocketStatus } from "@/lib/shiprocket.server";
+import { createNotification } from "@/lib/notifications.server";
 
 export const Route = createFileRoute("/api/public/shiprocket/webhook")({
   server: {
@@ -94,21 +95,38 @@ export const Route = createFileRoute("/api/public/shiprocket/webhook")({
               updatedAt: FieldValue.serverTimestamp(),
             });
           }
-          try {
-            const summary = getStoredOrderSummary(order);
-            await db.collection("notifications").add({
-              userUid: order.buyerUid,
-              type: "order_delivered",
-              title: "Order delivered",
-              body: `"${summary}" was delivered. You have 72 hours to raise a dispute.`,
-              link: `/order/${ourOrderId}`,
-              read: false,
-              createdAt: FieldValue.serverTimestamp(),
-            });
-          } catch {
-            /* best-effort */
-          }
-        } else if (mapped === "cancelled" || mapped === "failed") {
+          // Notify buyer of delivery
+          const summary = getStoredOrderSummary(order);
+          await createNotification({
+            userUid: order.buyerUid,
+            type: "order_delivered",
+            title: "Order delivered",
+            body: `Your order "${summary}" has been delivered.`,
+            link: "/dashboard",
+          });
+        } else if (mapped === "pickup_scheduled") {
+          // Notify seller that pickup is scheduled
+          const summary = getStoredOrderSummary(order);
+          await createNotification({
+            userUid: order.sellerUid,
+            type: "pickup_scheduled",
+            title: "Pickup scheduled",
+            body: `A courier will come to pick up your parcel for "${summary}". AWB: ${awb || "pending"}`,
+            link: "/dashboard",
+          });
+        } else if (mapped === "in_transit" || mapped === "shipped") {
+          // Notify buyer that order is shipped
+          const summary = getStoredOrderSummary(order);
+          await createNotification({
+            userUid: order.buyerUid,
+            type: "order_shipped",
+            title: "Order shipped",
+            body: `Your order "${summary}" is on the way. Track it with AWB: ${awb || "pending"}`,
+            link: "/dashboard",
+          });
+        }
+
+        if (mapped === "cancelled" || mapped === "failed") {
           orderUpdate.status = mapped;
           orderUpdate.cancelledAt = new Date().toISOString();
         } else if (mapped && order.status !== "dispute_window" && order.status !== "delivered") {
