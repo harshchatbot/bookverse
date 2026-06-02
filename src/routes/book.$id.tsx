@@ -19,6 +19,57 @@ import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/book/$id")({
+  loader: async ({ params }) => {
+    const listing = await getListing(params.id);
+    return { listing };
+  },
+  head: ({ loaderData }) => {
+    const l = loaderData?.listing;
+    if (!l) {
+      return { meta: [{ title: "Book — BookVerse" }] };
+    }
+    const priceLabel = `₹${l.sellingPrice.toLocaleString("en-IN")}`;
+    const title = `Used ${l.title}${l.author ? " by " + l.author : ""} — ${priceLabel} | BookVerse`;
+    const desc =
+      `Buy used "${l.title}"${l.author ? " by " + l.author : ""} for ${priceLabel} ` +
+      `in ${l.city}. Condition: ${l.condition}. ${l.deliveryType === "shipping" ? "Shipping available across India." : "Local pickup."} ` +
+      `Second-hand ${l.category} book on BookVerse.`;
+    const img = l.images?.[0];
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "product" },
+        ...(img ? [{ property: "og:image", content: img }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: l.title,
+            ...(l.author ? { brand: { "@type": "Brand", name: l.author } } : {}),
+            ...(img ? { image: img } : {}),
+            description: l.description || `Used ${l.category} book`,
+            offers: {
+              "@type": "Offer",
+              price: l.sellingPrice,
+              priceCurrency: "INR",
+              availability:
+                l.status === "sold"
+                  ? "https://schema.org/SoldOut"
+                  : "https://schema.org/InStock",
+              itemCondition: "https://schema.org/UsedCondition",
+            },
+          }),
+        },
+      ],
+    };
+  },
   component: BookDetail,
 });
 
@@ -131,6 +182,17 @@ function BookDetail() {
                     <img src={img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </button>
                 ))}
+              </div>
+            )}
+            {listing.videoUrl && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-semibold">Seller's video</p>
+                <video
+                  src={listing.videoUrl}
+                  controls
+                  playsInline
+                  className="w-full rounded-2xl border border-border bg-black"
+                />
               </div>
             )}
           </div>

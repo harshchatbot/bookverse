@@ -131,7 +131,8 @@ function ReceivedOffers() {
 
   if (isLoading) return <LoadingRows />;
 
-  const offers = data ?? [];
+  // Hide offers the buyer withdrew — nothing for the seller to act on.
+  const offers = (data ?? []).filter((o) => o.status !== "cancelled");
 
   if (offers.length === 0) {
     return (
@@ -213,6 +214,13 @@ function StatusBadge({ status }: { status: OfferStatus }) {
       </span>
     );
   }
+  if (status === "cancelled") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+        Withdrawn
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
       Declined
@@ -240,7 +248,8 @@ function ReceivedOfferRow({ offer }: { offer: Offer }) {
   const when = formatDate(offer);
 
   const statusMutation = useMutation({
-    mutationFn: (status: Exclude<OfferStatus, "pending">) => setOfferStatus(offer, status),
+    mutationFn: (status: Extract<OfferStatus, "accepted" | "declined">) =>
+      setOfferStatus(offer, status),
     onSuccess: (_d, status) => {
       queryClient.invalidateQueries({ queryKey: ["offers", "received", user?.uid] });
       queryClient.invalidateQueries({ queryKey: ["my-offer", offer.listingId] });

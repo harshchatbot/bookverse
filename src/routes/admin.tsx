@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { PageSpinner } from "@/components/Spinner";
 import { getListingsByStatus, updateListingStatus } from "@/lib/listings";
 import { AdminMarketplace } from "@/components/AdminMarketplace";
 import { AdminAnalytics } from "@/components/AdminAnalytics";
@@ -32,7 +33,9 @@ function Admin() {
       loading={
         <div className="flex min-h-screen flex-col">
           <Header />
-          <main className="flex-1" />
+          <main className="flex-1">
+            <PageSpinner label="Checking access…" />
+          </main>
           <Footer />
         </div>
       }

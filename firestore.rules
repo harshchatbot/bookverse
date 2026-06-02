@@ -6,7 +6,10 @@ service cloud.firestore {
 
     function isSignedIn() { return request.auth != null; }
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email in ['harshveernirwan@gmail.com'];
+      return isSignedIn() && (
+        request.auth.token.email == 'harshveernirwan@gmail.com'
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     match /listings/{listingId} {
@@ -16,6 +19,9 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.sellerUid == request.auth.uid
                     && request.resource.data.status == 'pending';
+      // Seller may mark their own approved listing as sold.
+      // A buyer's accepted offer also flips the listing to 'sold' (offer accept runs
+      // as the seller, so the sellerUid check still holds).
       allow update: if isAdmin()
                     || (isSignedIn()
                         && resource.data.sellerUid == request.auth.uid
@@ -29,8 +35,58 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Orders, payments, shipments, payouts are written by the server (Admin SDK
-    // bypasses rules). Clients only read. Buyer reads own; seller reads own; admin all.
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    // OFFERS
+    // - Buyer creates their own offer (must be the buyer, status starts 'pending').
+    // - Buyer may edit amount/message OR withdraw (status -> 'cancelled') on their own offer.
+    // - Seller may accept/decline (status -> 'accepted'/'declined') on offers for their listings.
+    // - Both parties to an offer can read it.
+    match /offers/{offerId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid
+        || resource.data.sellerUid == request.auth.uid
+        || isAdmin()
+      );
+
+      allow create: if isSignedIn()
+                    && request.resource.data.buyerUid == request.auth.uid
+                    && request.resource.data.buyerUid != request.resource.data.sellerUid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.amount is int
+                    && request.resource.data.amount > 0;
+
+      // Buyer-side updates: editing or withdrawing own offer.
+      allow update: if isSignedIn()
+                    && resource.data.buyerUid == request.auth.uid
+                    && request.resource.data.buyerUid == resource.data.buyerUid
+                    && request.resource.data.sellerUid == resource.data.sellerUid
+                    && (
+                      // withdraw a pending offer
+                      (resource.data.status == 'pending'
+                       && request.resource.data.status == 'cancelled')
+                      // edit amount/message while still pending
+                      || (resource.data.status == 'pending'
+                          && request.resource.data.status == 'pending')
+                    );
+
+      // Seller-side updates: respond to an offer on their listing.
+      allow update: if isSignedIn()
+                    && resource.data.sellerUid == request.auth.uid
+                    && request.resource.data.buyerUid == resource.data.buyerUid
+                    && request.resource.data.sellerUid == resource.data.sellerUid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status in ['accepted', 'declined'];
+
+      // Admin or seller cleanup of sibling offers when a listing sells.
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
     match /orders/{orderId} {
       allow read: if isSignedIn() && (
         resource.data.buyerUid == request.auth.uid
@@ -61,7 +117,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Buyers/sellers can raise disputes; only admin can update/resolve.
     match /disputes/{disputeId} {
       allow read: if isSignedIn() && (
         resource.data.raisedBy == request.auth.uid || isAdmin()
@@ -76,10 +131,17 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 
+    // NOTIFICATIONS
+    // Created client-side by whichever signed-in user triggers the event
+    // (e.g. a buyer making an offer notifies the seller). The creator does not
+    // have to be the recipient, but must be signed in and must stamp the doc as unread.
     match /notifications/{id} {
       allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
+      allow create: if isSignedIn()
+                    && request.resource.data.read == false
+                    && request.resource.data.userUid is string;
       allow update: if isSignedIn() && resource.data.userUid == request.auth.uid;
-      allow create, delete: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

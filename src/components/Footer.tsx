@@ -9,7 +9,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
               <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
-                <img src={bookverseLogo.url} alt="" width={48} height={48} loading="lazy" decoding="async" className="h-full w-full object-contain p-1" />
+                <img src={bookverseLogo.url} alt="" width={48} height={48} loading="lazy" decoding="async" className="h-full w-full object-contain p-0.15" />
               </span>
               BookVerse
             </Link>

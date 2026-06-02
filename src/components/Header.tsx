@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/AuthGate";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { useState } from "react";
-import { Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package, BarChart3 } from "lucide-react";
+import { Menu, X, Plus, LogOut, ShieldCheck, ListChecks, UserRound, Heart, HandCoins, ShoppingBag, Package, BarChart3, Bell } from "lucide-react";
 const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export function Header() {
@@ -44,7 +44,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label="BookVerse home">
           <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-accent-surface to-primary/40 shadow-sm">
-            <img src={bookverseLogo.url} alt="" width={40} height={40} decoding="async" fetchPriority="high" className="h-full w-full object-contain p-1" />
+            <img src={bookverseLogo.url} alt="" width={40} height={40} decoding="async" fetchPriority="high" className="h-full w-full object-contain p-0.15" />
           </span>
           <span className="hidden sm:inline">BookVerse</span>
         </Link>
@@ -154,6 +154,13 @@ export function Header() {
                       >
                         <HandCoins className="h-4 w-4" /> Offers
                       </Link>
+                      <Link
+                        to="/notifications"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+                      >
+                        <Bell className="h-4 w-4" /> Notifications
+                      </Link>
                       {isAdmin && (
                         <Link
                           to="/admin"
@@ -240,6 +247,13 @@ export function Header() {
                     className="rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
                   >
                     Offers
+                  </Link>
+                  <Link
+                    to="/notifications"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
+                  >
+                    Notifications
                   </Link>
                   {isAdmin && (
                     <Link

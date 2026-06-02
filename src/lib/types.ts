@@ -9,10 +9,12 @@ export interface Listing {
   originalPrice: number;
   sellingPrice: number;
   condition: ConditionValue;
+  state: string;
   city: string;
   deliveryType: DeliveryType;
   description: string;
   images: string[];
+  videoUrl?: string;
   sellerName: string;
   sellerMobile: string;
   sellerUid: string;

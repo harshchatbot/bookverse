@@ -4,9 +4,11 @@ import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { PageSpinner } from "@/components/Spinner";
 import { getMyListings, updateListingStatus } from "@/lib/listings";
 import { categoryLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
+import type { Listing } from "@/lib/types";
 import type { User } from "firebase/auth";
 
 export const Route = createFileRoute("/my-listings")({
@@ -34,7 +36,9 @@ function MyListings() {
       loading={
         <div className="flex min-h-screen flex-col">
           <Header />
-          <main className="flex-1" />
+          <main className="flex-1">
+            <PageSpinner label="Loading your listings…" />
+          </main>
           <Footer />
         </div>
       }
@@ -53,6 +57,35 @@ function MyListings() {
     >
       {({ user }) => <MyListingsContent user={user} />}
     </AuthGate>
+  );
+}
+
+function StatCounts({ listings }: { listings: Listing[] }) {
+  const counts = {
+    total: listings.length,
+    pending: listings.filter((l) => l.status === "pending").length,
+    approved: listings.filter((l) => l.status === "approved").length,
+    rejected: listings.filter((l) => l.status === "rejected").length,
+    sold: listings.filter((l) => l.status === "sold").length,
+  };
+
+  const cards: { label: string; value: number; className: string }[] = [
+    { label: "Total", value: counts.total, className: "border-border bg-card" },
+    { label: "Pending", value: counts.pending, className: "border-gold/40 bg-gold/10" },
+    { label: "Approved", value: counts.approved, className: "border-success/40 bg-success/10" },
+    { label: "Rejected", value: counts.rejected, className: "border-destructive/30 bg-destructive/10" },
+    { label: "Sold", value: counts.sold, className: "border-border bg-secondary/60" },
+  ];
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {cards.map((c) => (
+        <div key={c.label} className={`rounded-2xl border p-4 ${c.className}`}>
+          <div className="font-display text-2xl font-bold">{c.value}</div>
+          <div className="mt-0.5 text-xs font-medium text-muted-foreground">{c.label}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -100,6 +133,8 @@ function MyListingsContent({ user }: { user: User }) {
               + New listing
             </Link>
           </div>
+
+          {!isLoading && listings.length > 0 && <StatCounts listings={listings} />}
 
           <div className="mt-8 space-y-3">
             {isLoading ? (

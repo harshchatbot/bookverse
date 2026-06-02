@@ -5,7 +5,8 @@ import {
   signOut as fbSignOut,
   type User,
 } from "firebase/auth";
-import { auth, googleProvider, ADMIN_EMAILS } from "@/integrations/firebase/client";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, googleProvider, ADMIN_EMAILS, db } from "@/integrations/firebase/client";
 
 interface AuthContextValue {
   user: User | null;
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -29,7 +31,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, []);
 
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  useEffect(() => {
+    let cancelled = false;
+    async function checkAdmin() {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      // 1) hardcoded backup email — always admin
+      if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        if (!cancelled) setIsAdmin(true);
+        return;
+      }
+      // 2) otherwise check the admins collection
+      try {
+        const snap = await getDoc(doc(db, "admins", user.uid));
+        if (!cancelled) setIsAdmin(snap.exists());
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+    }
+    void checkAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const signInWithGoogle = async () => {
     await signInWithPopup(auth, googleProvider);

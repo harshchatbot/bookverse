@@ -91,7 +91,15 @@ function Browse() {
     isFetchingNextPage,
     isPending,
     fetchNextPage,
-  } = useInfiniteQuery(listingsInfiniteQueryOptions(params));
+  } = useInfiniteQuery(
+    listingsInfiniteQueryOptions({
+      category: params.category,
+      condition: params.condition,
+      min: params.min,
+      max: params.max,
+      sort: params.sort,
+    }),
+  );
 
   const listings = useMemo(
     () => (data?.pages?.flatMap((p) => p?.items ?? []) ?? []),

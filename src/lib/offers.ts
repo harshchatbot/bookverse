@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDocs,
   limit as fbLimit,
@@ -28,7 +27,7 @@ export const offerSchema = z.object({
 
 export type OfferInput = z.infer<typeof offerSchema>;
 
-export type OfferStatus = "pending" | "accepted" | "declined";
+export type OfferStatus = "pending" | "accepted" | "declined" | "cancelled";
 
 export interface NewOfferInput extends OfferInput {
   listingId: string;
@@ -68,6 +67,7 @@ export async function createOffer(input: NewOfferInput): Promise<string> {
     message: (input.message ?? "").trim().slice(0, 500),
     status: "pending" satisfies OfferStatus,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   // Notify the seller that a new offer arrived.
@@ -159,13 +159,17 @@ export async function updateOffer(id: string, input: OfferInput): Promise<void> 
   });
 }
 
+// Soft-cancel: mark the offer 'cancelled' instead of deleting, preserving an audit trail.
 export async function cancelOffer(id: string): Promise<void> {
-  await deleteDoc(doc(db, OFFERS_COLLECTION, id));
+  await updateDoc(doc(db, OFFERS_COLLECTION, id), {
+    status: "cancelled" satisfies OfferStatus,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function setOfferStatus(
   offer: Offer,
-  status: Exclude<OfferStatus, "pending">,
+  status: Extract<OfferStatus, "accepted" | "declined">,
 ): Promise<void> {
   await updateDoc(doc(db, OFFERS_COLLECTION, offer.id), {
     status,

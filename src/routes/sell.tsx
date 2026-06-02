@@ -8,9 +8,11 @@ import { celebrate } from "@/lib/confetti";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
+import { PageSpinner } from "@/components/Spinner";
 import { useAuth } from "@/hooks/useAuth";
 import { CATEGORIES, CONDITIONS, DELIVERY_TYPES } from "@/lib/constants";
-import { createListing, uploadListingImage } from "@/lib/listings";
+import { INDIAN_STATES, citiesForState } from "@/lib/locations";
+import { createListing, uploadListingImage, uploadListingVideo } from "@/lib/listings";
 import { Upload, X, Loader2, ImagePlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import type { User } from "firebase/auth";
 
@@ -50,7 +52,8 @@ const formSchema = z
       .min(1, "Selling price must be at least ₹1")
       .max(PRICE_MAX, `Must be ₹${PRICE_MAX.toLocaleString("en-IN")} or less`),
     condition: z.string().min(1, "Pick a condition"),
-    city: z.string().trim().min(2, "City is required").max(80, "Keep under 80 characters"),
+    state: z.string().min(1, "Select a state"),
+    city: z.string().min(1, "Select a city"),
     deliveryType: z.string().min(1, "Pick delivery type"),
     description: z
       .string()
@@ -83,7 +86,9 @@ function Sell() {
       loading={
         <div className="flex min-h-screen flex-col">
           <Header />
-          <main className="flex-1" />
+          <main className="flex-1">
+            <PageSpinner label="Loading…" />
+          </main>
           <Footer />
         </div>
       }
@@ -119,6 +124,9 @@ function Sell() {
 function SellForm({ user }: { user: User }) {
   const navigate = useNavigate();
   const [images, setImages] = useState<File[]>([]);
+  const [video, setVideo] = useState<File | null>(null);
+  const VIDEO_ALLOWED = ["video/mp4", "video/quicktime", "video/webm"];
+  const VIDEO_MAX_MB = 30;
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -198,6 +206,7 @@ function SellForm({ user }: { user: User }) {
       originalPrice: 0,
       sellingPrice: 0,
       condition: "",
+      state: "",
       city: "",
       deliveryType: "",
       description: "",
@@ -209,6 +218,18 @@ function SellForm({ user }: { user: User }) {
   const category = watch("category");
   const condition = watch("condition");
   const deliveryType = watch("deliveryType");
+  const stateValue = watch("state");
+  const cityValue = watch("city");
+
+  const cityOptions = stateValue ? citiesForState(stateValue) : [];
+
+  // When the state changes, clear a city that no longer belongs to it.
+  useEffect(() => {
+    if (stateValue && cityValue && !citiesForState(stateValue).includes(cityValue)) {
+      setValue("city", "", { shouldValidate: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateValue]);
 
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_IMAGES = 6;
@@ -254,6 +275,20 @@ function SellForm({ user }: { user: User }) {
     }
   };
 
+  const onVideo = (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    if (!VIDEO_ALLOWED.includes(file.type)) {
+      toast.error("Video must be MP4, MOV, or WebM.");
+      return;
+    }
+    if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
+      toast.error(`Video must be under ${VIDEO_MAX_MB}MB.`);
+      return;
+    }
+    setVideo(file);
+  };
+
   const onSubmit = async (data: FormValues) => {
     if (images.length === 0) {
       toast.error("Please upload at least 1 photo of the book.");
@@ -294,6 +329,22 @@ function SellForm({ user }: { user: User }) {
           throw err;
         }
       }
+
+      let videoUrl: string | undefined;
+      if (video) {
+        setSubmitStatus("Uploading video…");
+        setUploadProgress(0);
+        try {
+          videoUrl = await uploadListingVideo(user.uid, video, {
+            timeoutMs: 120_000,
+            onProgress: setUploadProgress,
+          });
+        } catch (err) {
+          console.error("[sell] video upload failed", err);
+          throw err;
+        }
+      }
+
       setSubmitStatus("Saving listing…");
       setUploadProgress(100);
       console.log(`[sell] all images uploaded, creating listing doc...`);
@@ -303,6 +354,7 @@ function SellForm({ user }: { user: User }) {
           edition: data.edition ?? "",
           description: data.description ?? "",
           images: imageUrls,
+          videoUrl,
           sellerUid: user.uid,
           sellerEmail: user.email ?? "",
         }),
@@ -392,6 +444,46 @@ function SellForm({ user }: { user: User }) {
                   {6 - images.length} slot{6 - images.length !== 1 ? "s" : ""} remaining.
                 </p>
               )}
+
+              <div className="mt-5 border-t border-border pt-5">
+                <p className="text-sm font-semibold">Add a video (optional)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  A short clip showing the book from all sides builds buyer trust. MP4/MOV/WebM, up to {VIDEO_MAX_MB}MB.
+                </p>
+                {video ? (
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+                    <video
+                      src={URL.createObjectURL(video)}
+                      className="h-16 w-16 rounded-lg object-cover"
+                      muted
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{video.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(video.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVideo(null)}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-4 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                    <ImagePlus className="h-4 w-4" />
+                    Choose a video
+                    <input
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/webm"
+                      className="hidden"
+                      onChange={(e) => onVideo(e.target.files)}
+                    />
+                  </label>
+                )}
+              </div>
             </Section>
 
             <Section title="Book details">
@@ -439,15 +531,33 @@ function SellForm({ user }: { user: User }) {
                     placeholder="Select condition"
                   />
                 </Field>
-                <Field label="City" error={errors.city?.message}>
-                  <Input {...register("city")} placeholder="Mumbai" />
-                </Field>
                 <Field label="Delivery type" error={errors.deliveryType?.message}>
                   <Select
                     value={deliveryType}
                     onChange={(v) => setValue("deliveryType", v, { shouldValidate: true })}
                     options={DELIVERY_TYPES.map((d) => ({ value: d.value, label: d.label }))}
                     placeholder="Select delivery"
+                  />
+                </Field>
+                <Field label="State" error={errors.state?.message}>
+                  <Select
+                    value={stateValue}
+                    onChange={(v) => {
+                      setValue("state", v, { shouldValidate: true });
+                      // Reset city whenever the state changes.
+                      setValue("city", "", { shouldValidate: false });
+                    }}
+                    options={INDIAN_STATES.map((s) => ({ value: s, label: s }))}
+                    placeholder="Select state"
+                  />
+                </Field>
+                <Field label="City" error={errors.city?.message}>
+                  <Select
+                    value={cityValue}
+                    onChange={(v) => setValue("city", v, { shouldValidate: true })}
+                    options={cityOptions.map((c) => ({ value: c, label: c }))}
+                    placeholder={stateValue ? "Select city" : "Select a state first"}
+                    disabled={!stateValue}
                   />
                 </Field>
               </div>
@@ -773,17 +883,20 @@ function Select({
   onChange,
   options,
   placeholder,
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   placeholder: string;
+  disabled?: boolean;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+      disabled={disabled}
+      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (

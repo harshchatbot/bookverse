@@ -32,10 +32,12 @@ export interface NewListingInput {
   originalPrice: number;
   sellingPrice: number;
   condition: string;
+  state: string;
   city: string;
   deliveryType: string;
   description: string;
   images: string[];
+  videoUrl?: string;
   sellerName: string;
   sellerMobile: string;
   sellerUid: string;
@@ -45,6 +47,7 @@ export interface NewListingInput {
 export async function createListing(input: NewListingInput): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTION), {
     ...input,
+    videoUrl: input.videoUrl ?? null,
     status: "pending" satisfies ListingStatus,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -223,6 +226,52 @@ export async function uploadListingImage(
       (error) => {
         finish(() => reject(error));
       },
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          finish(() => resolve(url));
+        } catch (error) {
+          finish(() => reject(error));
+        }
+      },
+    );
+  });
+}
+
+export async function uploadListingVideo(
+  uid: string,
+  file: File,
+  options?: { onProgress?: (progress: number) => void; timeoutMs?: number },
+): Promise<string> {
+  const safeName = `video_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const path = `listings/${uid}/${safeName}`;
+  const r = ref(storage, path);
+  const task = uploadBytesResumable(r, file, { contentType: file.type || "video/mp4" });
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeout = globalThis.setTimeout(() => {
+      if (settled) return;
+      task.cancel();
+      settled = true;
+      reject(new Error("Video upload timed out. Please check your connection and try again."));
+    }, options?.timeoutMs ?? 120_000);
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      globalThis.clearTimeout(timeout);
+      fn();
+    };
+
+    task.on(
+      "state_changed",
+      (snapshot) => {
+        const progress =
+          snapshot.totalBytes > 0 ? snapshot.bytesTransferred / snapshot.totalBytes : 0;
+        options?.onProgress?.(Math.round(progress * 100));
+      },
+      (error) => finish(() => reject(error)),
       async () => {
         try {
           const url = await getDownloadURL(task.snapshot.ref);

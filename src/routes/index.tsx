@@ -51,10 +51,52 @@ import type { LucideIcon } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BookVerse — Buy & Sell Educational Books Across India" },
-      { name: "description", content: "Don't let your books become scrap. Buy and sell engineering, medical, JEE, NEET, GATE, UPSC and competitive exam books across India." },
-      { property: "og:title", content: "BookVerse — Educational Books Marketplace" },
-      { property: "og:description", content: "Buy and sell educational books across India." },
+      { title: "BookVerse — Buy & Sell Used Educational Books Online in India" },
+      {
+        name: "description",
+        content:
+          "Buy and sell used books online in India at up to 70% off. Second-hand engineering, medical, JEE, NEET, GATE, UPSC, MBA, CA, programming (Java, Python), Salesforce, SAP, IT certification books and reference books. List free, no commission.",
+      },
+      {
+        name: "keywords",
+        content:
+          "used books, second hand books, buy used books online, sell old books, used engineering books, used medical books, NEET books, JEE books, GATE books, UPSC books, MBA books, CA books, used programming books, Java books, Python books, Salesforce books, SAP books, IT certification books, reference books, college textbooks India, cheap books online",
+      },
+      { name: "robots", content: "index, follow" },
+      { property: "og:title", content: "BookVerse — Buy & Sell Used Educational Books in India" },
+      {
+        property: "og:description",
+        content:
+          "India's marketplace for used educational books. Engineering, medical, competitive exams, programming and certification books at a fraction of the price.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "BookVerse" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "BookVerse — Used Educational Books Marketplace" },
+      {
+        name: "twitter:description",
+        content: "Buy and sell used educational books across India. No commission.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "BookVerse",
+          description:
+            "India's marketplace for used educational books — engineering, medical, competitive exams, programming and certification books.",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: {
+              "@type": "EntryPoint",
+              urlTemplate: "https://bookverse.techfilabs.com/browse?q={search_term_string}",
+            },
+            "query-input": "required name=search_term_string",
+          },
+        }),
+      },
     ],
   }),
   component: Home,

@@ -12,6 +12,7 @@ const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid"
     originalPrice: 850,
     sellingPrice: 480,
     condition: "good",
+    state: "Rajasthan",
     city: "Kota",
     deliveryType: "shipping",
     description:
@@ -29,6 +30,7 @@ const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid"
     originalPrice: 4200,
     sellingPrice: 2600,
     condition: "like_new",
+    state: "Delhi",
     city: "New Delhi",
     deliveryType: "shipping",
     description:
@@ -45,6 +47,7 @@ const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid"
     originalPrice: 950,
     sellingPrice: 550,
     condition: "good",
+    state: "Karnataka",
     city: "Bengaluru",
     deliveryType: "shipping",
     description:
@@ -61,6 +64,7 @@ const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid"
     originalPrice: 750,
     sellingPrice: 320,
     condition: "acceptable",
+    state: "Maharashtra",
     city: "Mumbai",
     deliveryType: "local",
     description:
@@ -77,6 +81,7 @@ const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid"
     originalPrice: 575,
     sellingPrice: 250,
     condition: "like_new",
+    state: "Maharashtra",
     city: "Pune",
     deliveryType: "shipping",
     description:
