@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "cleanup:books-pii": "node scripts/cleanup-books-pii.mjs"
+    "cleanup:books-pii": "node scripts/cleanup-books-pii.mjs",
+    "cleanup:listings-pii": "node scripts/cleanup-listings-pii.mjs"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",

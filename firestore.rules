@@ -18,7 +18,7 @@ service cloud.firestore {
     }
 
     function validIndianMobile(value) {
-      return value is string && value.matches('^[6-9][0-9]{9}$');
+      return value is string && value.matches('^\\+91[6-9][0-9]{9}$');
     }
 
     function validPincode(value) {
@@ -32,8 +32,8 @@ service cloud.firestore {
     function phoneTokenMatches(data) {
       return request.auth.token.phone_number is string
         && (
-          request.auth.token.phone_number == '+91' + data.mobile
-          || request.auth.token.phone_number == '+91' + data.whatsappNumber
+          request.auth.token.phone_number == data.mobile
+          || request.auth.token.phone_number == data.whatsappNumber
         );
     }
 
@@ -70,10 +70,12 @@ service cloud.firestore {
           'mobile',
           'whatsappNumber',
           'phoneVerified',
+          'phoneVerifiedAt',
           'state',
           'city',
           'address',
           'pincode',
+          'locality',
           'role',
           'createdAt',
           'updatedAt'

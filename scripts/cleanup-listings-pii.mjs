@@ -1,12 +1,12 @@
 /* global process, console */
 /*
- * ONE-TIME CLEANUP: remove legacy seller PII fields from existing books docs.
+ * ONE-TIME CLEANUP: remove legacy seller PII fields from existing listings docs.
  *
  * Dry-run by default:
- *   npm run cleanup:books-pii
+ *   npm run cleanup:listings-pii
  *
  * Apply changes:
- *   npm run cleanup:books-pii -- --apply
+ *   npm run cleanup:listings-pii -- --apply
  *
  * Requires Firebase Admin credentials via either:
  * - FIREBASE_SERVICE_ACCOUNT_JSON containing the full service account JSON, or
@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { applicationDefault, cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
-const COLLECTION = "books";
+const COLLECTION = "listings";
 const PII_FIELDS = [
   "sellerMobile",
   "sellerEmail",
@@ -62,7 +62,7 @@ function credentials() {
 function initFirebase() {
   if (getApps().length) return;
   const id = projectId();
-  console.log(`[cleanup:books-pii] projectId=${id}`);
+  console.log(`[cleanup:listings-pii] projectId=${id}`);
   initializeApp({ credential: credentials(), projectId: id });
 }
 
@@ -86,7 +86,7 @@ async function main() {
     if (present.length === 0) continue;
 
     updated += 1;
-    console.log(`[cleanup:books-pii] ${doc.id}: removing ${present.join(", ")}`);
+    console.log(`[cleanup:listings-pii] ${doc.id}: removing ${present.join(", ")}`);
 
     if (!apply) continue;
 
@@ -105,18 +105,18 @@ async function main() {
     await batch.commit();
   }
 
-  console.log(`[cleanup:books-pii] mode=${apply ? "apply" : "dry-run"}`);
-  console.log(`[cleanup:books-pii] documents scanned=${scanned}`);
+  console.log(`[cleanup:listings-pii] mode=${apply ? "apply" : "dry-run"}`);
+  console.log(`[cleanup:listings-pii] documents scanned=${scanned}`);
   console.log(
-    `[cleanup:books-pii] documents ${apply ? "updated" : "that would be updated"}=${updated}`,
+    `[cleanup:listings-pii] documents ${apply ? "updated" : "that would be updated"}=${updated}`,
   );
 
   if (!apply) {
-    console.log("[cleanup:books-pii] dry-run only; rerun with -- --apply to write changes.");
+    console.log("[cleanup:listings-pii] dry-run only; rerun with -- --apply to write changes.");
   }
 }
 
 main().catch((error) => {
-  console.error("[cleanup:books-pii] failed", error);
+  console.error("[cleanup:listings-pii] failed", error);
   process.exitCode = 1;
 });

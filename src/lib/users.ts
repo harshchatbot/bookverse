@@ -17,10 +17,12 @@ export interface BookVerseUserProfile {
   mobile: string;
   whatsappNumber: string;
   phoneVerified: boolean;
+  phoneVerifiedAt: string | null;
   state: string;
   city: string;
-  address: string;
   pincode: string;
+  locality: string;
+  address: string;
   role: UserRole;
   createdAt: string | null;
   updatedAt: string | null;
@@ -28,7 +30,7 @@ export interface BookVerseUserProfile {
 
 export type EditableUserProfile = Pick<
   BookVerseUserProfile,
-  "name" | "mobile" | "whatsappNumber" | "state" | "city" | "address" | "pincode"
+  "name" | "mobile" | "whatsappNumber" | "state" | "city" | "locality" | "pincode"
 >;
 
 const EMPTY_PROFILE: BookVerseUserProfile = {
@@ -39,10 +41,12 @@ const EMPTY_PROFILE: BookVerseUserProfile = {
   mobile: "",
   whatsappNumber: "",
   phoneVerified: false,
+  phoneVerifiedAt: null,
   state: "",
   city: "",
-  address: "",
   pincode: "",
+  locality: "",
+  address: "",
   role: "buyer",
   createdAt: null,
   updatedAt: null,
@@ -54,15 +58,20 @@ export function roleForEmail(email: string | null | undefined): UserRole {
 
 export function normalizeIndianMobile(value: string): string {
   const digits = value.replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-  return digits.slice(-10);
+  const national =
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits.slice(-10);
+  return /^[6-9]\d{9}$/.test(national) ? `+91${national}` : "";
+}
+
+export function indianMobileNational(value: string): string {
+  return normalizeIndianMobile(value).replace(/^\+91/, "");
 }
 
 export function isProfileCompleted(profile: BookVerseUserProfile | null | undefined): boolean {
   if (!profile) return false;
   return !!(
     profile.name.trim() &&
-    normalizeIndianMobile(profile.mobile).length === 10 &&
+    !!normalizeIndianMobile(profile.mobile) &&
     profile.state.trim() &&
     profile.city.trim() &&
     /^\d{6}$/.test(profile.pincode)
@@ -77,9 +86,13 @@ export async function getUserProfile(uid: string): Promise<BookVerseUserProfile 
     ...EMPTY_PROFILE,
     ...data,
     uid,
+    mobile: normalizeIndianMobile(data.mobile ?? ""),
+    whatsappNumber: normalizeIndianMobile(data.whatsappNumber || data.mobile || ""),
+    locality: data.locality ?? data.address ?? "",
     role: data.role === "admin" ? "admin" : data.role === "seller" ? "seller" : "buyer",
     createdAt: typeof data.createdAt === "string" ? data.createdAt : null,
     updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : null,
+    phoneVerifiedAt: typeof data.phoneVerifiedAt === "string" ? data.phoneVerifiedAt : null,
   };
 }
 
@@ -105,9 +118,10 @@ export async function ensureUserProfile(user: User): Promise<void> {
     mobile: "",
     whatsappNumber: "",
     phoneVerified: false,
+    phoneVerifiedAt: null,
     state: "",
     city: "",
-    address: "",
+    locality: "",
     pincode: "",
     createdAt: serverTimestamp(),
   });
@@ -129,7 +143,8 @@ export async function saveUserProfile(
     phoneVerified: !!input.phoneVerified,
     state: input.state.trim(),
     city: input.city.trim(),
-    address: input.address.trim(),
+    locality: input.locality.trim(),
+    address: deleteField(),
     pincode: input.pincode.replace(/\D/g, "").slice(0, 6),
     role: roleForEmail(user.email),
     updatedAt: serverTimestamp(),
@@ -161,6 +176,7 @@ export async function setUserPhoneVerified(user: User, verified: boolean): Promi
       email: user.email ?? "",
       emailVerified: user.emailVerified,
       phoneVerified: verified,
+      phoneVerifiedAt: verified ? serverTimestamp() : null,
       role: roleForEmail(user.email),
       updatedAt: serverTimestamp(),
     },

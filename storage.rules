@@ -3,7 +3,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function validIndianMobile(value) {
-      return value is string && value.matches('^[6-9][0-9]{9}$');
+      return value is string && value.matches('^\\+91[6-9][0-9]{9}$');
     }
 
     function validPincode(value) {

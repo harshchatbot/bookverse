@@ -17,6 +17,7 @@ import { LocationSelect } from "@/components/LocationSelect";
 import { auth } from "@/integrations/firebase/client";
 import {
   getUserProfile,
+  indianMobileNational,
   isProfileCompleted,
   normalizeIndianMobile,
   saveUserProfile,
@@ -77,7 +78,7 @@ function ProfileContent({ user }: { user: User }) {
     whatsappNumber: "",
     state: "",
     city: "",
-    address: "",
+    locality: "",
     pincode: "",
   });
   const [manualCity, setManualCity] = useState("");
@@ -100,11 +101,11 @@ function ProfileContent({ user }: { user: User }) {
     const isKnownCity = !!profile.city && cityOptions.includes(profile.city);
     setForm({
       name: profile.name || user.displayName || "",
-      mobile: profile.mobile,
-      whatsappNumber: profile.whatsappNumber || profile.mobile,
+      mobile: indianMobileNational(profile.mobile),
+      whatsappNumber: indianMobileNational(profile.whatsappNumber || profile.mobile),
       state: profile.state,
       city: profile.city && !isKnownCity ? OTHER_CITY : profile.city,
-      address: profile.address,
+      locality: profile.locality || profile.address,
       pincode: profile.pincode,
     });
     setManualCity(profile.city && !isKnownCity ? profile.city : "");
@@ -127,7 +128,9 @@ function ProfileContent({ user }: { user: User }) {
 
   const normalizedMobile = normalizeIndianMobile(form.mobile);
   const phoneVerified =
-    !!profile?.phoneVerified && normalizeIndianMobile(profile.mobile) === normalizedMobile;
+    !!profile?.phoneVerified &&
+    !!normalizedMobile &&
+    normalizeIndianMobile(profile.mobile) === normalizedMobile;
   const completed = isProfileCompleted(profile);
   const emailVerified = user.emailVerified;
   const actualCity = form.city === OTHER_CITY ? manualCity.trim() : form.city.trim();
@@ -201,7 +204,7 @@ function ProfileContent({ user }: { user: User }) {
 
   const sendOtp = async () => {
     if (!isValidIndianMobile(form.mobile)) {
-      toast.error("Do not allow OTP send if mobile number is empty or invalid.");
+      toast.error("Enter a valid 10-digit Indian mobile number before requesting OTP.");
       return;
     }
     const saved = await save();
@@ -249,9 +252,9 @@ function ProfileContent({ user }: { user: User }) {
       <Header />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div>
-          <h1 className="font-display text-3xl font-bold">Complete your profile</h1>
+          <h1 className="font-display text-3xl font-bold">Complete your BookVerse profile</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Email, mobile, and city details help reduce spam before WhatsApp conversations begin.
+            Verify your mobile number to sell books, contact sellers, and keep BookVerse safe.
           </p>
         </div>
 
@@ -313,8 +316,15 @@ function ProfileContent({ user }: { user: User }) {
             )}
 
             <section className="space-y-4">
+              <div>
+                <h2 className="font-display text-xl font-bold">Basic Profile Details</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your city and state help buyers/sellers discover nearby books. Your full location
+                  is private and is not shown publicly.
+                </p>
+              </div>
               <Field
-                label="Name"
+                label="Full Name"
                 value={form.name}
                 onChange={(value) => setForm((current) => ({ ...current, name: value }))}
                 error={errors.name}
@@ -323,7 +333,7 @@ function ProfileContent({ user }: { user: User }) {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label="WhatsApp/mobile number"
+                  label="Mobile / WhatsApp Number"
                   value={form.mobile}
                   onChange={(value) =>
                     setForm((current) => ({
@@ -336,6 +346,7 @@ function ProfileContent({ user }: { user: User }) {
                   inputMode="numeric"
                   maxLength={10}
                   required
+                  helper="Used for OTP verification and WhatsApp-based buyer-seller communication."
                 />
                 <Field
                   label="Pincode"
@@ -365,20 +376,19 @@ function ProfileContent({ user }: { user: User }) {
               />
 
               <div>
-                <label className="text-sm font-medium">Locality / address optional</label>
+                <label className="text-sm font-medium">Locality / Area / Landmark optional</label>
                 <textarea
-                  value={form.address}
+                  value={form.locality}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, address: event.target.value }))
+                    setForm((current) => ({ ...current, locality: event.target.value }))
                   }
                   rows={3}
                   maxLength={240}
-                  placeholder="Locality, area, or pickup landmark. This is not shown publicly."
+                  placeholder="Locality, area, or nearby landmark. This is not shown publicly."
                   className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  BookVerse only shows city and state publicly. Share exact details directly on
-                  WhatsApp.
+                  We only show your city and state publicly. Your exact location is private.
                 </p>
               </div>
             </section>
@@ -388,7 +398,7 @@ function ProfileContent({ user }: { user: User }) {
                 <div>
                   <h2 className="font-semibold">Mobile OTP verification</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Phone verification should verify the WhatsApp/mobile number for trust.
+                    Used for OTP verification and WhatsApp-based buyer-seller communication.
                   </p>
                 </div>
                 {phoneVerified && <CheckCircle2 className="h-5 w-5 text-success" />}
@@ -455,6 +465,7 @@ function Field({
   onChange,
   error,
   required,
+  helper,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -462,6 +473,7 @@ function Field({
   onChange: (value: string) => void;
   error?: string;
   required?: boolean;
+  helper?: string;
 }) {
   return (
     <div>
@@ -477,6 +489,7 @@ function Field({
           error ? "border-destructive" : "border-border"
         }`}
       />
+      {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );

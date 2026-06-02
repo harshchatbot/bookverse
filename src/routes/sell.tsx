@@ -17,6 +17,7 @@ import type { User } from "firebase/auth";
 import { LocationSelect } from "@/components/LocationSelect";
 import { citiesForState, OTHER_CITY } from "@/data/indiaLocations";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
+import { indianMobileNational } from "@/lib/users";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -209,7 +210,9 @@ function SellForm({ user }: { user: User }) {
       deliveryType: "",
       description: "",
       sellerName: access.profile?.name || user.displayName || "",
-      sellerMobile: access.profile?.whatsappNumber || access.profile?.mobile || "",
+      sellerMobile: indianMobileNational(
+        access.profile?.whatsappNumber || access.profile?.mobile || "",
+      ),
     },
   });
 
@@ -224,9 +227,13 @@ function SellForm({ user }: { user: User }) {
       setValue("sellerName", access.profile.name || user.displayName || "", {
         shouldValidate: false,
       });
-      setValue("sellerMobile", access.profile.whatsappNumber || access.profile.mobile || "", {
-        shouldValidate: false,
-      });
+      setValue(
+        "sellerMobile",
+        indianMobileNational(access.profile.whatsappNumber || access.profile.mobile || ""),
+        {
+          shouldValidate: false,
+        },
+      );
       if (access.profile.state && !stateValue) {
         setValue("state", access.profile.state, { shouldValidate: false });
       }
