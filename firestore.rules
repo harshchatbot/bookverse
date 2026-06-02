@@ -179,6 +179,8 @@ service cloud.firestore {
                      'photoURL',
                      'bio',
                      'city',
+                     'mobile',
+                     'pickupAddress',
                      'updatedAt'
                    ]);
     }

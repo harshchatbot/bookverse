@@ -155,7 +155,14 @@ function CheckoutPage() {
           : `${response.groups.length} seller groups are ready for payment.`,
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not prepare checkout.");
+      const errorMessage = error instanceof Error ? error.message : "Could not prepare checkout.";
+      if (errorMessage.toLowerCase().includes("pickup address")) {
+        toast.error(
+          "Protected delivery is unavailable for one or more items because the seller has not added a pickup address yet. You can contact the seller via WhatsApp instead.",
+        );
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setCreatingOrders(false);
       setLoaderProgress(undefined);

@@ -25,6 +25,12 @@ import {
   type EditableUserProfile,
 } from "@/lib/users";
 import {
+  getProfile,
+  savePickupAddress,
+  hasCompletePickupAddress,
+  type PickupAddress,
+} from "@/lib/profiles";
+import {
   citiesForState,
   isValidIndianMobile,
   toIndianE164,
@@ -78,8 +84,17 @@ function ProfileContent({ user }: { user: User }) {
     locality: "",
     pincode: "",
   });
+  const [pickupForm, setPickupForm] = useState<PickupAddress>({
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
   const [manualCity, setManualCity] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savingPickup, setSavingPickup] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -107,6 +122,20 @@ function ProfileContent({ user }: { user: User }) {
     });
     setManualCity(profile.city && !isKnownCity ? profile.city : "");
   }, [profile, user.displayName]);
+
+  useEffect(() => {
+    const loadPickupAddress = async () => {
+      try {
+        const fullProfile = await getProfile(user.uid);
+        if (fullProfile?.pickupAddress) {
+          setPickupForm(fullProfile.pickupAddress);
+        }
+      } catch (error) {
+        console.error("Could not load pickup address:", error);
+      }
+    };
+    loadPickupAddress();
+  }, [user.uid]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -165,6 +194,35 @@ function ProfileContent({ user }: { user: User }) {
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const savePickup = async () => {
+    const pickupErrors: Partial<Record<keyof PickupAddress, string>> = {};
+    if (!pickupForm.name?.trim()) pickupErrors.name = "Name is required";
+    if (!pickupForm.phone?.trim()) pickupErrors.phone = "Phone is required";
+    if (!/^\d{10}$/.test(pickupForm.phone?.replace(/\D/g, "") || ""))
+      pickupErrors.phone = "Enter a valid 10-digit mobile number";
+    if (!pickupForm.address?.trim()) pickupErrors.address = "Address is required";
+    if (!pickupForm.city?.trim()) pickupErrors.city = "City is required";
+    if (!pickupForm.state?.trim()) pickupErrors.state = "State is required";
+    if (!/^\d{6}$/.test(pickupForm.pincode))
+      pickupErrors.pincode = "Enter a valid 6-digit pincode";
+
+    if (Object.keys(pickupErrors).length > 0) {
+      toast.error(Object.values(pickupErrors)[0]);
+      return;
+    }
+
+    setSavingPickup(true);
+    try {
+      await savePickupAddress(user.uid, pickupForm);
+      await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+      toast.success("Pickup address saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save pickup address");
+    } finally {
+      setSavingPickup(false);
     }
   };
 
@@ -386,6 +444,113 @@ function ProfileContent({ user }: { user: User }) {
                 <p className="mt-1 text-xs text-muted-foreground">
                   We only show your city and state publicly. Your exact location is private.
                 </p>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl font-bold">Courier Pickup Address</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This address is used by couriers to pick up books you sell. It must be
+                    accessible during business hours.
+                  </p>
+                </div>
+                {hasCompletePickupAddress(pickupForm) && (
+                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Complete
+                  </div>
+                )}
+              </div>
+
+              <Field
+                label="Contact Name"
+                value={pickupForm.name}
+                onChange={(value) =>
+                  setPickupForm((current) => ({ ...current, name: value }))
+                }
+                required
+              />
+
+              <Field
+                label="Mobile Number"
+                value={pickupForm.phone}
+                onChange={(value) =>
+                  setPickupForm((current) => ({
+                    ...current,
+                    phone: value.replace(/\D/g, "").slice(0, 10),
+                  }))
+                }
+                inputMode="numeric"
+                maxLength={10}
+                required
+                helper="Indian mobile number (10 digits)"
+              />
+
+              <div>
+                <label className="text-sm font-medium">
+                  Address <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  value={pickupForm.address}
+                  onChange={(event) =>
+                    setPickupForm((current) => ({ ...current, address: event.target.value }))
+                  }
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Complete address for courier pickup (line 1 and line 2 if needed)"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Include all details needed for courier to locate the pickup address.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="City"
+                  value={pickupForm.city}
+                  onChange={(value) =>
+                    setPickupForm((current) => ({ ...current, city: value }))
+                  }
+                  required
+                />
+                <Field
+                  label="State"
+                  value={pickupForm.state}
+                  onChange={(value) =>
+                    setPickupForm((current) => ({ ...current, state: value }))
+                  }
+                  required
+                />
+              </div>
+
+              <Field
+                label="Pincode"
+                value={pickupForm.pincode}
+                onChange={(value) =>
+                  setPickupForm((current) => ({
+                    ...current,
+                    pincode: value.replace(/\D/g, "").slice(0, 6),
+                  }))
+                }
+                inputMode="numeric"
+                maxLength={6}
+                required
+                helper="6-digit postal code"
+              />
+
+              <div>
+                <button
+                  type="button"
+                  onClick={savePickup}
+                  disabled={savingPickup}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {savingPickup && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Save pickup address
+                </button>
               </div>
             </section>
 

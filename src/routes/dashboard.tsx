@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, BookOpen, Clock3, Heart, ListChecks, MessageSquareText } from "lucide-react";
+import { BarChart3, BookOpen, Clock3, Heart, ListChecks, MessageSquareText, X } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
@@ -14,6 +14,7 @@ import {
 } from "@/components/dashboard/DashboardKit";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { getUserDashboard } from "@/lib/dashboard";
+import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
 import { categoryLabel } from "@/lib/constants";
 
 export const Route = createFileRoute("/dashboard")({
@@ -61,6 +62,8 @@ function DashboardPage() {
 function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
   const access = useMarketplaceAccess();
   const navigate = useNavigate();
+  const [dismissedPickupBanner, setDismissedPickupBanner] = useState(false);
+  const [pickupIncomplete, setPickupIncomplete] = useState(false);
 
   useEffect(() => {
     if (access.loading) return;
@@ -72,6 +75,21 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
       void navigate({ to: "/profile", replace: true });
     }
   }, [access.canUseMarketplace, access.loading, access.profileCompleted, isAdmin, navigate]);
+
+  useEffect(() => {
+    const checkPickupAddress = async () => {
+      if (!import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY) return;
+      try {
+        const profile = await getProfile(uid);
+        if (!hasCompletePickupAddress(profile?.pickupAddress)) {
+          setPickupIncomplete(true);
+        }
+      } catch (error) {
+        console.error("Could not check pickup address:", error);
+      }
+    };
+    checkPickupAddress();
+  }, [uid]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", uid],
@@ -95,6 +113,34 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
     <AppPageShell>
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          {pickupIncomplete && !dismissedPickupBanner && import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY && (
+            <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+              <div>
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  Protected delivery is not enabled for your listings.
+                </p>
+                <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                  Add a courier pickup address in your{" "}
+                  <Link
+                    to="/profile"
+                    className="font-semibold underline hover:text-amber-700 dark:hover:text-amber-300"
+                  >
+                    profile
+                  </Link>{" "}
+                  to allow buyers to pay online and get courier pickup.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissedPickupBanner(true)}
+                className="shrink-0 text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100"
+                aria-label="Dismiss banner"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <section className="overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/12 via-card to-secondary/70 p-6 shadow-card sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
