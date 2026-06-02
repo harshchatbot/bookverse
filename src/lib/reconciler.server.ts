@@ -27,11 +27,7 @@ function empty(): ReconcileBucketResult {
   return { scanned: 0, acted: 0, errors: [] };
 }
 
-async function pushError(
-  bucket: ReconcileBucketResult,
-  orderId: string,
-  error: unknown,
-) {
+async function pushError(bucket: ReconcileBucketResult, orderId: string, error: unknown) {
   bucket.errors.push({
     orderId,
     error: error instanceof Error ? error.message : String(error),
@@ -78,11 +74,7 @@ async function expirePendingPayments(): Promise<ReconcileBucketResult> {
 async function fulfillPaidOrders(): Promise<ReconcileBucketResult> {
   const { db, FieldValue } = await adminKit();
   const result = empty();
-  const snap = await db
-    .collection("orders")
-    .where("status", "==", "paid")
-    .limit(100)
-    .get();
+  const snap = await db.collection("orders").where("status", "==", "paid").limit(100).get();
   result.scanned = snap.size;
 
   for (const doc of snap.docs) {

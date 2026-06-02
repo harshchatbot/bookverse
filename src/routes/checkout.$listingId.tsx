@@ -15,7 +15,9 @@ import type { Listing } from "@/lib/types";
 import type { User } from "firebase/auth";
 
 export const Route = createFileRoute("/checkout/$listingId")({
-  head: () => ({ meta: [{ title: "Checkout — BookVerse" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Checkout — BookVerse" }, { name: "robots", content: "noindex" }],
+  }),
   component: CheckoutPage,
 });
 
@@ -34,7 +36,10 @@ function CheckoutPage() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Sign in to checkout</h1>
-            <Link to="/login" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <Link
+              to="/login"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Sign in
             </Link>
           </main>
@@ -122,7 +127,12 @@ function CheckoutContent({ user }: { user: User }) {
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [ratesLoading, setRatesLoading] = useState(false);
   const [ratesError, setRatesError] = useState<string | null>(null);
-  const [rate, setRate] = useState<{ rate: number; courierId: number; courierName: string; etd: string | null } | null>(null);
+  const [rate, setRate] = useState<{
+    rate: number;
+    courierId: number;
+    courierName: string;
+    etd: string | null;
+  } | null>(null);
   const [paying, setPaying] = useState(false);
 
   const pickupReady = hasCompletePickupAddress(sellerProfile?.pickupAddress ?? null);
@@ -179,9 +189,7 @@ function CheckoutContent({ user }: { user: User }) {
     );
   }
   if (!listing) {
-    return (
-      <NotAvailable message="Listing not found." />
-    );
+    return <NotAvailable message="Listing not found." />;
   }
   if (listing.status !== "approved") {
     return <NotAvailable message="This listing is no longer available." />;
@@ -303,9 +311,14 @@ function CheckoutContent({ user }: { user: User }) {
                 <div>
                   <p className="font-semibold">Seller hasn't set up pickup yet</p>
                   <p>
-                    This seller hasn't added a pickup address, so we can't book courier pickup. Please contact the seller on WhatsApp from the listing page.
+                    This seller hasn't added a pickup address, so we can't book courier pickup.
+                    Please contact the seller on WhatsApp from the listing page.
                   </p>
-                  <Link to="/book/$id" params={{ id: listing.id }} className="mt-2 inline-block font-semibold underline">
+                  <Link
+                    to="/book/$id"
+                    params={{ id: listing.id }}
+                    className="mt-2 inline-block font-semibold underline"
+                  >
                     Back to listing
                   </Link>
                 </div>
@@ -318,22 +331,64 @@ function CheckoutContent({ user }: { user: User }) {
                 <h2 className="font-display text-lg font-semibold">Delivery address</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} error={errors.name} />
-                <Input label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} error={errors.phone} type="tel" />
+                <Input
+                  label="Full name"
+                  value={form.name}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                  error={errors.name}
+                />
+                <Input
+                  label="Phone"
+                  value={form.phone}
+                  onChange={(v) => setForm({ ...form, phone: v })}
+                  error={errors.phone}
+                  type="tel"
+                />
               </div>
               <div className="mt-4">
-                <Input label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} error={errors.email} type="email" />
+                <Input
+                  label="Email"
+                  value={form.email}
+                  onChange={(v) => setForm({ ...form, email: v })}
+                  error={errors.email}
+                  type="email"
+                />
               </div>
               <div className="mt-4">
-                <Input label="Address line 1" value={form.address1} onChange={(v) => setForm({ ...form, address1: v })} error={errors.address1} />
+                <Input
+                  label="Address line 1"
+                  value={form.address1}
+                  onChange={(v) => setForm({ ...form, address1: v })}
+                  error={errors.address1}
+                />
               </div>
               <div className="mt-4">
-                <Input label="Address line 2 (optional)" value={form.address2} onChange={(v) => setForm({ ...form, address2: v })} error={errors.address2} />
+                <Input
+                  label="Address line 2 (optional)"
+                  value={form.address2}
+                  onChange={(v) => setForm({ ...form, address2: v })}
+                  error={errors.address2}
+                />
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <Input label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} error={errors.city} />
-                <Input label="State" value={form.state} onChange={(v) => setForm({ ...form, state: v })} error={errors.state} />
-                <Input label="Pincode" value={form.pincode} onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })} error={errors.pincode} />
+                <Input
+                  label="City"
+                  value={form.city}
+                  onChange={(v) => setForm({ ...form, city: v })}
+                  error={errors.city}
+                />
+                <Input
+                  label="State"
+                  value={form.state}
+                  onChange={(v) => setForm({ ...form, state: v })}
+                  error={errors.state}
+                />
+                <Input
+                  label="Pincode"
+                  value={form.pincode}
+                  onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })}
+                  error={errors.pincode}
+                />
               </div>
             </section>
 
@@ -345,7 +400,9 @@ function CheckoutContent({ user }: { user: User }) {
               {!pickupReady ? (
                 <p className="text-sm text-muted-foreground">Seller pickup address not set.</p>
               ) : !/^\d{6}$/.test(form.pincode) ? (
-                <p className="text-sm text-muted-foreground">Enter a valid 6-digit pincode to fetch shipping rates.</p>
+                <p className="text-sm text-muted-foreground">
+                  Enter a valid 6-digit pincode to fetch shipping rates.
+                </p>
               ) : ratesLoading ? (
                 <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Checking serviceability…
@@ -370,7 +427,11 @@ function CheckoutContent({ user }: { user: User }) {
               disabled={paying || !rate || !pickupReady}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3.5 text-base font-semibold text-background shadow-elegant disabled:opacity-60"
             >
-              {paying ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+              {paying ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <ShoppingCart className="h-5 w-5" />
+              )}
               Pay ₹{breakdown ? breakdown.total.toLocaleString("en-IN") : "—"}
             </button>
             <p className="text-center text-xs text-muted-foreground">
@@ -396,7 +457,13 @@ function Summary({
       <h2 className="font-display text-lg font-semibold">Order summary</h2>
       <div className="mt-3 flex gap-3">
         {listing.images[0] && (
-          <img loading="lazy" decoding="async" src={listing.images[0]} alt="" className="h-16 w-16 rounded-lg object-cover" />
+          <img
+            loading="lazy"
+            decoding="async"
+            src={listing.images[0]}
+            alt=""
+            className="h-16 w-16 rounded-lg object-cover"
+          />
         )}
         <div className="min-w-0">
           <div className="truncate font-semibold">{listing.title}</div>
@@ -469,7 +536,10 @@ function NotAvailable({ message }: { message: string }) {
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
         <h1 className="font-display text-2xl font-bold">Can't checkout</h1>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-        <Link to="/browse" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+        <Link
+          to="/browse"
+          className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+        >
           Browse books
         </Link>
       </main>

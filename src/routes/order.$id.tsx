@@ -29,7 +29,10 @@ function OrderPage() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
-            <Link to="/login" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <Link
+              to="/login"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Sign in
             </Link>
           </main>
@@ -87,7 +90,10 @@ function OrderDetail({ user }: { user: User }) {
 
   const isBuyer = order.buyerUid === user.uid;
   const canRaiseDispute =
-    isBuyer && (order.status === "delivered" || order.status === "dispute_window" || order.status === "in_transit");
+    isBuyer &&
+    (order.status === "delivered" ||
+      order.status === "dispute_window" ||
+      order.status === "in_transit");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -104,10 +110,22 @@ function OrderDetail({ user }: { user: User }) {
         <section className="mt-6 rounded-2xl border border-border bg-card p-5">
           <div className="flex gap-4">
             <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-              {order.listing.image && <img loading="lazy" decoding="async" src={order.listing.image} alt="" className="h-full w-full object-cover" />}
+              {order.listing.image && (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={order.listing.image}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              )}
             </div>
             <div className="min-w-0 flex-1">
-              <Link to="/book/$id" params={{ id: order.listing.id }} className="truncate font-semibold hover:underline">
+              <Link
+                to="/book/$id"
+                params={{ id: order.listing.id }}
+                className="truncate font-semibold hover:underline"
+              >
                 {order.listing.title}
               </Link>
               <div className="text-xs text-muted-foreground">by {order.listing.author}</div>
@@ -123,7 +141,10 @@ function OrderDetail({ user }: { user: User }) {
           <dl className="mt-3 space-y-1.5 text-sm">
             <Row label="Book price" value={`₹${order.bookPrice.toLocaleString("en-IN")}`} />
             <Row label="Shipping fee" value={`₹${order.shippingFee.toLocaleString("en-IN")}`} />
-            <Row label="Payment gateway fee" value={`₹${order.gatewayFee.toLocaleString("en-IN")}`} />
+            <Row
+              label="Payment gateway fee"
+              value={`₹${order.gatewayFee.toLocaleString("en-IN")}`}
+            />
             <div className="my-2 border-t border-border" />
             <Row label="Total paid" value={`₹${order.totalAmount.toLocaleString("en-IN")}`} bold />
           </dl>
@@ -137,7 +158,8 @@ function OrderDetail({ user }: { user: User }) {
             {order.shippingAddress.address1}
             {order.shippingAddress.address2 && <>, {order.shippingAddress.address2}</>}
             <br />
-            {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}
+            {order.shippingAddress.city}, {order.shippingAddress.state} -{" "}
+            {order.shippingAddress.pincode}
             <br />
             {order.shippingAddress.phone}
           </div>

@@ -3,6 +3,13 @@ import { z } from "zod";
 import { adminKit, requireAdmin, jsonError, jsonOk } from "@/lib/admin.server";
 import { razorpay } from "@/lib/razorpay.server";
 
+interface RazorpayPaymentsWithRefund {
+  refund(
+    paymentId: string,
+    options: { amount?: number; notes?: Record<string, string> },
+  ): Promise<{ id: string; status: string; amount: number }>;
+}
+
 const Body = z.object({
   orderId: z.string().min(1),
   amount: z.number().positive().optional(), // partial refund in rupees
@@ -43,7 +50,8 @@ export const Route = createFileRoute("/api/admin/refund")({
         });
 
         try {
-          const refund = await (razorpay().payments as any).refund(payment.razorpayPaymentId, {
+          const payments = razorpay().payments as unknown as RazorpayPaymentsWithRefund;
+          const refund = await payments.refund(payment.razorpayPaymentId as string, {
             amount: parsed.data.amount ? Math.round(parsed.data.amount * 100) : undefined,
             notes: { reason: parsed.data.reason ?? "" },
           });
@@ -51,12 +59,15 @@ export const Route = createFileRoute("/api/admin/refund")({
             status: "refunded",
             updatedAt: FieldValue.serverTimestamp(),
           });
-          await db.collection("payments").doc(order.paymentId).update({
-            refundId: refund.id,
-            refundStatus: refund.status,
-            refundAmount: Number(refund.amount) / 100,
-            refundedAt: FieldValue.serverTimestamp(),
-          });
+          await db
+            .collection("payments")
+            .doc(order.paymentId)
+            .update({
+              refundId: refund.id,
+              refundStatus: refund.status,
+              refundAmount: Number(refund.amount) / 100,
+              refundedAt: FieldValue.serverTimestamp(),
+            });
           return jsonOk({ ok: true, refundId: refund.id });
         } catch (e) {
           return jsonError(502, e instanceof Error ? e.message : "Refund failed");

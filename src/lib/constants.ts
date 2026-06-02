@@ -34,9 +34,6 @@ export type DeliveryType = (typeof DELIVERY_TYPES)[number]["value"];
 
 export type ListingStatus = "pending" | "approved" | "rejected" | "sold";
 
-export const categoryLabel = (v: string) =>
-  CATEGORIES.find((c) => c.value === v)?.label ?? v;
-export const conditionLabel = (v: string) =>
-  CONDITIONS.find((c) => c.value === v)?.label ?? v;
-export const deliveryLabel = (v: string) =>
-  DELIVERY_TYPES.find((d) => d.value === v)?.label ?? v;
+export const categoryLabel = (v: string) => CATEGORIES.find((c) => c.value === v)?.label ?? v;
+export const conditionLabel = (v: string) => CONDITIONS.find((c) => c.value === v)?.label ?? v;
+export const deliveryLabel = (v: string) => DELIVERY_TYPES.find((d) => d.value === v)?.label ?? v;

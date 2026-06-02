@@ -97,9 +97,7 @@ export async function getOffersForSeller(uid: string): Promise<Offer[]> {
       orderBy("createdAt", "desc"),
     ),
   );
-  return snap.docs.map((d) =>
-    serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }),
-  );
+  return snap.docs.map((d) => serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }));
 }
 
 export async function getOffersForBuyer(uid: string): Promise<Offer[]> {
@@ -110,9 +108,7 @@ export async function getOffersForBuyer(uid: string): Promise<Offer[]> {
       orderBy("createdAt", "desc"),
     ),
   );
-  return snap.docs.map((d) =>
-    serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }),
-  );
+  return snap.docs.map((d) => serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) }));
 }
 
 export async function getMyPendingOfferForListing(
@@ -149,7 +145,6 @@ export async function getMyLatestOfferForListing(
   const d = snap.docs[0];
   return serializeFirestore({ id: d.id, ...(d.data() as Omit<Offer, "id">) });
 }
-
 
 export async function updateOffer(id: string, input: OfferInput): Promise<void> {
   await updateDoc(doc(db, OFFERS_COLLECTION, id), {

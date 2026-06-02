@@ -23,8 +23,6 @@ import {
   Upload,
   Users,
   MapPin,
-  Truck,
-  CreditCard,
   Plus,
   Wrench,
   HeartPulse,
@@ -43,7 +41,6 @@ import {
   BadgeCheck,
   Star,
   Quote,
-  Lock,
   Eye,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -154,9 +151,8 @@ function Home() {
             </h1>
 
             <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-hero-foreground/80 sm:text-lg">
-              Buy and sell educational books across India. Engineering, Medical,
-              Competitive Exams, Certification and Professional Books — at a fraction
-              of the price.
+              Buy and sell educational books across India. Engineering, Medical, Competitive Exams,
+              Certification and Professional Books — at a fraction of the price.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -207,7 +203,10 @@ function Home() {
 
           <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {CATEGORIES.map((c) => {
-              const meta = CATEGORY_ICONS[c.value] ?? { icon: BookOpen, tint: "text-muted-foreground" };
+              const meta = CATEGORY_ICONS[c.value] ?? {
+                icon: BookOpen,
+                tint: "text-muted-foreground",
+              };
               const Icon = meta.icon;
               return (
                 <Link
@@ -219,7 +218,9 @@ function Home() {
                   <div className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-background shadow-sm transition-transform group-hover:scale-110">
                     <Icon className={`h-6 w-6 ${meta.tint}`} />
                   </div>
-                  <h3 className="mt-6 font-display text-lg leading-tight text-foreground">{c.label}</h3>
+                  <h3 className="mt-6 font-display text-lg leading-tight text-foreground">
+                    {c.label}
+                  </h3>
                   <p className="mt-1 text-xs font-medium text-muted-foreground">Explore books</p>
                 </Link>
               );
@@ -256,8 +257,7 @@ function Home() {
               </div>
               <h3 className="mt-6 font-display text-2xl text-foreground">No listings yet</h3>
               <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-                Be the first person in your area to list a book and earn while helping
-                others learn.
+                Be the first person in your area to list a book and earn while helping others learn.
               </p>
               <Link
                 to="/sell"
@@ -316,8 +316,8 @@ function Home() {
               Choose Your Way to Buy
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              BookVerse gives you the flexibility to deal directly or enjoy the
-              convenience of doorstep delivery — both built for trust.
+              BookVerse gives you the flexibility to deal directly or enjoy the convenience of
+              doorstep delivery — both built for trust.
             </p>
           </div>
 
@@ -336,8 +336,8 @@ function Home() {
                 🤝 Local Deal
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Connect directly with sellers in your campus or neighborhood. Inspect
-                the book personally and pay only when satisfied.
+                Connect directly with sellers in your campus or neighborhood. Inspect the book
+                personally and pay only when satisfied.
               </p>
               <div className="mt-8 flex flex-wrap gap-2">
                 <FeatureTag color="primary" label="Local Pickup" />
@@ -345,26 +345,26 @@ function Home() {
               </div>
             </div>
 
-            {/* Doorstep Delivery */}
+            {/* City Discovery */}
             <div className="group rounded-[40px] border-2 border-transparent bg-secondary p-10 transition-colors hover:border-border">
               <div className="mb-8 flex items-start justify-between">
                 <div className="grid h-16 w-16 place-items-center rounded-3xl bg-foreground text-background shadow-elegant">
-                  <Truck className="h-8 w-8" />
+                  <MapPin className="h-8 w-8" />
                 </div>
                 <span className="rounded-full bg-foreground/10 px-4 py-1.5 text-xs font-bold tracking-wide text-foreground">
-                  ONLINE SECURE
+                  LOCAL FIRST
                 </span>
               </div>
               <h3 className="font-display text-2xl tracking-tight text-foreground">
-                📦 Doorstep Delivery
+                Find books near you
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Order from any city in India. We handle the shipping and secure payment
-                until the book is safely in your hands.
+                Discover books by city and state, then chat directly with verified sellers to agree
+                pickup, handover, and payment details.
               </p>
               <div className="mt-8 flex flex-wrap gap-2">
-                <FeatureTag color="foreground" label="Nationwide Shipping" icon={Truck} />
-                <FeatureTag color="foreground" label="Secure Checkout" icon={CreditCard} />
+                <FeatureTag color="foreground" label="City/State Discovery" icon={MapPin} />
+                <FeatureTag color="foreground" label="Verified Profiles" icon={ShieldCheck} />
               </div>
             </div>
           </div>
@@ -428,9 +428,7 @@ function Home() {
                   className="flex flex-col rounded-3xl border border-border bg-card p-8 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-elegant"
                 >
                   <Quote className="h-8 w-8 text-primary/20" />
-                  <p className="mt-4 flex-1 text-sm leading-relaxed text-foreground">
-                    {t.quote}
-                  </p>
+                  <p className="mt-4 flex-1 text-sm leading-relaxed text-foreground">{t.quote}</p>
                   <div className="mt-8 flex items-center gap-3">
                     <img
                       src={t.photo}
@@ -501,13 +499,13 @@ const STEPS = [
     n: "02",
     icon: Users,
     t: "Connect with buyers",
-    d: "Buyers contact you directly via WhatsApp or place a secure order through BookVerse.",
+    d: "Buyers contact you directly via WhatsApp after completing email, profile, and mobile verification.",
   },
   {
     n: "03",
     icon: ShieldCheck,
-    t: "Choose how you sell",
-    d: "Meet locally for a quick exchange, or use secure payments and tracked doorstep delivery.",
+    t: "Agree the handover",
+    d: "Discuss price, pickup, inspection, and payment directly with the other person. BookVerse does not handle checkout.",
   },
 ] as const;
 
@@ -525,10 +523,10 @@ const TRUST_SIGNALS = [
       "Sellers with a valid mobile number get a verified badge, so you know exactly who you are dealing with.",
   },
   {
-    icon: Lock,
-    title: "Secure Payments",
+    icon: Eye,
+    title: "Real Book Photos",
     description:
-      "Online orders are powered by Razorpay with industry-standard encryption. Your money is safe until delivery.",
+      "Listings require real photos so buyers can inspect condition before messaging a seller.",
   },
   {
     icon: Eye,
@@ -537,10 +535,10 @@ const TRUST_SIGNALS = [
       "No hidden fees, no platform commission. What you see is what you pay — whether it is a local deal or doorstep delivery.",
   },
   {
-    icon: Truck,
-    title: "Tracked Shipping",
+    icon: MapPin,
+    title: "City-Based Discovery",
     description:
-      "Doorstep deliveries include live tracking via Shiprocket. Know exactly where your book is at every step.",
+      "Find educational books by city and state, including smaller towns through manual city entry.",
   },
   {
     icon: MessageCircle,
@@ -566,7 +564,7 @@ const TESTIMONIALS = [
     name: "Sanya P.",
     role: "NEET Student, Delhi",
     quote:
-      "Sold my MBBS first-year books in two days. The buyer paid online and BookVerse arranged pickup. Easiest money I have ever made from old books.",
+      "Sold my MBBS first-year books in two days. The buyer messaged on WhatsApp, checked the photos, and we arranged pickup directly.",
     rating: 5,
   },
   {
@@ -575,7 +573,7 @@ const TESTIMONIALS = [
     name: "Vikram K.",
     role: "GATE Prep, Hyderabad",
     quote:
-      "I was skeptical about buying used books online, but the tracked delivery and secure checkout made it feel as safe as Amazon. Highly recommend.",
+      "I was skeptical about used book listings, but verified profiles and admin-approved posts made it easy to find a genuine seller nearby.",
     rating: 5,
   },
 ] as const;
@@ -585,7 +583,7 @@ const FAQ_ITEMS = [
     value: "auth",
     question: "How do I sign up or log in to BookVerse?",
     answer:
-      "BookVerse uses OTP-based phone authentication. Tap 'Log In' on the top right, enter your Indian mobile number, and you will receive a one-time password via SMS. No passwords to remember — just your phone.",
+      "You can sign up with email and password or continue with Google. Before selling, messaging, saving, or making offers, BookVerse asks you to verify your email, complete your profile, and verify your mobile number.",
   },
   {
     value: "approval",
@@ -601,9 +599,9 @@ const FAQ_ITEMS = [
   },
   {
     value: "delivery-shipping",
-    question: "Can I get a book delivered to my city?",
+    question: "Can I find books outside major cities?",
     answer:
-      "Yes. Listings marked 'Shipping Available Across India' can be ordered with nationwide doorstep delivery. BookVerse handles shipping via trusted partners, and you can track your order from dispatch to delivery.",
+      "Yes. BookVerse supports state and city discovery, and sellers can manually enter smaller towns if their city is not listed.",
   },
   {
     value: "whatsapp",
@@ -612,16 +610,15 @@ const FAQ_ITEMS = [
       "On any book detail page, click the green 'Contact Seller on WhatsApp' button. It opens a pre-filled message with the book title, price, and location so the seller knows exactly what you are interested in. You can then chat, negotiate, and fix a meeting time.",
   },
   {
-    value: "payments",
-    question: "Are online payments safe on BookVerse?",
+    value: "direct-deals",
+    question: "Does BookVerse handle payment?",
     answer:
-      "Absolutely. Online orders use Razorpay, a PCI-DSS compliant payment gateway. Your payment is held securely until the book is delivered. If something goes wrong, our dispute resolution process protects both buyers and sellers.",
+      "No. BookVerse V1 is peer-to-peer. Buyers and sellers discuss price, pickup, inspection, and payment directly over WhatsApp.",
   },
   {
     value: "commission",
     question: "Does BookVerse charge any commission or fees?",
-    answer:
-      "No. BookVerse does not charge any commission on local deals. For doorstep delivery orders, a small logistics fee may apply to cover shipping and payment gateway costs, but there is no platform commission.",
+    answer: "No. BookVerse does not charge commission on P2P deals in V1.",
   },
 ] as const;
 

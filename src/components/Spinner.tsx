@@ -12,7 +12,11 @@ type SpinnerProps = {
  */
 export function Spinner({ size = 56, label, className }: SpinnerProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-3", className)} role="status" aria-live="polite">
+    <div
+      className={cn("flex flex-col items-center justify-center gap-3", className)}
+      role="status"
+      aria-live="polite"
+    >
       <svg
         width={size}
         height={size}
@@ -36,14 +40,15 @@ export function Spinner({ size = 56, label, className }: SpinnerProps) {
         />
         {/* turning page */}
         <g style={{ transformOrigin: "32px 26px", animation: "bv-flip 1.6s ease-in-out infinite" }}>
-          <path d="M32 26 L18 26 L18 46 L32 46 Z" className="fill-primary/15 stroke-primary" strokeWidth="1.5" />
+          <path
+            d="M32 26 L18 26 L18 46 L32 46 Z"
+            className="fill-primary/15 stroke-primary"
+            strokeWidth="1.5"
+          />
         </g>
         {/* orbiting leaf */}
         <g style={{ transformOrigin: "32px 32px", animation: "bv-orbit 2.4s linear infinite" }}>
-          <path
-            d="M32 6c4 2 6 5 6 9s-3 7-6 7-6-3-6-7 2-7 6-9z"
-            className="fill-primary"
-          />
+          <path d="M32 6c4 2 6 5 6 9s-3 7-6 7-6-3-6-7 2-7 6-9z" className="fill-primary" />
           <path d="M32 8v14" className="stroke-card" strokeWidth="1.2" strokeLinecap="round" />
         </g>
         <style>{`

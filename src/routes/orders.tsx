@@ -28,7 +28,10 @@ function OrdersPage() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
-            <Link to="/login" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <Link
+              to="/login"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Sign in
             </Link>
           </main>
@@ -64,8 +67,13 @@ function OrdersList({ user }: { user: User }) {
           <div className="mt-8 grid place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
             <Illustration variant="orders" size={200} />
             <p className="mt-4 font-semibold">No orders yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">When you buy a book, it shows up here.</p>
-            <Link to="/browse" className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">
+            <p className="mt-1 text-sm text-muted-foreground">
+              When you buy a book, it shows up here.
+            </p>
+            <Link
+              to="/browse"
+              className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
+            >
               Browse books
             </Link>
           </div>
@@ -79,7 +87,15 @@ function OrdersList({ user }: { user: User }) {
                 className="flex gap-4 rounded-2xl border border-border bg-card p-4 transition hover:border-primary/50 hover:shadow-card"
               >
                 <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-                  {o.listing.image && <img loading="lazy" decoding="async" src={o.listing.image} alt="" className="h-full w-full object-cover" />}
+                  {o.listing.image && (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={o.listing.image}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
@@ -88,13 +104,17 @@ function OrdersList({ user }: { user: User }) {
                       <div className="text-xs text-muted-foreground">by {o.listing.author}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-display text-lg font-bold">₹{o.totalAmount.toLocaleString("en-IN")}</div>
+                      <div className="font-display text-lg font-bold">
+                        ₹{o.totalAmount.toLocaleString("en-IN")}
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <OrderStatusBadge status={o.status} />
                     {o.awb && <span className="text-xs text-muted-foreground">AWB: {o.awb}</span>}
-                    {o.courierName && <span className="text-xs text-muted-foreground">· {o.courierName}</span>}
+                    {o.courierName && (
+                      <span className="text-xs text-muted-foreground">· {o.courierName}</span>
+                    )}
                   </div>
                 </div>
               </Link>

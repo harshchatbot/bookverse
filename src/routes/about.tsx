@@ -7,7 +7,11 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "About — BookVerse" },
-      { name: "description", content: "BookVerse is India's marketplace for educational books — connecting buyers and sellers directly." },
+      {
+        name: "description",
+        content:
+          "BookVerse is India's marketplace for educational books — connecting buyers and sellers directly.",
+      },
     ],
   }),
   component: About,
@@ -25,12 +29,16 @@ function About() {
               <Sparkles className="h-3 w-3 text-teal" /> About BookVerse
             </span>
             <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-              Books outlive exams.<br />
-              <span className="bg-gradient-to-r from-primary to-teal bg-clip-text text-transparent">Give them a second life.</span>
+              Books outlive exams.
+              <br />
+              <span className="bg-gradient-to-r from-primary to-teal bg-clip-text text-transparent">
+                Give them a second life.
+              </span>
             </h1>
             <p className="mt-5 text-muted-foreground sm:text-lg">
-              BookVerse is a focused marketplace for educational books in India. We connect students,
-              graduates and working professionals directly — no carts, no middlemen, no commission.
+              BookVerse is a focused marketplace for educational books in India. We connect
+              students, graduates and working professionals directly — no carts, no middlemen, no
+              commission.
             </p>
           </div>
         </section>
@@ -38,7 +46,8 @@ function About() {
         <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-6 md:grid-cols-3">
             <Card icon={<BookOpen className="h-5 w-5" />} title="Built for learners">
-              Engineering, Medical, JEE, NEET, GATE, UPSC, MBA, CA — every serious exam in one place.
+              Engineering, Medical, JEE, NEET, GATE, UPSC, MBA, CA — every serious exam in one
+              place.
             </Card>
             <Card icon={<ShieldCheck className="h-5 w-5" />} title="Verified listings">
               Every listing is reviewed by our team before it goes public. No spam, no scams.
@@ -60,7 +69,9 @@ function About() {
 
         <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-teal/10 to-gold/10 p-8 text-center sm:p-12">
-            <h2 className="font-display text-2xl font-bold sm:text-3xl">Ready to list your first book?</h2>
+            <h2 className="font-display text-2xl font-bold sm:text-3xl">
+              Ready to list your first book?
+            </h2>
             <p className="mt-2 text-muted-foreground">It takes less than a minute.</p>
             <Link
               to="/sell"
@@ -76,7 +87,15 @@ function About() {
   );
 }
 
-function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Card({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">

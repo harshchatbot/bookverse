@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Check,
-  HandCoins,
-  Loader2,
-  Mail,
-  MessageCircle,
-  Pencil,
-  X,
-} from "lucide-react";
+import { Check, HandCoins, Loader2, Mail, MessageCircle, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -31,7 +23,8 @@ export const Route = createFileRoute("/offers")({
       { title: "Offers — BookVerse" },
       {
         name: "description",
-        content: "Track offers you've received on your listings and offers you've sent to other sellers.",
+        content:
+          "Track offers you've received on your listings and offers you've sent to other sellers.",
       },
     ],
   }),
@@ -52,9 +45,7 @@ function OffersPage() {
             <HandCoins className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Offers
-            </h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Offers</h1>
             <p className="text-sm text-muted-foreground">
               {tab === "received"
                 ? "Price offers buyers have sent for your books."
@@ -102,9 +93,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-        active
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:text-foreground"
+        active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {children}
@@ -363,10 +352,7 @@ function SentOfferRow({ offer }: { offer: Offer }) {
     mutationFn: () => cancelOffer(offer.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers", "sent", user?.uid] });
-      queryClient.setQueryData(
-        ["my-offer", offer.listingId, user?.uid ?? "anon"],
-        null,
-      );
+      queryClient.setQueryData(["my-offer", offer.listingId, user?.uid ?? "anon"], null);
       toast.success("Offer withdrawn.");
     },
     onError: () => toast.error("Could not withdraw offer. Please try again."),
@@ -383,9 +369,7 @@ function SentOfferRow({ offer }: { offer: Offer }) {
           >
             {offer.listingTitle}
           </Link>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Sent {when ?? "just now"}
-          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Sent {when ?? "just now"}</p>
           <div className="mt-1.5">
             <StatusBadge status={offer.status} />
           </div>

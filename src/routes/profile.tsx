@@ -1,59 +1,57 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  linkWithCredential,
+  PhoneAuthProvider,
+  RecaptchaVerifier,
+  sendEmailVerification,
+  type User,
+} from "firebase/auth";
 import { toast } from "sonner";
-import { z } from "zod";
-import { Camera, Loader2 } from "lucide-react";
-import type { User } from "firebase/auth";
+import { CheckCircle2, Loader2, MailCheck, Phone, ShieldCheck } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AuthGate } from "@/components/AuthGate";
-import { PickupMapPreview } from "@/components/PickupMapPreview";
-import { getProfile, saveProfile, uploadAvatar, type UserProfile, type PickupAddress } from "@/lib/profiles";
-import { VerifiedBadge, hasValidMobile } from "@/components/VerifiedBadge";
+import { LocationSelect } from "@/components/LocationSelect";
+import { auth } from "@/integrations/firebase/client";
+import {
+  getUserProfile,
+  isProfileCompleted,
+  normalizeIndianMobile,
+  saveUserProfile,
+  setUserPhoneVerified,
+  syncUserEmailVerification,
+  type EditableUserProfile,
+} from "@/lib/users";
+import {
+  citiesForState,
+  isValidIndianMobile,
+  toIndianE164,
+  OTHER_CITY,
+} from "@/data/indiaLocations";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Your profile — BookVerse" },
-      { name: "description", content: "View and edit your BookVerse profile." },
+      { title: "Complete profile — BookVerse" },
+      { name: "description", content: "Complete your BookVerse verification profile." },
     ],
   }),
   component: ProfilePage,
 });
 
-
-const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3MB
-const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-const profileSchema = z.object({
-  displayName: z.string().trim().min(1, "Display name is required").max(60, "Max 60 characters"),
-  bio: z.string().trim().max(280, "Bio must be 280 characters or less"),
-  city: z.string().trim().max(60, "Max 60 characters"),
-  mobile: z
-    .string()
-    .trim()
-    .max(20, "Max 20 characters")
-    .regex(/^[0-9+\-\s()]*$/, "Use digits and + - ( ) only")
-    .or(z.literal("")),
-});
-
 function ProfilePage() {
   return (
     <AuthGate
-      loading={
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1" />
-          <Footer />
-        </div>
-      }
       fallback={
         <div className="flex min-h-screen flex-col">
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in to view and edit your profile.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Sign in to complete your BookVerse profile.
+            </p>
             <Link
               to="/login"
               className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
@@ -71,376 +69,380 @@ function ProfilePage() {
 }
 
 function ProfileContent({ user }: { user: User }) {
-  const qc = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["profile", user.uid],
-    queryFn: () => getProfile(user.uid),
-  });
-
-  const emptyPickup: PickupAddress = {
+  const queryClient = useQueryClient();
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
+  const [form, setForm] = useState<EditableUserProfile>({
     name: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-  };
-
-  const [form, setForm] = useState<Omit<UserProfile, "uid">>({
-    displayName: "",
-    photoURL: "",
-    bio: "",
-    city: "",
     mobile: "",
-    pickupAddress: emptyPickup,
+    whatsappNumber: "",
+    state: "",
+    city: "",
+    address: "",
+    pincode: "",
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
-  const [uploading, setUploading] = useState(false);
-  const [mobileTouched, setMobileTouched] = useState(false);
-  const [pickupMismatch, setPickupMismatch] = useState(false);
+  const [manualCity, setManualCity] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [verificationId, setVerificationId] = useState("");
+  const [otp, setOtp] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["user-profile", user.uid],
+    queryFn: () => getUserProfile(user.uid),
+  });
 
   useEffect(() => {
+    if (!profile) return;
+    const cityOptions = profile.state ? citiesForState(profile.state) : [];
+    const isKnownCity = !!profile.city && cityOptions.includes(profile.city);
     setForm({
-      displayName: data?.displayName || user.displayName || "",
-      photoURL: data?.photoURL || user.photoURL || "",
-      bio: data?.bio ?? "",
-      city: data?.city ?? "",
-      mobile: data?.mobile ?? "",
-      pickupAddress: data?.pickupAddress ?? emptyPickup,
+      name: profile.name || user.displayName || "",
+      mobile: profile.mobile,
+      whatsappNumber: profile.whatsappNumber || profile.mobile,
+      state: profile.state,
+      city: profile.city && !isKnownCity ? OTHER_CITY : profile.city,
+      address: profile.address,
+      pincode: profile.pincode,
     });
-     
-  }, [data, user]);
+    setManualCity(profile.city && !isKnownCity ? profile.city : "");
+  }, [profile, user.displayName]);
 
-  const save = useMutation({
-    mutationFn: async (values: Omit<UserProfile, "uid">) => {
-      await saveProfile(user.uid, values);
-    },
-    onSuccess: () => {
-      toast.success("Profile saved");
-      qc.invalidateQueries({ queryKey: ["profile", user.uid] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
-  });
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = window.setInterval(() => {
+      setCooldown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [cooldown]);
 
-  const handleAvatar = async (file: File) => {
-    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      toast.error("Use a JPG, PNG, or WebP image");
-      return;
+  useEffect(() => {
+    return () => {
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+    };
+  }, []);
+
+  const normalizedMobile = normalizeIndianMobile(form.mobile);
+  const phoneVerified =
+    !!profile?.phoneVerified && normalizeIndianMobile(profile.mobile) === normalizedMobile;
+  const completed = isProfileCompleted(profile);
+  const emailVerified = user.emailVerified;
+  const actualCity = form.city === OTHER_CITY ? manualCity.trim() : form.city.trim();
+
+  const errors = useMemo(() => {
+    const next: Partial<Record<keyof EditableUserProfile, string>> = {};
+    if (!form.name.trim()) next.name = "Name is required";
+    if (!isValidIndianMobile(form.mobile))
+      next.mobile = "Enter a valid 10-digit Indian mobile number";
+    if (!form.state) next.state = "Select your state or union territory";
+    if (!actualCity) next.city = "Select or enter your city";
+    if (!/^\d{6}$/.test(form.pincode)) next.pincode = "Enter a valid 6-digit Indian pincode";
+    return next;
+  }, [actualCity, form]);
+
+  const save = async () => {
+    if (Object.keys(errors).length > 0) {
+      toast.error(Object.values(errors)[0]);
+      return false;
     }
-    if (file.size > MAX_AVATAR_BYTES) {
-      toast.error("Image must be 3MB or smaller");
-      return;
-    }
+    setSaving(true);
     try {
-      setUploading(true);
-      const url = await uploadAvatar(user.uid, file);
-      setForm((f) => ({ ...f, photoURL: url }));
-      toast.success("Photo uploaded — remember to save");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      await saveUserProfile(user, {
+        ...form,
+        city: actualCity,
+        mobile: normalizedMobile,
+        whatsappNumber: normalizeIndianMobile(form.whatsappNumber || form.mobile),
+        phoneVerified,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+      toast.success("Profile saved.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save profile");
+      return false;
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   };
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mark mobile as touched so errors show on submit too
-    setMobileTouched(true);
-    const result = profileSchema.safeParse(form);
-    if (!result.success) {
-      const fieldErrors: Partial<Record<keyof typeof form, string>> = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof typeof form;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
+  const resendEmail = async () => {
+    try {
+      await sendEmailVerification(user);
+      toast.success("Verification email sent.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send verification email");
     }
-    // Validate pickup address: if any field filled, all must be valid
-    const p = form.pickupAddress ?? emptyPickup;
-    const anyFilled = !!(p.name || p.phone || p.address || p.city || p.state || p.pincode);
-    if (anyFilled) {
-      const missing: string[] = [];
-      if (!p.name.trim()) missing.push("contact name");
-      if (!/^[0-9+\-\s()]{10,20}$/.test(p.phone) || p.phone.replace(/\D/g, "").length < 10)
-        missing.push("valid phone");
-      if (!p.address.trim()) missing.push("address");
-      if (!p.city.trim()) missing.push("city");
-      if (!p.state.trim()) missing.push("state");
-      if (!/^\d{6}$/.test(p.pincode)) missing.push("6-digit pincode");
-      if (missing.length) {
-        toast.error(`Pickup address needs: ${missing.join(", ")}`);
-        return;
-      }
-    }
-    if (pickupMismatch) {
-      toast.error("Pickup pincode doesn't match the selected map point. Update one before saving.");
-      return;
-    }
-    setErrors({});
-    save.mutate({ ...form, ...result.data });
   };
 
-  const mobileDigits = form.mobile.replace(/\D/g, "");
-  const mobileValid = hasValidMobile(form.mobile);
-  const showMobileError = mobileTouched && !mobileValid && form.mobile.length > 0;
-  const mobileError = showMobileError
-    ? mobileDigits.length < 10
-      ? "Enter at least 10 digits"
-      : "Use digits and + - ( ) only"
-    : errors.mobile;
+  const checkEmail = async () => {
+    setCheckingEmail(true);
+    try {
+      const verified = await syncUserEmailVerification(user);
+      await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+      toast.success(verified ? "Email verified." : "Email is not verified yet.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not refresh verification status");
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
 
-  const initials = (form.displayName || user.email || "U")[0]?.toUpperCase();
+  const ensureRecaptcha = () => {
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(auth, "phone-recaptcha", {
+        size: "invisible",
+      });
+    }
+    return recaptchaRef.current;
+  };
+
+  const sendOtp = async () => {
+    if (!isValidIndianMobile(form.mobile)) {
+      toast.error("Do not allow OTP send if mobile number is empty or invalid.");
+      return;
+    }
+    const saved = await save();
+    if (!saved || cooldown > 0) return;
+    setOtpSending(true);
+    try {
+      const provider = new PhoneAuthProvider(auth);
+      const id = await provider.verifyPhoneNumber(toIndianE164(form.mobile), ensureRecaptcha());
+      setVerificationId(id);
+      setCooldown(45);
+      toast.success("OTP sent. Please enter the code.");
+    } catch (error) {
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+      toast.error(error instanceof Error ? error.message : "Could not send OTP");
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!verificationId || otp.trim().length < 6) {
+      toast.error("Enter the OTP code.");
+      return;
+    }
+    setOtpVerifying(true);
+    try {
+      const credential = PhoneAuthProvider.credential(verificationId, otp.trim());
+      await linkWithCredential(user, credential);
+      await user.getIdToken(true);
+      await setUserPhoneVerified(user, true);
+      await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+      setOtp("");
+      setVerificationId("");
+      toast.success("Your mobile number is verified.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid OTP. Please try again.");
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1">
-        <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
-          <div>
-            <h1 className="font-display text-3xl font-bold">Your profile</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              This is how other readers see you on BookVerse.
-            </p>
-          </div>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="font-display text-3xl font-bold">Complete your profile</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Email, mobile, and city details help reduce spam before WhatsApp conversations begin.
+          </p>
+        </div>
 
-          {isLoading ? (
-            <div className="mt-8 h-80 animate-pulse rounded-2xl bg-secondary" />
-          ) : (
-            <form onSubmit={onSubmit} className="mt-8 space-y-6 rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  {form.photoURL ? (
-                    <img
-                      src={form.photoURL}
-                      alt=""
-                      width={80}
-                      height={80}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      className="h-20 w-20 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="grid h-20 w-20 place-items-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                      {initials}
-                    </span>
-                  )}
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <StatusCard
+            icon={<MailCheck className="h-4 w-4" />}
+            label="Email"
+            ok={emailVerified}
+            text={emailVerified ? "Verified" : "Verification needed"}
+          />
+          <StatusCard
+            icon={<Phone className="h-4 w-4" />}
+            label="Mobile"
+            ok={phoneVerified}
+            text={
+              phoneVerified
+                ? "Your mobile number is verified."
+                : "Please verify your mobile number to continue."
+            }
+          />
+          <StatusCard
+            icon={<ShieldCheck className="h-4 w-4" />}
+            label="Profile"
+            ok={completed}
+            text={completed ? "Complete" : "Details required"}
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="mt-8 h-96 animate-pulse rounded-2xl bg-secondary" />
+        ) : (
+          <div className="mt-8 space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            {!emailVerified && (
+              <section className="rounded-xl border border-gold/30 bg-gold/10 p-4">
+                <h2 className="font-semibold">Verify your email</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Check your inbox for the verification link. You can browse before verifying, but
+                  you cannot sell, contact sellers, or make offers yet.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border border-border bg-background shadow-card transition-colors hover:bg-secondary disabled:opacity-50"
-                    aria-label="Change photo"
+                    onClick={resendEmail}
+                    className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary"
                   >
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                    Resend verification email
                   </button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept={ALLOWED_AVATAR_TYPES.join(",")}
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleAvatar(f);
-                      e.target.value = "";
-                    }}
-                  />
+                  <button
+                    type="button"
+                    onClick={checkEmail}
+                    disabled={checkingEmail}
+                    className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-60"
+                  >
+                    {checkingEmail && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Refresh status
+                  </button>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-semibold">{form.displayName || user.email}</p>
-                    {mobileValid && <VerifiedBadge />}
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                </div>
-              </div>
+              </section>
+            )}
 
+            <section className="space-y-4">
               <Field
-                label="Display name"
-                value={form.displayName}
-                onChange={(v) => setForm((f) => ({ ...f, displayName: v }))}
-                error={errors.displayName}
-                maxLength={60}
+                label="Name"
+                value={form.name}
+                onChange={(value) => setForm((current) => ({ ...current, name: value }))}
+                error={errors.name}
                 required
               />
 
-              <div>
-                <label className="text-sm font-medium">Bio</label>
-                <textarea
-                  value={form.bio}
-                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                  rows={3}
-                  maxLength={280}
-                  placeholder="A short intro about the books you love."
-                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
-                />
-                <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-                  <span>{errors.bio ?? ""}</span>
-                  <span>{form.bio.length}/280</span>
-                </div>
-              </div>
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label="City"
-                  value={form.city}
-                  onChange={(v) => setForm((f) => ({ ...f, city: v }))}
-                  error={errors.city}
-                  maxLength={60}
-                  placeholder="e.g. Mumbai"
-                />
-                <Field
-                  label={
-                    <span className="inline-flex items-center gap-2">
-                      Mobile (optional)
-                      {mobileValid && <VerifiedBadge />}
-                    </span>
-                  }
+                  label="WhatsApp/mobile number"
                   value={form.mobile}
-                  onChange={(v) => setForm((f) => ({ ...f, mobile: v }))}
-                  error={mobileError}
-                  maxLength={20}
-                  placeholder="+91 90000 00000"
-                  type="tel"
-                  onBlur={() => setMobileTouched(true)}
-                  helper={
-                    mobileValid
-                      ? { text: `${mobileDigits.length} digits — valid mobile number`, type: "success" }
-                      : form.mobile.length > 0
-                        ? { text: `${mobileDigits.length} / 10+ digits`, type: "neutral" }
-                        : undefined
-                  }
-                />
-              </div>
-
-              <div className="border-t border-border pt-5">
-                <div className="flex items-baseline justify-between">
-                  <h2 className="font-display text-lg font-semibold">Pickup address (sellers)</h2>
-                  <span className="text-xs text-muted-foreground">Required to receive orders</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  This is where the courier will pick up the book when someone buys it. Only used when you sell.
-                </p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label="Pickup contact name"
-                    value={form.pickupAddress?.name ?? ""}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), name: v } }))
-                    }
-                    maxLength={100}
-                  />
-                  <Field
-                    label="Pickup phone"
-                    value={form.pickupAddress?.phone ?? ""}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), phone: v } }))
-                    }
-                    maxLength={20}
-                    type="tel"
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className="text-sm font-medium">Pickup address</label>
-                  <textarea
-                    value={form.pickupAddress?.address ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        pickupAddress: { ...(f.pickupAddress ?? emptyPickup), address: e.target.value },
-                      }))
-                    }
-                    rows={2}
-                    maxLength={250}
-                    placeholder="House/flat, street, area"
-                    className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
-                  />
-                </div>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <Field
-                    label="City"
-                    value={form.pickupAddress?.city ?? ""}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), city: v } }))
-                    }
-                    maxLength={60}
-                  />
-                  <Field
-                    label="State"
-                    value={form.pickupAddress?.state ?? ""}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, pickupAddress: { ...(f.pickupAddress ?? emptyPickup), state: v } }))
-                    }
-                    maxLength={60}
-                  />
-                  <Field
-                    label="Pincode"
-                    value={form.pickupAddress?.pincode ?? ""}
-                    onChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        pickupAddress: { ...(f.pickupAddress ?? emptyPickup), pincode: v.replace(/\D/g, "").slice(0, 6) },
-                      }))
-                    }
-                    maxLength={6}
-                    placeholder="6 digits"
-                  />
-                </div>
-                <PickupMapPreview
-                  pincode={form.pickupAddress?.pincode ?? ""}
-                  address={form.pickupAddress?.address ?? ""}
-                  city={form.pickupAddress?.city ?? ""}
-                  state={form.pickupAddress?.state ?? ""}
-                  coords={
-                    form.pickupAddress?.lat != null && form.pickupAddress?.lon != null
-                      ? { lat: form.pickupAddress.lat, lon: form.pickupAddress.lon }
-                      : null
-                  }
-                  onMismatchChange={setPickupMismatch}
-                  onUseLocation={({ coords, address, city, state, pincode }) =>
-                    setForm((f) => ({
-                      ...f,
-                      pickupAddress: {
-                        ...(f.pickupAddress ?? emptyPickup),
-                        address: address ?? f.pickupAddress?.address ?? "",
-                        city: city ?? f.pickupAddress?.city ?? "",
-                        state: state ?? f.pickupAddress?.state ?? "",
-                        pincode:
-                          pincode && /^\d{6}$/.test(pincode)
-                            ? pincode
-                            : f.pickupAddress?.pincode ?? "",
-                        lat: coords.lat,
-                        lon: coords.lon,
-                      },
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      mobile: value.replace(/\D/g, "").slice(0, 10),
+                      whatsappNumber: value.replace(/\D/g, "").slice(0, 10),
                     }))
                   }
+                  error={errors.mobile}
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                />
+                <Field
+                  label="Pincode"
+                  value={form.pincode}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      pincode: value.replace(/\D/g, "").slice(0, 6),
+                    }))
+                  }
+                  error={errors.pincode}
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
-                <Link
-                  to="/my-listings"
-                  className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-secondary"
-                >
-                  My listings
-                </Link>
-                <button
-                  type="submit"
-                  disabled={save.isPending || uploading || pickupMismatch}
-                  title={pickupMismatch ? "Resolve pincode/map mismatch first" : undefined}
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
-                >
-                  {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Save changes
-                </button>
+              <LocationSelect
+                state={form.state}
+                city={form.city}
+                manualCity={manualCity}
+                onStateChange={(value) => setForm((current) => ({ ...current, state: value }))}
+                onCityChange={(value) => setForm((current) => ({ ...current, city: value }))}
+                onManualCityChange={setManualCity}
+                stateError={errors.state}
+                cityError={errors.city}
+              />
+
+              <div>
+                <label className="text-sm font-medium">Locality / address optional</label>
+                <textarea
+                  value={form.address}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, address: event.target.value }))
+                  }
+                  rows={3}
+                  maxLength={240}
+                  placeholder="Locality, area, or pickup landmark. This is not shown publicly."
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  BookVerse only shows city and state publicly. Share exact details directly on
+                  WhatsApp.
+                </p>
               </div>
-            </form>
-          )}
-        </div>
+            </section>
+
+            <section className="rounded-xl border border-border bg-secondary/30 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">Mobile OTP verification</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Phone verification should verify the WhatsApp/mobile number for trust.
+                  </p>
+                </div>
+                {phoneVerified && <CheckCircle2 className="h-5 w-5 text-success" />}
+              </div>
+              <div id="phone-recaptcha" />
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={otpSending || phoneVerified || cooldown > 0}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary disabled:opacity-60"
+                >
+                  {otpSending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP"}
+                </button>
+                {verificationId && !phoneVerified && (
+                  <>
+                    <input
+                      value={otp}
+                      onChange={(event) =>
+                        setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      placeholder="Enter OTP"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className="min-w-32 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={verifyOtp}
+                      disabled={otpVerifying}
+                      className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-60"
+                    >
+                      {otpVerifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Verify OTP
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                Save profile
+              </button>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>
@@ -452,48 +454,52 @@ function Field({
   value,
   onChange,
   error,
-  maxLength,
-  placeholder,
-  type = "text",
   required,
-  onBlur,
-  helper,
-}: {
-  label: React.ReactNode;
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   error?: string;
-  maxLength?: number;
-  placeholder?: string;
-  type?: string;
   required?: boolean;
-  onBlur?: () => void;
-  helper?: { text: string; type: "success" | "neutral" | "error" };
 }) {
   return (
     <div>
-      <label className="text-sm font-medium inline-flex items-center gap-2">
+      <label className="text-sm font-medium">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </label>
       <input
-        type={type}
+        {...props}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        className={`mt-1.5 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary ${
+        onChange={(event) => onChange(event.target.value)}
+        className={`mt-1.5 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${
           error ? "border-destructive" : "border-border"
         }`}
       />
-      {error ? (
-        <p className="mt-1 text-xs text-destructive">{error}</p>
-      ) : helper ? (
-        <p className={`mt-1 text-xs ${helper.type === "success" ? "text-success" : "text-muted-foreground"}`}>
-          {helper.text}
-        </p>
-      ) : null}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function StatusCard({
+  icon,
+  label,
+  ok,
+  text,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  ok: boolean;
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <span className={ok ? "text-success" : "text-muted-foreground"}>{icon}</span>
+        {label}
+      </div>
+      <p className={`mt-1 text-xs ${ok ? "text-success" : "text-muted-foreground"}`}>{text}</p>
     </div>
   );
 }

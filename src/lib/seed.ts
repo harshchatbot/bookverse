@@ -3,7 +3,7 @@ import { auth, db } from "@/integrations/firebase/client";
 import type { NewListingInput } from "./listings";
 
 // Stable Unsplash cover images (book-ish stock photography).
-const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerMobile" | "sellerUid" | "sellerEmail">[] = [
+const SAMPLES: Omit<NewListingInput, "sellerName" | "sellerUid">[] = [
   {
     title: "HC Verma — Concepts of Physics (Vol 1 & 2)",
     author: "H. C. Verma",
@@ -97,8 +97,6 @@ export async function seedSampleListings(): Promise<number> {
   if (!user) throw new Error("You must be signed in to seed listings.");
 
   const sellerName = user.displayName || "BookVerse Demo Seller";
-  const sellerEmail = user.email || "demo@bookverse.app";
-  const sellerMobile = "9876543210";
 
   let count = 0;
   for (const s of SAMPLES) {
@@ -106,8 +104,6 @@ export async function seedSampleListings(): Promise<number> {
       ...s,
       sellerUid: user.uid,
       sellerName,
-      sellerEmail,
-      sellerMobile,
       status: "approved",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

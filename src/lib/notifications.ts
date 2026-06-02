@@ -62,10 +62,7 @@ export async function createNotification(input: NewNotificationInput): Promise<s
   return ref.id;
 }
 
-export async function getNotificationsForUser(
-  uid: string,
-  max = 20,
-): Promise<AppNotification[]> {
+export async function getNotificationsForUser(uid: string, max = 20): Promise<AppNotification[]> {
   const snap = await getDocs(
     query(
       collection(db, NOTIFICATIONS_COLLECTION),

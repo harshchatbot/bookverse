@@ -44,8 +44,13 @@ function Admin() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Admins only</h1>
-            <p className="mt-2 text-sm text-muted-foreground">You don't have access to this page.</p>
-            <Link to="/" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <p className="mt-2 text-sm text-muted-foreground">
+              You don't have access to this page.
+            </p>
+            <Link
+              to="/"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Go home
             </Link>
           </main>
@@ -94,7 +99,6 @@ function AdminDashboard() {
     }
   };
 
-
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -109,11 +113,16 @@ function AdminDashboard() {
               disabled={seeding}
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
             >
-              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {seeding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
               {seeding ? "Seeding…" : "Seed 5 sample listings"}
             </button>
             <p className="text-xs text-muted-foreground">
-              Creates 5 approved demo listings under your account so you can preview the Browse and detail pages.
+              Creates 5 approved demo listings under your account so you can preview the Browse and
+              detail pages.
             </p>
           </div>
 
@@ -123,7 +132,9 @@ function AdminDashboard() {
                 key={t.value}
                 onClick={() => setTab(t.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
-                  tab === t.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                  tab === t.value
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t.label}
@@ -142,9 +153,20 @@ function AdminDashboard() {
               </div>
             ) : (
               listings.map((l) => (
-                <div key={l.id} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 md:flex-row">
+                <div
+                  key={l.id}
+                  className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 md:flex-row"
+                >
                   <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-secondary md:h-28 md:w-28">
-                    {l.images[0] && <img loading="lazy" decoding="async" src={l.images[0]} alt="" className="h-full w-full object-cover" />}
+                    {l.images[0] && (
+                      <img
+                        loading="lazy"
+                        decoding="async"
+                        src={l.images[0]}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -153,16 +175,22 @@ function AdminDashboard() {
                         <div className="text-sm text-muted-foreground">by {l.author}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-display text-lg font-bold">₹{l.sellingPrice.toLocaleString("en-IN")}</div>
+                        <div className="font-display text-lg font-bold">
+                          ₹{l.sellingPrice.toLocaleString("en-IN")}
+                        </div>
                       </div>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5"><Tag className="h-3 w-3" /> {categoryLabel(l.category)}</span>
-                      <span className="rounded-full bg-secondary px-2 py-0.5">{conditionLabel(l.condition)}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5">
+                        <Tag className="h-3 w-3" /> {categoryLabel(l.category)}
+                      </span>
+                      <span className="rounded-full bg-secondary px-2 py-0.5">
+                        {conditionLabel(l.condition)}
+                      </span>
                       <span className="rounded-full bg-secondary px-2 py-0.5">{l.city}</span>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Seller: {l.sellerName} · {l.sellerMobile} · {l.sellerEmail}
+                      Seller: {l.sellerName} · {l.sellerUid}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link

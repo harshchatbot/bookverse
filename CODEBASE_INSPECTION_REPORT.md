@@ -2,7 +2,7 @@
 
 **Project Type:** React + TanStack Start + Tailwind + Firebase (educational books marketplace)  
 **Current Status:** No cart/checkout/payment implementation  
-**Inspection Date:** June 2, 2026  
+**Inspection Date:** June 2, 2026
 
 ---
 
@@ -128,6 +128,7 @@ BookVerse India/
 Routes live in **`src/routes/`** using TanStack Router file-based routing.
 
 **All Route Files:**
+
 - `__root.tsx` - Root layout (Header, AuthProvider, QueryClient, Toaster)
 - `index.tsx` - Home page
 - `about.tsx` - About page
@@ -375,6 +376,7 @@ function RootComponent() {
 ```
 
 **Key Points:**
+
 - `AuthProvider` wraps all routes
 - `QueryClientProvider` for React Query
 - `Toaster` for notifications
@@ -388,6 +390,7 @@ function RootComponent() {
 **File:** `src/components/Header.tsx`
 
 **Key Features:**
+
 - Desktop nav with Logo, Browse, Sell, About links
 - Mobile hamburger menu
 - Auth-gated user menu with:
@@ -399,6 +402,7 @@ function RootComponent() {
 - Google Sign-in button for non-authenticated users
 
 **Structure:**
+
 - Header wrapper with sticky positioning
 - NavLinks array for DRY routing
 - Menu state management with useState
@@ -411,6 +415,7 @@ function RootComponent() {
 **File:** `src/routes/sell.tsx`
 
 **Form Schema (Zod):**
+
 ```
 - title: string (2-200 chars)
 - author: string (1-150 chars)
@@ -427,6 +432,7 @@ function RootComponent() {
 ```
 
 **Image Upload:**
+
 - Max 6 images per listing
 - Allowed types: JPG, PNG, WebP
 - Max 5MB per image
@@ -434,6 +440,7 @@ function RootComponent() {
 - Images array returned before form submission
 
 **Submission Flow:**
+
 1. Upload all images to Storage (with progress tracking)
 2. Create listing doc in Firestore with image URLs
 3. Status set to "pending" (requires admin approval)
@@ -448,6 +455,7 @@ function RootComponent() {
 **File:** `src/routes/my-listings.tsx`
 
 **Features:**
+
 - Auth-gated (fallback to sign-in page)
 - Displays seller's listings in order of creation (newest first)
 - Listing card shows: cover image, title, category, price, city, status badge
@@ -458,6 +466,7 @@ function RootComponent() {
   - Link to book detail page
 
 **Data Fetched:**
+
 ```typescript
 const { data: listings = [], isLoading } = useQuery({
   queryKey: ["my-listings", user.uid],
@@ -472,6 +481,7 @@ const { data: listings = [], isLoading } = useQuery({
 **File:** `src/routes/admin.tsx`
 
 **Features:**
+
 - Auth-gated, requires `isAdmin` from useAuth context
 - Tab-based filtering: Pending, Approved, Rejected, Sold
 - For each listing, shows:
@@ -486,6 +496,7 @@ const { data: listings = [], isLoading } = useQuery({
 - "Seed sample listings" button for testing
 
 **Data Fetched:**
+
 ```typescript
 const { data: listings = [], isLoading } = useQuery({
   queryKey: ["admin-listings", tab],
@@ -510,6 +521,7 @@ const { data: listings = [], isLoading } = useQuery({
    - Fetches from `getOffersForBuyer(user.uid)`
 
 **Offer Structure:**
+
 ```typescript
 interface Offer {
   id: string;
@@ -534,17 +546,20 @@ interface Offer {
 **File:** `src/routes/wishlist.tsx`
 
 **Features:**
+
 - Auth-gated
 - Displays saved books in grid layout (2-4 columns responsive)
 - Books shown as `BookCard` components
 - Newest saved books appear first
 
 **Data Flow:**
+
 1. Fetch wishlist IDs: `getWishlistIds(user.uid)` → returns string array
 2. Fetch full listing docs: `getListingsByIds(ids)` → returns Listing[]
 3. Render as grid
 
 **Storage Structure:**
+
 ```typescript
 // wishlists/{uid}
 {
@@ -576,12 +591,14 @@ export function useAuth() {
 ```
 
 **How Admin is Determined:**
+
 ```typescript
 const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 // ADMIN_EMAILS = ["harshveernirwan@gmail.com"]
 ```
 
 **Login State:**
+
 - Accessed via `useAuth()` hook
 - Returns `user` (Firebase User object) or null
 - `loading` boolean during auth state resolution
@@ -593,19 +610,19 @@ const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
 
 ### Collections Used in Code
 
-| Collection | Access | Fields Written/Read |
-|-----------|--------|-------------------|
-| **listings** | public read (approved/sold), seller own, admin all | title, author, category, edition, originalPrice, sellingPrice, condition, city, deliveryType, description, images[], sellerName, sellerMobile, sellerUid, sellerEmail, status, createdAt, updatedAt, views |
-| **profiles** | world-readable | [user profile fields] |
-| **orders** | seller own, buyer own, admin all | buyerUid, sellerUid, listingId, amount, status, paymentId, shipmentId, ... |
-| **payments** | seller own, buyer own, admin all | buyerUid, sellerUid, amount, razorpayOrderId, razorpayPaymentId, status, createdAt |
-| **shipments** | auth users | shipmentId, status, trackingUrl, ... |
-| **seller_payouts** | seller own, admin all | sellerUid, amount, status, createdAt |
-| **disputes** | raiser own, admin all | raisedBy, orderId, reason, status, resolution |
-| **carts** | user own | [items array] |
-| **notifications** | user own | userUid, type, title, body, link, listingId, offerId, read, createdAt |
-| **wishlists** | (direct doc per user) | ids: string[], updatedAt |
-| **offers** | seller own (received), buyer own (sent) | listingId, listingTitle, listingPrice, sellerUid, buyerUid, buyerName, buyerEmail, amount, message, status, createdAt |
+| Collection         | Access                                             | Fields Written/Read                                                                                                                                                                                        |
+| ------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **listings**       | public read (approved/sold), seller own, admin all | title, author, category, edition, originalPrice, sellingPrice, condition, city, deliveryType, description, images[], sellerName, sellerMobile, sellerUid, sellerEmail, status, createdAt, updatedAt, views |
+| **profiles**       | world-readable                                     | [user profile fields]                                                                                                                                                                                      |
+| **orders**         | seller own, buyer own, admin all                   | buyerUid, sellerUid, listingId, amount, status, paymentId, shipmentId, ...                                                                                                                                 |
+| **payments**       | seller own, buyer own, admin all                   | buyerUid, sellerUid, amount, razorpayOrderId, razorpayPaymentId, status, createdAt                                                                                                                         |
+| **shipments**      | auth users                                         | shipmentId, status, trackingUrl, ...                                                                                                                                                                       |
+| **seller_payouts** | seller own, admin all                              | sellerUid, amount, status, createdAt                                                                                                                                                                       |
+| **disputes**       | raiser own, admin all                              | raisedBy, orderId, reason, status, resolution                                                                                                                                                              |
+| **carts**          | user own                                           | [items array]                                                                                                                                                                                              |
+| **notifications**  | user own                                           | userUid, type, title, body, link, listingId, offerId, read, createdAt                                                                                                                                      |
+| **wishlists**      | (direct doc per user)                              | ids: string[], updatedAt                                                                                                                                                                                   |
+| **offers**         | seller own (received), buyer own (sent)            | listingId, listingTitle, listingPrice, sellerUid, buyerUid, buyerName, buyerEmail, amount, message, status, createdAt                                                                                      |
 
 ### Key Field Patterns
 
@@ -622,6 +639,7 @@ const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
 ### How Logged-In User is Accessed
 
 **Via Hook:**
+
 ```typescript
 const { user, isAdmin, signInWithGoogle, signOut } = useAuth();
 ```
@@ -631,6 +649,7 @@ const { user, isAdmin, signInWithGoogle, signOut } = useAuth();
 - Check with: `if (user) { /* authenticated */ }`
 
 **Via AuthGate Component:**
+
 ```typescript
 <AuthGate
   fallback={<SignInPrompt />}
@@ -647,6 +666,7 @@ const { user, isAdmin, signInWithGoogle, signOut } = useAuth();
 ### Admin Determination
 
 **Single Admin Check:**
+
 ```typescript
 export const ADMIN_EMAILS = ["harshveernirwan@gmail.com"];
 
@@ -663,11 +683,13 @@ const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
 ### City/State Storage
 
 **Current Implementation:**
+
 - **City:** Stored as free-text string in listing
 - **State/Region:** Not captured in form or stored in Firestore
 - **Delivery Types:** "local" (pickup only) or "shipping" (across India)
 
 **Form Field (sell.tsx, line 443):**
+
 ```typescript
 <Field label="City" error={errors.city?.message}>
   <Input {...register("city")} placeholder="Mumbai" />
@@ -681,12 +703,14 @@ Validation: min 2 chars, max 80 chars, no regex (any characters allowed).
 ### Wishlist Heart Functionality
 
 **SaveButton Component:**
+
 - Clicking heart toggles wishlist status
 - Updates `wishlists/{uid}` doc with `arrayUnion` or `arrayRemove` of listingId
 - Server-side stored as array of listing IDs only
 - No metadata (timestamp, notes) stored per item
 
 **Wishlist Page Display:**
+
 - Fetches IDs from `wishlists/{uid}`
 - Fetches full listing docs via `getListingsByIds(ids)` (batched in 10-doc chunks)
 - Shows newest saved first (IDs array reversed)
@@ -696,10 +720,12 @@ Validation: min 2 chars, max 80 chars, no regex (any characters allowed).
 ### Offers Storage & Flow
 
 **Where Offers Stored:**
+
 - Firestore collection: `offers`
 - Each offer doc contains: listingId, sellerUid, buyerUid, amount, message, status, createdAt
 
 **Creating an Offer:**
+
 ```typescript
 await createOffer({
   listingId: string,
@@ -715,12 +741,14 @@ await createOffer({
 ```
 
 **Status Lifecycle:**
+
 1. Created as `"pending"`
 2. Seller can accept → `"accepted"`
 3. Seller can decline → `"declined"`
 4. Buyer can cancel → deleted from Firestore
 
 **Notification:**
+
 - When offer created, a notification doc is created for the seller
 - Seller receives notification: `"New offer received from {buyerName} for ₹{amount}"`
 
@@ -729,23 +757,27 @@ await createOffer({
 ## 5. INTEGRATION POINTS (Not Fully Implemented)
 
 ### Payment Gateway
+
 - **Razorpay** integrated (razorpay npm package imported)
 - Endpoints: `api/checkout/create-order.ts`, `api/checkout/verify.ts`
 - Webhook: `api/public/razorpay/webhook.ts`
 - Status: Checkout page exists but no cart/cart checkout flow
 
 ### Shipping
+
 - **ShipRocket** integration (shiprocket.server.ts)
 - Endpoint: `api/shipping/rates.ts`
 - Webhook: `api/public/shiprocket/webhook.ts`
 - Status: Infrastructure exists, unclear if fully wired
 
 ### Notifications
+
 - Firestore `notifications` collection
 - Types: `"offer_received"`, etc.
 - NotificationsBell component in header
 
 ### Seller Payouts
+
 - `seller_payouts` collection in Firestore
 - Status: Server-side only (Admin SDK)
 
@@ -754,6 +786,7 @@ await createOffer({
 ## 6. TESTING & SEED DATA
 
 **Seed Function (admin.tsx):**
+
 ```typescript
 <button onClick={handleSeed} disabled={seeding}>
   Seed 5 sample listings
@@ -767,22 +800,22 @@ await createOffer({
 
 ## 7. TECH STACK SUMMARY
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | React 19 + TanStack Router |
-| **Server** | TanStack Start (Nitro) |
-| **Form Validation** | Zod + React Hook Form |
-| **State Management** | React Query (TanStack Query) |
-| **Styling** | Tailwind CSS v4 + shadcn/ui (Radix) |
-| **Database** | Firebase Firestore |
-| **Storage** | Firebase Cloud Storage |
-| **Auth** | Firebase Authentication (Google OAuth) |
-| **Payments** | Razorpay |
-| **Shipping** | ShipRocket |
-| **Notifications** | Sonner toast + Firestore |
-| **Image Carousel** | Embla Carousel |
-| **Charts** | Recharts |
-| **Icons** | Lucide React |
+| Layer                | Technology                             |
+| -------------------- | -------------------------------------- |
+| **Framework**        | React 19 + TanStack Router             |
+| **Server**           | TanStack Start (Nitro)                 |
+| **Form Validation**  | Zod + React Hook Form                  |
+| **State Management** | React Query (TanStack Query)           |
+| **Styling**          | Tailwind CSS v4 + shadcn/ui (Radix)    |
+| **Database**         | Firebase Firestore                     |
+| **Storage**          | Firebase Cloud Storage                 |
+| **Auth**             | Firebase Authentication (Google OAuth) |
+| **Payments**         | Razorpay                               |
+| **Shipping**         | ShipRocket                             |
+| **Notifications**    | Sonner toast + Firestore               |
+| **Image Carousel**   | Embla Carousel                         |
+| **Charts**           | Recharts                               |
+| **Icons**            | Lucide React                           |
 
 ---
 
@@ -798,6 +831,7 @@ await createOffer({
 ## END OF REPORT
 
 This codebase is a **functional educational books marketplace** with:
+
 - ✅ Listing creation & management
 - ✅ Admin approval workflow
 - ✅ Wishlist (saved books)

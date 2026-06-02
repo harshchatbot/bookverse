@@ -33,7 +33,7 @@ self.addEventListener("fetch", (event) => {
             if (cached) return cached;
             throw new Error("Network and cache both failed for navigation");
           });
-        })
+        }),
     );
     return;
   }
@@ -66,7 +66,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         });
-      })
+      }),
     );
     return;
   }

@@ -1,11 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import {
-  adminKit,
-  requireAuth,
-  jsonError,
-  jsonOk,
-} from "@/lib/admin.server";
+import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
 import { verifyRazorpaySignature } from "@/lib/razorpay.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
@@ -15,7 +10,6 @@ const Body = z.object({
   razorpayPaymentId: z.string().min(1),
   razorpaySignature: z.string().min(1),
 });
-
 
 export const Route = createFileRoute("/api/checkout/verify")({
   server: {
@@ -119,7 +113,6 @@ export const Route = createFileRoute("/api/checkout/verify")({
             error: e instanceof Error ? e.message : "Fulfillment failed",
           };
         }
-
 
         // Best-effort notifications.
         try {

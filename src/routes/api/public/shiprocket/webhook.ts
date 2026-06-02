@@ -17,9 +17,7 @@ export const Route = createFileRoute("/api/public/shiprocket/webhook")({
         const expected = process.env.SHIPROCKET_WEBHOOK_TOKEN;
         if (!expected) return jsonError(500, "Webhook not configured");
         const provided =
-          request.headers.get("x-api-key") ??
-          request.headers.get("x-shiprocket-token") ??
-          "";
+          request.headers.get("x-api-key") ?? request.headers.get("x-shiprocket-token") ?? "";
         if (provided !== expected) return jsonError(401, "Unauthorized");
 
         let body: {

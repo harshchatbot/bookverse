@@ -1,21 +1,42 @@
 rules_version = '2';
 
-// BookVerse Storage security rules
-// Copy these into Firebase Console → Storage → Rules
 service firebase.storage {
   match /b/{bucket}/o {
+    function validIndianMobile(value) {
+      return value is string && value.matches('^[6-9][0-9]{9}$');
+    }
+
+    function validPincode(value) {
+      return value is string && value.matches('^[0-9]{6}$');
+    }
+
+    function nonEmpty(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function userProfile(userId) {
+      return firestore.get(/databases/(default)/documents/users/$(userId));
+    }
+
+    function hasVerifiedMarketplaceProfile(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true
+        && userProfile(userId).data.emailVerified == true
+        && userProfile(userId).data.phoneVerified == true
+        && nonEmpty(userProfile(userId).data.name)
+        && validIndianMobile(userProfile(userId).data.mobile)
+        && validIndianMobile(userProfile(userId).data.whatsappNumber)
+        && nonEmpty(userProfile(userId).data.state)
+        && nonEmpty(userProfile(userId).data.city)
+        && validPincode(userProfile(userId).data.pincode);
+    }
+
     match /listings/{userId}/{file=**} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && (
-                     // images up to 5MB
-                     (request.resource.contentType.matches('image/.*')
-                      && request.resource.size < 5 * 1024 * 1024)
-                     // videos up to 30MB
-                     || (request.resource.contentType.matches('video/.*')
-                         && request.resource.size < 30 * 1024 * 1024)
-                   );
+      allow write: if hasVerifiedMarketplaceProfile(userId)
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 5 * 1024 * 1024;
     }
   }
 }

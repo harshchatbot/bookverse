@@ -72,7 +72,11 @@ export function ReportListingButton({ listing }: { listing: Listing }) {
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <Label className="mb-2 block text-sm font-semibold">Reason</Label>
-            <RadioGroup value={reason} onValueChange={(v) => setReason(v as ReportReason)} className="space-y-2">
+            <RadioGroup
+              value={reason}
+              onValueChange={(v) => setReason(v as ReportReason)}
+              className="space-y-2"
+            >
               {REPORT_REASONS.map((r) => (
                 <div key={r.value} className="flex items-center gap-2">
                   <RadioGroupItem id={`reason-${r.value}`} value={r.value} />
@@ -85,7 +89,8 @@ export function ReportListingButton({ listing }: { listing: Listing }) {
           </div>
           <div>
             <Label htmlFor="report-details" className="mb-2 block text-sm font-semibold">
-              Additional details <span className="text-muted-foreground font-normal">(optional)</span>
+              Additional details{" "}
+              <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
             <Textarea
               id="report-details"
@@ -95,7 +100,9 @@ export function ReportListingButton({ listing }: { listing: Listing }) {
               maxLength={1000}
               rows={4}
             />
-            <div className="mt-1 text-right text-xs text-muted-foreground">{details.length}/1000</div>
+            <div className="mt-1 text-right text-xs text-muted-foreground">
+              {details.length}/1000
+            </div>
           </div>
           <DialogFooter>
             <button

@@ -2,7 +2,7 @@
 // Vercel/Nitro may otherwise bundle google-gax as ESM and crash on __dirname.
 
 type AdminApp = unknown;
-type JsonMap = Record<string, any>;
+type JsonMap = Record<string, unknown>;
 
 interface DocumentSnapshot {
   id: string;

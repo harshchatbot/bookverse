@@ -1,11 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import {
-  adminKit,
-  requireAuth,
-  jsonError,
-  jsonOk,
-} from "@/lib/admin.server";
+import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
 import { razorpay, razorpayKeyId, estimateGatewayFee } from "@/lib/razorpay.server";
 
 const AddressSchema = z.object({
@@ -112,7 +107,7 @@ export const Route = createFileRoute("/api/checkout/create-order")({
             id: listingSnap.id,
             title: listing.title,
             author: listing.author,
-            image: Array.isArray(listing.images) ? listing.images[0] ?? "" : "",
+            image: Array.isArray(listing.images) ? (listing.images[0] ?? "") : "",
             condition: listing.condition,
             category: listing.category,
             originalPrice: originalPriceSnapshot,

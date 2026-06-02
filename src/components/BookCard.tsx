@@ -24,7 +24,9 @@ export function BookCard({ listing }: { listing: Listing }) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="grid h-full w-full place-items-center text-muted-foreground">No image</div>
+          <div className="grid h-full w-full place-items-center text-muted-foreground">
+            No image
+          </div>
         )}
         <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
           {categoryLabel(listing.category)}
@@ -53,7 +55,10 @@ export function BookCard({ listing }: { listing: Listing }) {
         <h3 className="line-clamp-2 font-semibold leading-snug">{listing.title}</h3>
         <p className="text-sm text-muted-foreground">by {listing.author}</p>
         <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {listing.city}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3" />{" "}
+            {[listing.city, listing.state].filter(Boolean).join(", ")}
+          </span>
           {typeof listing.views === "number" && listing.views > 0 && (
             <span className="inline-flex items-center gap-1">
               <Eye className="h-3 w-3" /> {listing.views.toLocaleString("en-IN")}
@@ -62,7 +67,9 @@ export function BookCard({ listing }: { listing: Listing }) {
         </div>
         <div className="mt-2 flex items-end justify-between">
           <div>
-            <div className="text-xl font-bold text-foreground">₹{listing.sellingPrice.toLocaleString("en-IN")}</div>
+            <div className="text-xl font-bold text-foreground">
+              ₹{listing.sellingPrice.toLocaleString("en-IN")}
+            </div>
             {listing.originalPrice > listing.sellingPrice && (
               <div className="text-xs text-muted-foreground line-through">
                 ₹{listing.originalPrice.toLocaleString("en-IN")}

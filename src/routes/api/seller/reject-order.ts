@@ -4,14 +4,16 @@
 // APIs after we've decided to cancel, and we mirror the result back.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import {
-  adminKit,
-  requireAuth,
-  jsonError,
-  jsonOk,
-} from "@/lib/admin.server";
+import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
 import { razorpay } from "@/lib/razorpay.server";
 import { cancelShiprocketShipment } from "@/lib/shiprocket.server";
+
+interface RazorpayPaymentsWithRefund {
+  refund(
+    paymentId: string,
+    options: { notes?: Record<string, string> },
+  ): Promise<{ id: string; status: string; amount: number }>;
+}
 
 const Body = z.object({
   orderId: z.string().min(1),
@@ -19,11 +21,7 @@ const Body = z.object({
 });
 
 // Statuses where seller can still reject (before in-transit).
-const REJECTABLE = new Set([
-  "paid",
-  "shipment_created",
-  "pickup_scheduled",
-]);
+const REJECTABLE = new Set(["paid", "shipment_created", "pickup_scheduled"]);
 
 export const Route = createFileRoute("/api/seller/reject-order")({
   server: {
@@ -73,30 +71,37 @@ export const Route = createFileRoute("/api/seller/reject-order")({
           awb: order.awb ?? undefined,
         });
         if (order.shipmentId) {
-          await db.collection("shipments").doc(order.shipmentId).update({
-            status: "cancelled",
-            updatedAt: FieldValue.serverTimestamp(),
-            history: FieldValue.arrayUnion({
+          await db
+            .collection("shipments")
+            .doc(order.shipmentId)
+            .update({
               status: "cancelled",
-              cause: "seller_rejected",
-              at: new Date().toISOString(),
-            }),
-          });
+              updatedAt: FieldValue.serverTimestamp(),
+              history: FieldValue.arrayUnion({
+                status: "cancelled",
+                cause: "seller_rejected",
+                at: new Date().toISOString(),
+              }),
+            });
         }
 
         // 2) Refund Razorpay (full).
         let refundId: string | null = null;
         try {
-          const refund = await (razorpay().payments as any).refund(payment.razorpayPaymentId, {
+          const payments = razorpay().payments as unknown as RazorpayPaymentsWithRefund;
+          const refund = await payments.refund(payment.razorpayPaymentId as string, {
             notes: { reason: parsed.data.reason, rejectedBy: "seller" },
           });
           refundId = refund.id;
-          await db.collection("payments").doc(order.paymentId).update({
-            refundId: refund.id,
-            refundStatus: refund.status,
-            refundAmount: Number(refund.amount) / 100,
-            refundedAt: FieldValue.serverTimestamp(),
-          });
+          await db
+            .collection("payments")
+            .doc(order.paymentId)
+            .update({
+              refundId: refund.id,
+              refundStatus: refund.status,
+              refundAmount: Number(refund.amount) / 100,
+              refundedAt: FieldValue.serverTimestamp(),
+            });
         } catch (e) {
           console.error("[reject] refund failed", e);
           return jsonError(502, e instanceof Error ? e.message : "Refund failed", {

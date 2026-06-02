@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getAdminStats, type Bucket } from "@/lib/analytics";
-import { StatCard, BucketTabs, ChartCard, LineTrend, rupees } from "@/components/dashboard/DashboardKit";
+import {
+  StatCard,
+  BucketTabs,
+  ChartCard,
+  LineTrend,
+  rupees,
+} from "@/components/dashboard/DashboardKit";
 
 export function AdminAnalytics() {
   const [bucket, setBucket] = useState<Bucket>("daily");
@@ -30,8 +36,16 @@ export function AdminAnalytics() {
         <>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Total users" value={data.totalUsers} />
-            <StatCard label="Active sellers" value={data.activeSellers} hint="distinct over recent orders" />
-            <StatCard label="Active buyers" value={data.activeBuyers} hint="distinct over recent orders" />
+            <StatCard
+              label="Active sellers"
+              value={data.activeSellers}
+              hint="distinct over recent orders"
+            />
+            <StatCard
+              label="Active buyers"
+              value={data.activeBuyers}
+              hint="distinct over recent orders"
+            />
             <StatCard label="Total listings" value={data.totalListings} />
             <StatCard label="Sold listings" value={data.soldListings} />
             <StatCard label="Orders" value={data.totalOrders} />
@@ -43,7 +57,12 @@ export function AdminAnalytics() {
               <LineTrend data={data.newUsersTrend} dataKey="count" label="Users" />
             </ChartCard>
             <ChartCard title="New listings">
-              <LineTrend data={data.newListingsTrend} dataKey="count" label="Listings" color="var(--chart-2)" />
+              <LineTrend
+                data={data.newListingsTrend}
+                dataKey="count"
+                label="Listings"
+                color="var(--chart-2)"
+              />
             </ChartCard>
             <ChartCard title="Orders">
               <LineTrend data={data.ordersTrend} dataKey="count" label="Orders" />

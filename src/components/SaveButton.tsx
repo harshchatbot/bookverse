@@ -3,6 +3,7 @@ import { Heart, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { addToWishlist, getWishlistIds, removeFromWishlist } from "@/lib/wishlist";
+import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 
 export function useWishlistIds() {
   const { user } = useAuth();
@@ -32,7 +33,8 @@ export function SaveButton({
   showLabel = false,
   stopPropagation = true,
 }: Props) {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
+  const access = useMarketplaceAccess();
   const queryClient = useQueryClient();
   const { data: ids } = useWishlistIds();
   const saved = !!ids?.includes(listingId);
@@ -67,13 +69,10 @@ export function SaveButton({
       e.stopPropagation();
     }
     if (!user) {
-      try {
-        await signInWithGoogle();
-      } catch {
-        return;
-      }
+      access.ensureAccess("wishlist");
       return;
     }
+    if (!access.ensureAccess("wishlist")) return;
     mutation.mutate();
   };
 

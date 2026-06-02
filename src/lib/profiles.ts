@@ -51,9 +51,7 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     bio: d.bio ?? "",
     city: d.city ?? "",
     mobile: d.mobile ?? "",
-    pickupAddress: d.pickupAddress
-      ? { ...EMPTY_PICKUP, ...d.pickupAddress }
-      : null,
+    pickupAddress: d.pickupAddress ? { ...EMPTY_PICKUP, ...d.pickupAddress } : null,
   };
 }
 

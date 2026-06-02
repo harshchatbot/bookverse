@@ -117,7 +117,14 @@ export async function getSellerStats(uid: string, bucket: Bucket): Promise<Selle
     bucket === "daily" ? 14 : bucket === "weekly" ? 8 : 6,
   ) as { key: string; listings: number; sales: number }[];
 
-  return { activeListings, booksSold, totalEarnings, pendingOrders, earningsTrend, listingsVsSales };
+  return {
+    activeListings,
+    booksSold,
+    totalEarnings,
+    pendingOrders,
+    earningsTrend,
+    listingsVsSales,
+  };
 }
 
 export interface BuyerStats {
@@ -141,7 +148,9 @@ export async function getBuyerStats(uid: string): Promise<BuyerStats> {
     ["shipment_created", "pickup_scheduled", "in_transit"].includes(o.status),
   ).length;
   return {
-    booksPurchased: successful.filter((o) => ["delivered", "completed", "payout_ready", "dispute_window"].includes(o.status)).length,
+    booksPurchased: successful.filter((o) =>
+      ["delivered", "completed", "payout_ready", "dispute_window"].includes(o.status),
+    ).length,
     moneySaved,
     ordersInTransit,
     wishlistCount: wishlistIds.length,

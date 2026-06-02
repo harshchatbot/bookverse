@@ -1,4 +1,15 @@
-import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export function StatCard({
   label,
@@ -38,7 +49,9 @@ export function BucketTabs({
           type="button"
           onClick={() => onChange(t.k)}
           className={`rounded-full px-3 py-1.5 font-medium transition-colors ${
-            value === t.k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+            value === t.k
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           {t.label}
@@ -83,12 +96,28 @@ export function LineTrend({
       <LineChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis dataKey="key" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-        <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={valueFormatter} width={48} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          stroke="var(--muted-foreground)"
+          tickFormatter={valueFormatter}
+          width={48}
+        />
         <Tooltip
-          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
+          contentStyle={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+          }}
           formatter={(v: number) => (valueFormatter ? valueFormatter(v) : v)}
         />
-        <Line type="monotone" dataKey={dataKey} name={label} stroke={color} strokeWidth={2} dot={false} />
+        <Line
+          type="monotone"
+          dataKey={dataKey}
+          name={label}
+          stroke={color}
+          strokeWidth={2}
+          dot={false}
+        />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -108,7 +137,11 @@ export function GroupedBars({
         <XAxis dataKey="key" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
         <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={36} />
         <Tooltip
-          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
+          contentStyle={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+          }}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         {series.map((s) => (

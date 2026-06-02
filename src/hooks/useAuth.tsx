@@ -1,18 +1,27 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithPopup,
+  signInWithEmailAndPassword,
   signOut as fbSignOut,
   type User,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, googleProvider, ADMIN_EMAILS, db } from "@/integrations/firebase/client";
+import { ensureUserProfile } from "@/lib/users";
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -27,6 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      if (u) {
+        void ensureUserProfile(u).catch((error) => {
+          console.error("Failed to sync user profile", error);
+        });
+      }
     });
     return () => unsub();
   }, []);
@@ -58,7 +72,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider);
+    const result = await signInWithPopup(auth, googleProvider);
+    await ensureUserProfile(result.user);
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await ensureUserProfile(result.user);
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(result.user);
+    await ensureUserProfile(result.user);
+  };
+
+  const sendPasswordReset = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const sendVerificationEmail = async () => {
+    if (!auth.currentUser) throw new Error("Please sign in first.");
+    await sendEmailVerification(auth.currentUser);
   };
 
   const signOut = async () => {
@@ -66,7 +101,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAdmin,
+        signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
+        sendPasswordReset,
+        sendVerificationEmail,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

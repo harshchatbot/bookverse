@@ -14,7 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../hooks/useAuth";
 import { Toaster } from "sonner";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -81,7 +80,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "BookVerse — Buy & Sell Educational Books Across India" },
-      { name: "description", content: "India's marketplace for educational books. Engineering, Medical, JEE, NEET, GATE, UPSC and more." },
+      {
+        name: "description",
+        content:
+          "India's marketplace for educational books. Engineering, Medical, JEE, NEET, GATE, UPSC and more.",
+      },
       { name: "author", content: "BookVerse" },
       { name: "theme-color", content: "#7C9A6D" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -101,7 +104,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,

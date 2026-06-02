@@ -32,7 +32,10 @@ function SellOrdersPage() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
-            <Link to="/login" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <Link
+              to="/login"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Sign in
             </Link>
           </main>
@@ -107,7 +110,15 @@ function SellOrderRow({ order: o }: { order: Order }) {
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex gap-4">
         <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-          {o.listing.image && <img loading="lazy" decoding="async" src={o.listing.image} alt="" className="h-full w-full object-cover" />}
+          {o.listing.image && (
+            <img
+              loading="lazy"
+              decoding="async"
+              src={o.listing.image}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">

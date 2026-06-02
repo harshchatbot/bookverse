@@ -37,17 +37,13 @@ export interface NewListingInput {
   deliveryType: string;
   description: string;
   images: string[];
-  videoUrl?: string;
   sellerName: string;
-  sellerMobile: string;
   sellerUid: string;
-  sellerEmail: string;
 }
 
 export async function createListing(input: NewListingInput): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTION), {
     ...input,
-    videoUrl: input.videoUrl ?? null,
     status: "pending" satisfies ListingStatus,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

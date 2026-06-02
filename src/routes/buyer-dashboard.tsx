@@ -32,7 +32,10 @@ function BuyerDashboardPage() {
           <Header />
           <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
             <h1 className="font-display text-2xl font-bold">Please sign in</h1>
-            <Link to="/login" className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+            <Link
+              to="/login"
+              className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+            >
               Sign in
             </Link>
           </main>
@@ -69,19 +72,32 @@ function BuyerDashboard({ user }: { user: User }) {
             <>
               <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard label="Books purchased" value={data.booksPurchased} />
-                <StatCard label="Money saved" value={rupees(data.moneySaved)} hint="vs. original prices" />
+                <StatCard
+                  label="Money saved"
+                  value={rupees(data.moneySaved)}
+                  hint="vs. original prices"
+                />
                 <StatCard label="Orders in transit" value={data.ordersInTransit} />
                 <StatCard label="Wishlist" value={data.wishlistCount} />
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3 text-sm">
-                <Link to="/orders" className="rounded-full border border-border bg-background px-4 py-2 font-medium hover:bg-secondary">
+                <Link
+                  to="/orders"
+                  className="rounded-full border border-border bg-background px-4 py-2 font-medium hover:bg-secondary"
+                >
                   My orders
                 </Link>
-                <Link to="/wishlist" className="rounded-full border border-border bg-background px-4 py-2 font-medium hover:bg-secondary">
+                <Link
+                  to="/wishlist"
+                  className="rounded-full border border-border bg-background px-4 py-2 font-medium hover:bg-secondary"
+                >
                   Wishlist
                 </Link>
-                <Link to="/browse" className="rounded-full bg-foreground px-4 py-2 font-semibold text-background">
+                <Link
+                  to="/browse"
+                  className="rounded-full bg-foreground px-4 py-2 font-semibold text-background"
+                >
                   Browse books
                 </Link>
               </div>

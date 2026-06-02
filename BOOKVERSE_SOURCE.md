@@ -936,12 +936,9 @@ export type DeliveryType = (typeof DELIVERY_TYPES)[number]["value"];
 
 export type ListingStatus = "pending" | "approved" | "rejected" | "sold";
 
-export const categoryLabel = (v: string) =>
-  CATEGORIES.find((c) => c.value === v)?.label ?? v;
-export const conditionLabel = (v: string) =>
-  CONDITIONS.find((c) => c.value === v)?.label ?? v;
-export const deliveryLabel = (v: string) =>
-  DELIVERY_TYPES.find((d) => d.value === v)?.label ?? v;
+export const categoryLabel = (v: string) => CATEGORIES.find((c) => c.value === v)?.label ?? v;
+export const conditionLabel = (v: string) => CONDITIONS.find((c) => c.value === v)?.label ?? v;
+export const deliveryLabel = (v: string) => DELIVERY_TYPES.find((d) => d.value === v)?.label ?? v;
 ```
 
 ---
@@ -1081,10 +1078,7 @@ export async function createNotification(input: NewNotificationInput): Promise<s
   return ref.id;
 }
 
-export async function getNotificationsForUser(
-  uid: string,
-  max = 20,
-): Promise<AppNotification[]> {
+export async function getNotificationsForUser(uid: string, max = 20): Promise<AppNotification[]> {
   const snap = await getDocs(
     query(
       collection(db, NOTIFICATIONS_COLLECTION),

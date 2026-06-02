@@ -185,8 +185,18 @@ export function PickupMapPreview({
     ? `${display.lon - 0.01},${display.lat - 0.008},${display.lon + 0.01},${display.lat + 0.008}`
     : null;
 
-  const mismatch = !!(coords && /^\d{6}$/.test(pincode) && verifiedPostcode && verifiedPostcode !== pincode);
-  const matched = !!(coords && /^\d{6}$/.test(pincode) && verifiedPostcode && verifiedPostcode === pincode);
+  const mismatch = !!(
+    coords &&
+    /^\d{6}$/.test(pincode) &&
+    verifiedPostcode &&
+    verifiedPostcode !== pincode
+  );
+  const matched = !!(
+    coords &&
+    /^\d{6}$/.test(pincode) &&
+    verifiedPostcode &&
+    verifiedPostcode === pincode
+  );
 
   return (
     <div className="mt-4 rounded-xl border border-border bg-background">
@@ -244,9 +254,7 @@ export function PickupMapPreview({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 p-3">
-        <p className="text-xs text-muted-foreground">
-          Confirm your pickup location for couriers.
-        </p>
+        <p className="text-xs text-muted-foreground">Confirm your pickup location for couriers.</p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -254,7 +262,11 @@ export function PickupMapPreview({
             disabled={locating}
             className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-60"
           >
-            {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+            {locating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LocateFixed className="h-3.5 w-3.5" />
+            )}
             Use my current location
           </button>
           <button

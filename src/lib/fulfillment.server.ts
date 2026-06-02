@@ -18,10 +18,7 @@ function nowYMDHM(): string {
   )}:${pad(d.getUTCMinutes())}`;
 }
 
-export type FulfillmentStep =
-  | "order_created"
-  | "awb_assigned"
-  | "pickup_scheduled";
+export type FulfillmentStep = "order_created" | "awb_assigned" | "pickup_scheduled";
 
 export interface FulfillmentResult {
   ok: boolean;

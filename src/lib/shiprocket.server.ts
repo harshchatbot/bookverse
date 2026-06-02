@@ -255,9 +255,7 @@ export async function generatePickup(shipmentId: number): Promise<PickupResult> 
   return {
     scheduledDate: data.response?.pickup_scheduled_date ?? null,
     pickupTokenNumber:
-      data.response?.pickup_token_number != null
-        ? String(data.response.pickup_token_number)
-        : null,
+      data.response?.pickup_token_number != null ? String(data.response.pickup_token_number) : null,
     raw: data,
   };
 }
@@ -296,13 +294,9 @@ export async function trackShipment(shipmentId: number) {
  * Map free-text Shiprocket statuses (from webhooks / tracking) to our canonical
  * OrderStatus values. Anything unknown returns null.
  */
-export function mapShiprocketStatus(s: string | null | undefined):
-  | "pickup_scheduled"
-  | "in_transit"
-  | "delivered"
-  | "cancelled"
-  | "failed"
-  | null {
+export function mapShiprocketStatus(
+  s: string | null | undefined,
+): "pickup_scheduled" | "in_transit" | "delivered" | "cancelled" | "failed" | null {
   if (!s) return null;
   const v = s.toLowerCase().trim();
   if (v.includes("delivered")) return "delivered";

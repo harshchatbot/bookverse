@@ -47,36 +47,48 @@ const listingsInfiniteQueryOptions = (
 
 export const Route = createFileRoute("/browse")({
   validateSearch: zodValidator(searchSchema),
-  loaderDeps: ({ search: { category, condition, min, max, sort } }) => ({ category, condition, min, max, sort }),
+  loaderDeps: ({ search: { category, condition, min, max, sort } }) => ({
+    category,
+    condition,
+    min,
+    max,
+    sort,
+  }),
   loader: ({ context, deps }) =>
     context.queryClient.ensureInfiniteQueryData(listingsInfiniteQueryOptions(deps)),
   head: () => ({
     meta: [
       { title: "Browse Books — BookVerse" },
-      { name: "description", content: "Search educational books for sale across India by category, city, condition, and price." },
+      {
+        name: "description",
+        content:
+          "Search educational books for sale across India by category, city, condition, and price.",
+      },
     ],
   }),
-  errorComponent: ({ error, reset }) => {
-    const router = useRouter();
-    return (
-      <div className="mx-auto max-w-md p-12 text-center">
-        <p className="font-semibold">Couldn't load listings</p>
-        <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
-        <button
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-          className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  },
+  errorComponent: BrowseError,
   notFoundComponent: () => <div className="p-12 text-center">No listings found.</div>,
   component: Browse,
 });
+
+function BrowseError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="mx-auto max-w-md p-12 text-center">
+      <p className="font-semibold">Couldn't load listings</p>
+      <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
+      <button
+        onClick={() => {
+          router.invalidate();
+          reset();
+        }}
+        className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
 
 function Browse() {
   const params = Route.useSearch();
@@ -85,13 +97,7 @@ function Browse() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const {
-    data,
-    hasNextPage,
-    isFetchingNextPage,
-    isPending,
-    fetchNextPage,
-  } = useInfiniteQuery(
+  const { data, hasNextPage, isFetchingNextPage, isPending, fetchNextPage } = useInfiniteQuery(
     listingsInfiniteQueryOptions({
       category: params.category,
       condition: params.condition,
@@ -101,10 +107,7 @@ function Browse() {
     }),
   );
 
-  const listings = useMemo(
-    () => (data?.pages?.flatMap((p) => p?.items ?? []) ?? []),
-    [data],
-  );
+  const listings = useMemo(() => data?.pages?.flatMap((p) => p?.items ?? []) ?? [], [data]);
 
   // Client-side: text search (title/author) + partial city match — Firestore can't do these natively.
   const filtered = useMemo(() => {
@@ -146,11 +149,15 @@ function Browse() {
 
   // When client-side filters (q/city) hide most of the loaded set, auto-pull more pages.
   useEffect(() => {
-    if ((params.q || params.city) && hasNextPage && !fetchingRef.current && filtered.length < PAGE_SIZE) {
+    if (
+      (params.q || params.city) &&
+      hasNextPage &&
+      !fetchingRef.current &&
+      filtered.length < PAGE_SIZE
+    ) {
       safeFetchNextPage();
     }
   }, [params.q, params.city, filtered.length, hasNextPage, safeFetchNextPage]);
-
 
   const update = (patch: Partial<BrowseSearch>) => {
     navigate({ search: ((prev: BrowseSearch) => ({ ...prev, ...patch })) as never });
@@ -170,7 +177,9 @@ function Browse() {
   const FiltersPanel = (
     <div className="space-y-6">
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Category</label>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Category
+        </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             onClick={() => update({ category: "" })}
@@ -185,7 +194,9 @@ function Browse() {
               key={c.value}
               onClick={() => update({ category: c.value })}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                params.category === c.value ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"
+                params.category === c.value
+                  ? "bg-foreground text-background"
+                  : "bg-secondary hover:bg-accent"
               }`}
             >
               {c.label}
@@ -195,7 +206,9 @@ function Browse() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">City</label>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          City
+        </label>
         <input
           value={params.city}
           onChange={(e) => update({ city: e.target.value })}
@@ -205,7 +218,9 @@ function Browse() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Price range (₹)</label>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Price range (₹)
+        </label>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <input
             type="number"
@@ -227,7 +242,9 @@ function Browse() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condition</label>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Condition
+        </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             onClick={() => update({ condition: "" })}
@@ -242,7 +259,9 @@ function Browse() {
               key={c.value}
               onClick={() => update({ condition: c.value })}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                params.condition === c.value ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"
+                params.condition === c.value
+                  ? "bg-foreground text-background"
+                  : "bg-secondary hover:bg-accent"
               }`}
             >
               {c.label}
@@ -270,7 +289,9 @@ function Browse() {
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <h1 className="font-display text-2xl font-bold sm:text-3xl">Browse books</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {!mounted || isPending ? "Loading listings…" : `${filtered.length} book${filtered.length === 1 ? "" : "s"} available`}
+              {!mounted || isPending
+                ? "Loading listings…"
+                : `${filtered.length} book${filtered.length === 1 ? "" : "s"} available`}
             </p>
             <div className="mt-4 flex gap-2">
               <div className="relative flex-1">
@@ -329,9 +350,14 @@ function Browse() {
               <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
                 <Illustration variant="search" size={200} className="mx-auto" />
                 <p className="mt-6 font-semibold">No books match your filters</p>
-                <p className="mt-1 text-sm text-muted-foreground">Try widening your search or clearing filters.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Try widening your search or clearing filters.
+                </p>
                 {activeFilters > 0 && (
-                  <button onClick={clearAll} className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">
+                  <button
+                    onClick={clearAll}
+                    className="mt-4 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
+                  >
                     Clear filters
                   </button>
                 )}
@@ -343,7 +369,10 @@ function Browse() {
                     <div
                       key={l.id}
                       className="animate-fade-in"
-                      style={{ animationDelay: `${Math.min(i % PAGE_SIZE, 11) * 50}ms`, animationFillMode: "both" }}
+                      style={{
+                        animationDelay: `${Math.min(i % PAGE_SIZE, 11) * 50}ms`,
+                        animationFillMode: "both",
+                      }}
                     >
                       <BookCard listing={l} />
                     </div>
@@ -379,11 +408,17 @@ function Browse() {
         {/* Mobile drawer */}
         {drawerOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-foreground/40" onClick={() => setDrawerOpen(false)} />
+            <div
+              className="absolute inset-0 bg-foreground/40"
+              onClick={() => setDrawerOpen(false)}
+            />
             <div className="absolute inset-y-0 right-0 w-full max-w-sm overflow-y-auto bg-background p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-display text-lg font-bold">Filters</h2>
-                <button onClick={() => setDrawerOpen(false)} className="grid h-9 w-9 place-items-center rounded-full border border-border">
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="grid h-9 w-9 place-items-center rounded-full border border-border"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>

@@ -58,14 +58,11 @@ export const Route = createFileRoute("/api/admin/shipment-status")({
           updates.payoutEligibleAt = eligibleAt.toISOString();
 
           if (order.payoutId) {
-            await db
-              .collection("seller_payouts")
-              .doc(order.payoutId)
-              .update({
-                status: "eligible",
-                eligibleAt: eligibleAt.toISOString(),
-                updatedAt: FieldValue.serverTimestamp(),
-              });
+            await db.collection("seller_payouts").doc(order.payoutId).update({
+              status: "eligible",
+              eligibleAt: eligibleAt.toISOString(),
+              updatedAt: FieldValue.serverTimestamp(),
+            });
           }
         }
         if (parsed.data.status === "cancelled" || parsed.data.status === "failed") {

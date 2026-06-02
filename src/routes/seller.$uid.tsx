@@ -34,13 +34,11 @@ function SellerPage() {
   if (!isLoading && !profile && !fallbackFromListing) throw notFound();
 
   const displayName =
-    profile?.displayName?.trim() ||
-    fallbackFromListing?.sellerName?.trim() ||
-    "Seller";
+    profile?.displayName?.trim() || fallbackFromListing?.sellerName?.trim() || "Seller";
   const photoURL = profile?.photoURL || "";
   const city = profile?.city || fallbackFromListing?.city || "";
   const bio = profile?.bio || "";
-  const mobile = profile?.mobile || fallbackFromListing?.sellerMobile || "";
+  const mobile = profile?.mobile || "";
   const verified = hasValidMobile(mobile);
 
   const listings = listingsQuery.data ?? [];
@@ -66,7 +64,13 @@ function SellerPage() {
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
               <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
                 {photoURL ? (
-                  <img loading="lazy" decoding="async" src={photoURL} alt={displayName} className="h-full w-full object-cover" />
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={photoURL}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <UserIcon className="h-8 w-8" />
                 )}

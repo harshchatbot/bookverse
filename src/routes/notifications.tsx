@@ -35,9 +35,7 @@ function NotificationsPage() {
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
               Notifications
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Updates on your offers and listings.
-            </p>
+            <p className="text-sm text-muted-foreground">Updates on your offers and listings.</p>
           </div>
         </div>
 

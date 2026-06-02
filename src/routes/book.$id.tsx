@@ -3,20 +3,31 @@ import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { BuyNowButton } from "@/components/BuyNowButton";
 import { MakeOfferButton } from "@/components/MakeOfferButton";
 import { ReportListingButton } from "@/components/ReportListingButton";
-import { VerifiedBadge, hasValidMobile } from "@/components/VerifiedBadge";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SaveButton } from "@/components/SaveButton";
 import { getListing, getRelatedListings, incrementListingViews } from "@/lib/listings";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { categoryLabel, conditionLabel, deliveryLabel } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MapPin, Truck, User, Tag, BookOpen, Share2, Link2, Check, Eye, Store, Package } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Truck,
+  User,
+  Tag,
+  BookOpen,
+  Share2,
+  Link2,
+  Check,
+  Eye,
+  Store,
+  Package,
+} from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-
 
 export const Route = createFileRoute("/book/$id")({
   loader: async ({ params }) => {
@@ -60,9 +71,7 @@ export const Route = createFileRoute("/book/$id")({
               price: l.sellingPrice,
               priceCurrency: "INR",
               availability:
-                l.status === "sold"
-                  ? "https://schema.org/SoldOut"
-                  : "https://schema.org/InStock",
+                l.status === "sold" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
               itemCondition: "https://schema.org/UsedCondition",
             },
           }),
@@ -127,8 +136,13 @@ function BookDetail() {
         <Header />
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-4 text-center">
           <h1 className="font-display text-2xl font-bold">Listing not available</h1>
-          <p className="mt-2 text-muted-foreground">This listing is pending review or not public.</p>
-          <Link to="/browse" className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
+          <p className="mt-2 text-muted-foreground">
+            This listing is pending review or not public.
+          </p>
+          <Link
+            to="/browse"
+            className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+          >
             Browse books
           </Link>
         </main>
@@ -145,7 +159,10 @@ function BookDetail() {
       <Header />
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-          <Link to="/browse" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/browse"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back to browse
           </Link>
         </div>
@@ -154,13 +171,23 @@ function BookDetail() {
           <div>
             <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary">
               {listing.images[activeImg] ? (
-                <img src={listing.images[activeImg]} alt={listing.title} decoding="async" fetchPriority="high" className="h-full w-full object-cover" />
+                <img
+                  src={listing.images[activeImg]}
+                  alt={listing.title}
+                  decoding="async"
+                  fetchPriority="high"
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <div className="grid h-full w-full place-items-center text-muted-foreground">No image</div>
+                <div className="grid h-full w-full place-items-center text-muted-foreground">
+                  No image
+                </div>
               )}
               {isSold && (
                 <div className="absolute inset-0 grid place-items-center bg-foreground/60 backdrop-blur-sm">
-                  <span className="rounded-full bg-background px-6 py-2 text-lg font-bold">SOLD</span>
+                  <span className="rounded-full bg-background px-6 py-2 text-lg font-bold">
+                    SOLD
+                  </span>
                 </div>
               )}
               {isPending && (
@@ -179,7 +206,13 @@ function BookDetail() {
                       activeImg === i ? "border-primary" : "border-transparent"
                     }`}
                   >
-                    <img src={img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -199,7 +232,7 @@ function BookDetail() {
 
           {/* Details */}
           <div>
-          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
                 <BookOpen className="h-3 w-3" /> {categoryLabel(listing.category)}
               </div>
@@ -213,7 +246,9 @@ function BookDetail() {
                 </span>
               )}
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">{listing.title}</h1>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              {listing.title}
+            </h1>
             <p className="mt-2 text-lg text-muted-foreground">by {listing.author}</p>
 
             <div className="mt-6 flex items-baseline gap-3">
@@ -227,7 +262,10 @@ function BookDetail() {
               )}
               {listing.originalPrice > listing.sellingPrice && (
                 <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-                  {Math.round(((listing.originalPrice - listing.sellingPrice) / listing.originalPrice) * 100)}% off
+                  {Math.round(
+                    ((listing.originalPrice - listing.sellingPrice) / listing.originalPrice) * 100,
+                  )}
+                  % off
                 </span>
               )}
             </div>
@@ -243,10 +281,26 @@ function BookDetail() {
             <ShareBar listing={listing} />
 
             <dl className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4">
-              <Meta icon={<Tag className="h-4 w-4" />} label="Edition" value={listing.edition || "—"} />
-              <Meta icon={<BookOpen className="h-4 w-4" />} label="Condition" value={conditionLabel(listing.condition)} />
-              <Meta icon={<MapPin className="h-4 w-4" />} label="City" value={listing.city} />
-              <Meta icon={<Truck className="h-4 w-4" />} label="Delivery" value={deliveryLabel(listing.deliveryType)} />
+              <Meta
+                icon={<Tag className="h-4 w-4" />}
+                label="Edition"
+                value={listing.edition || "—"}
+              />
+              <Meta
+                icon={<BookOpen className="h-4 w-4" />}
+                label="Condition"
+                value={conditionLabel(listing.condition)}
+              />
+              <Meta
+                icon={<MapPin className="h-4 w-4" />}
+                label="Location"
+                value={[listing.city, listing.state].filter(Boolean).join(", ")}
+              />
+              <Meta
+                icon={<Truck className="h-4 w-4" />}
+                label="Delivery"
+                value={deliveryLabel(listing.deliveryType)}
+              />
             </dl>
 
             <div className="mt-6">
@@ -267,7 +321,7 @@ function BookDetail() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{listing.sellerName}</span>
-                  {hasValidMobile(listing.sellerMobile) && <VerifiedBadge />}
+                  <VerifiedBadge />
                 </div>
                 <div className="text-xs text-muted-foreground">View seller profile →</div>
               </div>
@@ -275,11 +329,11 @@ function BookDetail() {
 
             {!isSold && (
               <div className="mt-6 space-y-2">
-                <BuyNowButton listing={listing} className="w-full" />
                 <WhatsAppButton listing={listing} className="w-full" />
                 <MakeOfferButton listing={listing} className="w-full" />
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Buy Now uses secure prepaid checkout. WhatsApp or Make Offer to negotiate directly.
+                  BookVerse V1 is peer-to-peer. Contact the seller on WhatsApp or make an offer to
+                  arrange details directly.
                 </p>
               </div>
             )}
@@ -333,7 +387,11 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function ShareBar({ listing }: { listing: { id: string; title: string; sellingPrice: number; city: string; images: string[] } }) {
+function ShareBar({
+  listing,
+}: {
+  listing: { id: string; title: string; sellingPrice: number; city: string; images: string[] };
+}) {
   const [copied, setCopied] = useState(false);
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/book/${listing.id}` : "";
@@ -370,7 +428,11 @@ function ShareBar({ listing }: { listing: { id: string; title: string; sellingPr
         onClick={handleCopy}
         className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary"
       >
-        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Link2 className="h-3.5 w-3.5" />}
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-success" />
+        ) : (
+          <Link2 className="h-3.5 w-3.5" />
+        )}
         {copied ? "Copied" : "Copy link"}
       </button>
       {canNativeShare && (

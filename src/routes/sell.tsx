@@ -11,10 +11,12 @@ import { AuthGate } from "@/components/AuthGate";
 import { PageSpinner } from "@/components/Spinner";
 import { useAuth } from "@/hooks/useAuth";
 import { CATEGORIES, CONDITIONS, DELIVERY_TYPES } from "@/lib/constants";
-import { INDIAN_STATES, citiesForState } from "@/lib/locations";
-import { createListing, uploadListingImage, uploadListingVideo } from "@/lib/listings";
+import { createListing, uploadListingImage } from "@/lib/listings";
 import { Upload, X, Loader2, ImagePlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import type { User } from "firebase/auth";
+import { LocationSelect } from "@/components/LocationSelect";
+import { citiesForState, OTHER_CITY } from "@/data/indiaLocations";
+import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -80,7 +82,6 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 function Sell() {
-  const { signInWithGoogle } = useAuth();
   return (
     <AuthGate
       loading={
@@ -100,14 +101,12 @@ function Sell() {
             <p className="mt-2 text-muted-foreground">
               We need your account so buyers can trust your listing.
             </p>
-            <button
-              onClick={() =>
-                signInWithGoogle().catch((e) => toast.error(e?.message ?? "Sign-in failed"))
-              }
+            <Link
+              to="/login"
               className="mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold hover:bg-secondary"
             >
-              <GoogleIcon /> Continue with Google
-            </button>
+              Sign in
+            </Link>
             <Link to="/" className="mt-4 text-sm text-muted-foreground hover:text-foreground">
               Cancel
             </Link>
@@ -123,14 +122,13 @@ function Sell() {
 
 function SellForm({ user }: { user: User }) {
   const navigate = useNavigate();
+  const access = useMarketplaceAccess();
   const [images, setImages] = useState<File[]>([]);
-  const [video, setVideo] = useState<File | null>(null);
-  const VIDEO_ALLOWED = ["video/mp4", "video/quicktime", "video/webm"];
-  const VIDEO_MAX_MB = 30;
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [manualCity, setManualCity] = useState("");
   const previewUrlsRef = useRef<Map<string, string>>(new Map());
 
   const getPreviewUrl = (file: File) => {
@@ -210,8 +208,8 @@ function SellForm({ user }: { user: User }) {
       city: "",
       deliveryType: "",
       description: "",
-      sellerName: user.displayName ?? "",
-      sellerMobile: "",
+      sellerName: access.profile?.name || user.displayName || "",
+      sellerMobile: access.profile?.whatsappNumber || access.profile?.mobile || "",
     },
   });
 
@@ -221,15 +219,29 @@ function SellForm({ user }: { user: User }) {
   const stateValue = watch("state");
   const cityValue = watch("city");
 
-  const cityOptions = stateValue ? citiesForState(stateValue) : [];
-
-  // When the state changes, clear a city that no longer belongs to it.
   useEffect(() => {
-    if (stateValue && cityValue && !citiesForState(stateValue).includes(cityValue)) {
-      setValue("city", "", { shouldValidate: false });
+    if (access.profile) {
+      setValue("sellerName", access.profile.name || user.displayName || "", {
+        shouldValidate: false,
+      });
+      setValue("sellerMobile", access.profile.whatsappNumber || access.profile.mobile || "", {
+        shouldValidate: false,
+      });
+      if (access.profile.state && !stateValue) {
+        setValue("state", access.profile.state, { shouldValidate: false });
+      }
+      if (access.profile.city && !cityValue) {
+        const knownCities = citiesForState(access.profile.state);
+        if (access.profile.state && !knownCities.includes(access.profile.city)) {
+          setValue("city", OTHER_CITY, { shouldValidate: false });
+          setManualCity(access.profile.city);
+        } else {
+          setValue("city", access.profile.city, { shouldValidate: false });
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateValue]);
+  }, [access.profile]);
 
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_IMAGES = 6;
@@ -275,21 +287,12 @@ function SellForm({ user }: { user: User }) {
     }
   };
 
-  const onVideo = (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    if (!VIDEO_ALLOWED.includes(file.type)) {
-      toast.error("Video must be MP4, MOV, or WebM.");
-      return;
-    }
-    if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
-      toast.error(`Video must be under ${VIDEO_MAX_MB}MB.`);
-      return;
-    }
-    setVideo(file);
-  };
-
   const onSubmit = async (data: FormValues) => {
+    if (!access.ensureAccess("sell")) return;
+    if (data.city === OTHER_CITY && !manualCity.trim()) {
+      toast.error("Enter your city or town.");
+      return;
+    }
     if (images.length === 0) {
       toast.error("Please upload at least 1 photo of the book.");
       return;
@@ -330,33 +333,20 @@ function SellForm({ user }: { user: User }) {
         }
       }
 
-      let videoUrl: string | undefined;
-      if (video) {
-        setSubmitStatus("Uploading video…");
-        setUploadProgress(0);
-        try {
-          videoUrl = await uploadListingVideo(user.uid, video, {
-            timeoutMs: 120_000,
-            onProgress: setUploadProgress,
-          });
-        } catch (err) {
-          console.error("[sell] video upload failed", err);
-          throw err;
-        }
-      }
-
       setSubmitStatus("Saving listing…");
       setUploadProgress(100);
       console.log(`[sell] all images uploaded, creating listing doc...`);
+      const city = data.city === OTHER_CITY ? manualCity.trim() : data.city;
+      const { sellerMobile: _sellerMobile, ...publicListingData } = data;
+      void _sellerMobile;
       await withTimeout(
         createListing({
-          ...data,
+          ...publicListingData,
+          city,
           edition: data.edition ?? "",
           description: data.description ?? "",
           images: imageUrls,
-          videoUrl,
           sellerUid: user.uid,
-          sellerEmail: user.email ?? "",
         }),
         30_000,
         "Listing create",
@@ -386,6 +376,21 @@ function SellForm({ user }: { user: User }) {
             Fill the details below. Your listing goes live after admin approval — usually within a
             day.
           </p>
+          {!access.canUseMarketplace && (
+            <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm">
+              <p className="font-semibold">Verification required before listing</p>
+              <p className="mt-1 text-muted-foreground">
+                Please verify your email, complete your profile, and verify your mobile number to
+                continue.
+              </p>
+              <Link
+                to="/profile"
+                className="mt-3 inline-flex rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+              >
+                Complete profile
+              </Link>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-8">
             {/* Photos */}
@@ -444,46 +449,6 @@ function SellForm({ user }: { user: User }) {
                   {6 - images.length} slot{6 - images.length !== 1 ? "s" : ""} remaining.
                 </p>
               )}
-
-              <div className="mt-5 border-t border-border pt-5">
-                <p className="text-sm font-semibold">Add a video (optional)</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  A short clip showing the book from all sides builds buyer trust. MP4/MOV/WebM, up to {VIDEO_MAX_MB}MB.
-                </p>
-                {video ? (
-                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
-                    <video
-                      src={URL.createObjectURL(video)}
-                      className="h-16 w-16 rounded-lg object-cover"
-                      muted
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{video.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(video.size / (1024 * 1024)).toFixed(1)} MB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setVideo(null)}
-                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-4 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                    <ImagePlus className="h-4 w-4" />
-                    Choose a video
-                    <input
-                      type="file"
-                      accept="video/mp4,video/quicktime,video/webm"
-                      className="hidden"
-                      onChange={(e) => onVideo(e.target.files)}
-                    />
-                  </label>
-                )}
-              </div>
             </Section>
 
             <Section title="Book details">
@@ -539,27 +504,18 @@ function SellForm({ user }: { user: User }) {
                     placeholder="Select delivery"
                   />
                 </Field>
-                <Field label="State" error={errors.state?.message}>
-                  <Select
-                    value={stateValue}
-                    onChange={(v) => {
-                      setValue("state", v, { shouldValidate: true });
-                      // Reset city whenever the state changes.
-                      setValue("city", "", { shouldValidate: false });
-                    }}
-                    options={INDIAN_STATES.map((s) => ({ value: s, label: s }))}
-                    placeholder="Select state"
+                <div className="sm:col-span-2">
+                  <LocationSelect
+                    state={stateValue}
+                    city={cityValue}
+                    manualCity={manualCity}
+                    onStateChange={(v) => setValue("state", v, { shouldValidate: true })}
+                    onCityChange={(v) => setValue("city", v, { shouldValidate: true })}
+                    onManualCityChange={setManualCity}
+                    stateError={errors.state?.message}
+                    cityError={errors.city?.message}
                   />
-                </Field>
-                <Field label="City" error={errors.city?.message}>
-                  <Select
-                    value={cityValue}
-                    onChange={(v) => setValue("city", v, { shouldValidate: true })}
-                    options={cityOptions.map((c) => ({ value: c, label: c }))}
-                    placeholder={stateValue ? "Select city" : "Select a state first"}
-                    disabled={!stateValue}
-                  />
-                </Field>
+                </div>
               </div>
               <Field label="Description" className="mt-4">
                 <textarea
@@ -597,7 +553,7 @@ function SellForm({ user }: { user: User }) {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !access.canUseMarketplace}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-4 text-base font-semibold text-background shadow-elegant transition hover:scale-[1.01] disabled:opacity-60"
             >
               {submitting ? (

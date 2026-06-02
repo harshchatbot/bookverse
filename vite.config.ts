@@ -46,4 +46,3 @@ const config = {
 
 // Cast: the wrapper's Nitro type omits some Nitro options used by Vercel builds.
 export default defineConfig(config as Parameters<typeof defineConfig>[0]);
-

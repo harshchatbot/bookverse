@@ -1,10 +1,11 @@
 rules_version = '2';
 
-// BookVerse Firestore security rules
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    function isSignedIn() { return request.auth != null; }
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'harshveernirwan@gmail.com'
@@ -12,27 +13,191 @@ service cloud.firestore {
       );
     }
 
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function validIndianMobile(value) {
+      return value is string && value.matches('^[6-9][0-9]{9}$');
+    }
+
+    function validPincode(value) {
+      return value is string && value.matches('^[0-9]{6}$');
+    }
+
+    function nonEmpty(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function phoneTokenMatches(data) {
+      return request.auth.token.phone_number is string
+        && (
+          request.auth.token.phone_number == '+91' + data.mobile
+          || request.auth.token.phone_number == '+91' + data.whatsappNumber
+        );
+    }
+
+    function validMarketplaceProfileData(data) {
+      return nonEmpty(data.name)
+        && validIndianMobile(data.mobile)
+        && validIndianMobile(data.whatsappNumber)
+        && nonEmpty(data.state)
+        && nonEmpty(data.city)
+        && validPincode(data.pincode);
+    }
+
+    function hasVerifiedMarketplaceProfile(uid) {
+      return isSignedIn()
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/users/$(uid))
+        && userDoc(uid).data.emailVerified == true
+        && userDoc(uid).data.phoneVerified == true
+        && validMarketplaceProfileData(userDoc(uid).data);
+    }
+
+    function validUserWrite(uid) {
+      return isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.emailVerified == request.auth.token.email_verified
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'name',
+          'email',
+          'emailVerified',
+          'mobile',
+          'whatsappNumber',
+          'phoneVerified',
+          'state',
+          'city',
+          'address',
+          'pincode',
+          'role',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.role in ['buyer', 'seller', 'admin']
+        && (
+          request.resource.data.role != 'admin'
+          || request.auth.token.email == 'harshveernirwan@gmail.com'
+          || isAdmin()
+        )
+        && (
+          request.resource.data.phoneVerified == false
+          || phoneTokenMatches(request.resource.data)
+          || isAdmin()
+        );
+    }
+
+    function validListingCreate() {
+      return request.resource.data.keys().hasOnly([
+          'title',
+          'author',
+          'category',
+          'edition',
+          'originalPrice',
+          'sellingPrice',
+          'condition',
+          'state',
+          'city',
+          'deliveryType',
+          'description',
+          'images',
+          'sellerUid',
+          'sellerName',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'title',
+          'author',
+          'category',
+          'originalPrice',
+          'sellingPrice',
+          'condition',
+          'state',
+          'city',
+          'deliveryType',
+          'description',
+          'images',
+          'sellerUid',
+          'sellerName',
+          'status'
+        ])
+        && request.resource.data.sellerUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && nonEmpty(request.resource.data.title)
+        && nonEmpty(request.resource.data.author)
+        && nonEmpty(request.resource.data.sellerName)
+        && nonEmpty(request.resource.data.state)
+        && nonEmpty(request.resource.data.city)
+        && request.resource.data.images is list
+        && request.resource.data.sellingPrice is number
+        && request.resource.data.sellingPrice > 0;
+    }
+
     match /listings/{listingId} {
       allow read: if resource.data.status in ['approved', 'sold']
                   || (isSignedIn() && resource.data.sellerUid == request.auth.uid)
                   || isAdmin();
       allow create: if isSignedIn()
-                    && request.resource.data.sellerUid == request.auth.uid
-                    && request.resource.data.status == 'pending';
-      // Seller may mark their own approved listing as sold.
-      // A buyer's accepted offer also flips the listing to 'sold' (offer accept runs
-      // as the seller, so the sellerUid check still holds).
+                    && hasVerifiedMarketplaceProfile(request.auth.uid)
+                    && validListingCreate();
       allow update: if isAdmin()
                     || (isSignedIn()
                         && resource.data.sellerUid == request.auth.uid
                         && resource.data.status == 'approved'
+                        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                          'status',
+                          'updatedAt'
+                        ])
                         && request.resource.data.status == 'sold');
       allow delete: if isAdmin();
     }
 
+    match /books/{bookId} {
+      allow read: if resource.data.status in ['approved', 'sold']
+                  || (isSignedIn() && resource.data.sellerUid == request.auth.uid)
+                  || isAdmin();
+      allow create: if isSignedIn()
+                    && hasVerifiedMarketplaceProfile(request.auth.uid)
+                    && validListingCreate();
+      allow update, delete: if isAdmin();
+    }
+
     match /profiles/{uid} {
       allow read: if true;
-      allow write: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isSignedIn()
+                   && request.auth.uid == uid
+                   && request.resource.data.keys().hasOnly([
+                     'displayName',
+                     'photoURL',
+                     'bio',
+                     'city',
+                     'updatedAt'
+                   ]);
+    }
+
+    match /users/{uid} {
+      allow get: if isSignedIn()
+                 && (
+                   request.auth.uid == uid
+                   || isAdmin()
+                   || hasVerifiedMarketplaceProfile(request.auth.uid)
+                 );
+      allow list: if isAdmin();
+      allow create: if validUserWrite(uid);
+      allow update: if validUserWrite(uid)
+                    && (
+                      !('role' in resource.data)
+                      || request.resource.data.role == resource.data.role
+                      || request.auth.token.email == 'harshveernirwan@gmail.com'
+                      || isAdmin()
+                    );
+      allow delete: if isAdmin();
     }
 
     match /admins/{uid} {
@@ -40,108 +205,112 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // OFFERS
-    // - Buyer creates their own offer (must be the buyer, status starts 'pending').
-    // - Buyer may edit amount/message OR withdraw (status -> 'cancelled') on their own offer.
-    // - Seller may accept/decline (status -> 'accepted'/'declined') on offers for their listings.
-    // - Both parties to an offer can read it.
     match /offers/{offerId} {
       allow read: if isSignedIn() && (
         resource.data.buyerUid == request.auth.uid
         || resource.data.sellerUid == request.auth.uid
         || isAdmin()
       );
-
       allow create: if isSignedIn()
+                    && hasVerifiedMarketplaceProfile(request.auth.uid)
                     && request.resource.data.buyerUid == request.auth.uid
                     && request.resource.data.buyerUid != request.resource.data.sellerUid
                     && request.resource.data.status == 'pending'
-                    && request.resource.data.amount is int
+                    && request.resource.data.amount is number
                     && request.resource.data.amount > 0;
-
-      // Buyer-side updates: editing or withdrawing own offer.
       allow update: if isSignedIn()
                     && resource.data.buyerUid == request.auth.uid
                     && request.resource.data.buyerUid == resource.data.buyerUid
                     && request.resource.data.sellerUid == resource.data.sellerUid
-                    && (
-                      // withdraw a pending offer
-                      (resource.data.status == 'pending'
-                       && request.resource.data.status == 'cancelled')
-                      // edit amount/message while still pending
-                      || (resource.data.status == 'pending'
-                          && request.resource.data.status == 'pending')
-                    );
-
-      // Seller-side updates: respond to an offer on their listing.
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status in ['pending', 'cancelled'];
       allow update: if isSignedIn()
                     && resource.data.sellerUid == request.auth.uid
                     && request.resource.data.buyerUid == resource.data.buyerUid
                     && request.resource.data.sellerUid == resource.data.sellerUid
                     && resource.data.status == 'pending'
                     && request.resource.data.status in ['accepted', 'declined'];
-
-      // Admin or seller cleanup of sibling offers when a listing sells.
-      allow update: if isAdmin();
-
-      allow delete: if isAdmin();
-    }
-
-    match /orders/{orderId} {
-      allow read: if isSignedIn() && (
-        resource.data.buyerUid == request.auth.uid
-        || resource.data.sellerUid == request.auth.uid
-        || isAdmin()
-      );
-      allow write: if isAdmin();
-    }
-
-    match /payments/{paymentId} {
-      allow read: if isSignedIn() && (
-        resource.data.buyerUid == request.auth.uid
-        || resource.data.sellerUid == request.auth.uid
-        || isAdmin()
-      );
-      allow write: if isAdmin();
-    }
-
-    match /shipments/{shipmentId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /seller_payouts/{payoutId} {
-      allow read: if isSignedIn() && (
-        resource.data.sellerUid == request.auth.uid || isAdmin()
-      );
-      allow write: if isAdmin();
-    }
-
-    match /disputes/{disputeId} {
-      allow read: if isSignedIn() && (
-        resource.data.raisedBy == request.auth.uid || isAdmin()
-      );
-      allow create: if isSignedIn()
-                    && request.resource.data.raisedBy == request.auth.uid
-                    && request.resource.data.status == 'open';
       allow update, delete: if isAdmin();
     }
 
-    match /carts/{uid} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    match /book_inquiries/{inquiryId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid
+        || resource.data.sellerUid == request.auth.uid
+        || isAdmin()
+      );
+      allow create: if isSignedIn()
+                    && hasVerifiedMarketplaceProfile(request.auth.uid)
+                    && request.resource.data.keys().hasOnly([
+                      'listingId',
+                      'listingTitle',
+                      'sellerUid',
+                      'buyerUid',
+                      'buyerName',
+                      'channel',
+                      'createdAt'
+                    ])
+                    && request.resource.data.buyerUid == request.auth.uid
+                    && request.resource.data.sellerUid != request.auth.uid
+                    && request.resource.data.channel == 'whatsapp'
+                    && nonEmpty(request.resource.data.listingId)
+                    && nonEmpty(request.resource.data.listingTitle)
+                    && nonEmpty(request.resource.data.sellerUid)
+                    && nonEmpty(request.resource.data.buyerName);
+      allow update, delete: if isAdmin();
     }
 
-    // NOTIFICATIONS
-    // Created client-side by whichever signed-in user triggers the event
-    // (e.g. a buyer making an offer notifies the seller). The creator does not
-    // have to be the recipient, but must be signed in and must stamp the doc as unread.
+    match /wishlists/{uid} {
+      allow read, write: if isSignedIn()
+                         && request.auth.uid == uid
+                         && hasVerifiedMarketplaceProfile(uid);
+    }
+
     match /notifications/{id} {
       allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
       allow create: if isSignedIn()
                     && request.resource.data.read == false
-                    && request.resource.data.userUid is string;
-      allow update: if isSignedIn() && resource.data.userUid == request.auth.uid;
+                    && request.resource.data.offerId is string
+                    && (
+                      (
+                        request.resource.data.type == 'offer_received'
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.auth.uid
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.resource.data.userUid
+                      )
+                      || (
+                        request.resource.data.type in ['offer_accepted', 'offer_declined', 'listing_sold']
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.auth.uid
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.resource.data.userUid
+                      )
+                    );
+      allow update: if isSignedIn()
+                    && resource.data.userUid == request.auth.uid
+                    && request.resource.data.userUid == resource.data.userUid;
       allow delete: if isAdmin();
+    }
+
+    match /orders/{id} {
+      allow read, write: if false;
+    }
+
+    match /payments/{id} {
+      allow read, write: if false;
+    }
+
+    match /shipments/{id} {
+      allow read, write: if false;
+    }
+
+    match /seller_payouts/{id} {
+      allow read, write: if false;
+    }
+
+    match /carts/{id} {
+      allow read, write: if false;
+    }
+
+    match /disputes/{id} {
+      allow read, write: if false;
     }
   }
 }

@@ -16,9 +16,7 @@ export interface Listing {
   images: string[];
   videoUrl?: string;
   sellerName: string;
-  sellerMobile: string;
   sellerUid: string;
-  sellerEmail: string;
   status: ListingStatus;
   createdAt: string | null;
   updatedAt: string | null;

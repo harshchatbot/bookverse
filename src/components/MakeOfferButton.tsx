@@ -24,10 +24,20 @@ import {
   type Offer,
 } from "@/lib/offers";
 import type { Listing } from "@/lib/types";
-import { getWhatsAppUrl } from "@/components/WhatsAppButton";
+import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
+import { createBookInquiry } from "@/lib/inquiries";
+import { getUserProfile } from "@/lib/users";
 
-export function MakeOfferButton({ listing, className = "" }: { listing: Listing; className?: string }) {
-  const { user, signInWithGoogle } = useAuth();
+export function MakeOfferButton({
+  listing,
+  className = "",
+}: {
+  listing: Listing;
+  className?: string;
+}) {
+  const { user } = useAuth();
+  const access = useMarketplaceAccess();
   const queryClient = useQueryClient();
 
   const isOwner = user?.uid === listing.sellerUid;
@@ -70,13 +80,10 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
 
   const openCreate = async () => {
     if (!user) {
-      try {
-        await signInWithGoogle();
-      } catch {
-        return;
-      }
+      access.ensureAccess("offer");
       return;
     }
+    if (!access.ensureAccess("offer")) return;
     setMode("create");
     setAmount(String(Math.max(1, Math.round(listing.sellingPrice * 0.9))));
     setMessage("");
@@ -86,6 +93,7 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
 
   const openEdit = () => {
     if (!existing) return;
+    if (!access.ensureAccess("offer")) return;
     setMode("edit");
     setErrors({});
     setOpen(true);
@@ -94,6 +102,7 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting || !user) return;
+    if (!access.ensureAccess("offer")) return;
 
     const parsed = offerSchema.safeParse({
       amount: Number(amount),
@@ -161,6 +170,28 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
   const isExistingDeclined = existingStatus === "declined";
   const listingAvailable = listing.status === "approved";
 
+  const openAcceptedOfferWhatsApp = async () => {
+    if (!access.ensureAccess("contact") || !user) return;
+    try {
+      const seller = await getUserProfile(listing.sellerUid);
+      const mobile = seller?.whatsappNumber || seller?.mobile || "";
+      if (!mobile) {
+        toast.error("Seller contact is not available yet.");
+        return;
+      }
+      await createBookInquiry({
+        listingId: listing.id,
+        listingTitle: listing.title,
+        sellerUid: listing.sellerUid,
+        buyerUid: user.uid,
+        buyerName: access.profile?.name || user.displayName || user.email || "Buyer",
+      });
+      window.open(getWhatsAppUrl(listing, mobile), "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("Could not open WhatsApp. Please try again.");
+    }
+  };
+
   return (
     <>
       {isExistingPending && existing ? (
@@ -211,8 +242,9 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
             toast.success("Offer accepted!", {
               action: {
                 label: "View conversation",
-                onClick: () =>
-                  window.open(getWhatsAppUrl(listing), "_blank", "noopener,noreferrer"),
+                onClick: () => {
+                  void openAcceptedOfferWhatsApp();
+                },
               },
             })
           }
@@ -274,7 +306,6 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
         </button>
       ) : null}
 
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -291,7 +322,9 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
                 Your offer (₹)
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  ₹
+                </span>
                 <Input
                   id="offer-amount"
                   type="number"
@@ -312,7 +345,9 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
                   <span className="font-medium text-success">{diff}% below asking</span>
                 )}
                 {diff !== null && diff < 0 && (
-                  <span className="font-medium text-muted-foreground">{Math.abs(diff)}% above asking</span>
+                  <span className="font-medium text-muted-foreground">
+                    {Math.abs(diff)}% above asking
+                  </span>
                 )}
               </div>
               {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount}</p>}
@@ -329,7 +364,9 @@ export function MakeOfferButton({ listing, className = "" }: { listing: Listing;
                 maxLength={500}
                 rows={3}
               />
-              <div className="mt-1 text-right text-xs text-muted-foreground">{message.length}/500</div>
+              <div className="mt-1 text-right text-xs text-muted-foreground">
+                {message.length}/500
+              </div>
               {errors.message && <p className="mt-1 text-xs text-destructive">{errors.message}</p>}
             </div>
             <DialogFooter>
