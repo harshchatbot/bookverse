@@ -146,34 +146,30 @@ function NotificationsList() {
       <div className="mb-4 flex gap-2">
         <button
           onClick={() => setTab("all")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            tab === "all" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
-          }`}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${tab === "all" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
+            }`}
         >
           All
         </button>
         <button
           onClick={() => setTab("offers")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            tab === "offers" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
-          }`}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${tab === "offers" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
+            }`}
         >
           Offers
         </button>
         <button
           onClick={() => setTab("orders")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            tab === "orders" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
-          }`}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${tab === "orders" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
+            }`}
         >
           Orders & Listings
         </button>
         {isAdmin && (
           <button
             onClick={() => setTab("admin")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              tab === "admin" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
-            }`}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${tab === "admin" ? "bg-foreground text-background" : "border border-border hover:bg-secondary"
+              }`}
           >
             Admin
           </button>
@@ -200,9 +196,10 @@ function NotificationsList() {
             {filteredItems.map((n) => (
               <li
                 key={n.id}
-                className={`flex items-start gap-1 border-b border-border transition-read last:border-0 ${
-                  n.read ? "animate-item-settle" : "bg-secondary/40"
-                }`}
+                data-testid="notification-item"
+                data-notification-id={n.id}
+                className={`flex items-start gap-1 border-b border-border transition-read last:border-0 ${n.read ? "animate-item-settle" : "bg-secondary/40"
+                  }`}
               >
                 <Link
                   to={n.link}
@@ -212,9 +209,8 @@ function NotificationsList() {
                   className="flex flex-1 items-start gap-3 px-4 py-4 transition-colors hover:bg-secondary"
                 >
                   <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full transition-all duration-300 ${
-                      n.read ? "scale-0 opacity-0" : "bg-primary scale-100 opacity-100"
-                    }`}
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full transition-all duration-300 ${n.read ? "scale-0 opacity-0" : "bg-primary scale-100 opacity-100"
+                      }`}
                   />
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm ${n.read ? "" : "font-semibold"}`}>{n.title}</p>
@@ -231,9 +227,8 @@ function NotificationsList() {
                   onClick={() => markOne.mutate(n.id)}
                   aria-label="Mark as read"
                   title="Mark as read"
-                  className={`mr-3 mt-4 inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground ${
-                    n.read ? "scale-90 opacity-0 pointer-events-none" : "scale-100 opacity-100"
-                  }`}
+                  className={`mr-3 mt-4 inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground ${n.read ? "scale-90 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+                    }`}
                 >
                   <Check className="h-3.5 w-3.5" /> Mark read
                 </button>

@@ -299,6 +299,7 @@ export function MakeOfferButton({
         <button
           type="button"
           onClick={openCreate}
+          data-testid="make-offer-btn"
           className={`inline-flex items-center justify-center gap-2 rounded-full border border-foreground bg-background px-6 py-3.5 text-base font-semibold text-foreground transition-transform hover:scale-[1.02] ${className}`}
         >
           <HandCoins className="h-5 w-5" />

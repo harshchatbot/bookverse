@@ -271,29 +271,38 @@ service cloud.firestore {
     }
 
     match /notifications/{id} {
-      allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
-      allow create: if isAdmin()
-                    || (isSignedIn()
-                        && request.resource.data.read == false
-                        && request.resource.data.offerId is string
-                        && (
-                          (
-                            request.resource.data.type == 'offer_received'
-                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.auth.uid
-                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.resource.data.userUid
-                          )
-                          || (
-                            request.resource.data.type in ['offer_accepted', 'offer_declined', 'listing_sold']
-                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.auth.uid
-                            && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.resource.data.userUid
-                          )
-                        )
-                    );
-      allow update: if isSignedIn()
-                    && resource.data.userUid == request.auth.uid
-                    && request.resource.data.userUid == resource.data.userUid;
-      allow delete: if isAdmin();
-    }
+  // Single doc read
+  allow read: if isSignedIn() && resource.data.userUid == request.auth.uid;
+
+  // List/query — needed for getNotificationsForUser, getUnreadCount
+  allow list: if isSignedIn();
+
+  // Create — admin SDK (server) only, or offer-based client creates
+  allow create: if isAdmin()
+                || (isSignedIn()
+                    && request.resource.data.read == false
+                    && request.resource.data.offerId is string
+                    && (
+                      (
+                        request.resource.data.type == 'offer_received'
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.auth.uid
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.resource.data.userUid
+                      )
+                      || (
+                        request.resource.data.type in ['offer_accepted', 'offer_declined', 'listing_sold']
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.sellerUid == request.auth.uid
+                        && get(/databases/$(database)/documents/offers/$(request.resource.data.offerId)).data.buyerUid == request.resource.data.userUid
+                      )
+                    )
+                );
+
+  // Mark as read — own notifications only
+  allow update: if isSignedIn()
+                && resource.data.userUid == request.auth.uid
+                && request.resource.data.userUid == resource.data.userUid;
+
+  allow delete: if isAdmin();
+}
 
     match /orders/{id} {
       allow read, write: if false;

@@ -79,7 +79,7 @@ function AdminDashboard() {
     queryFn: getAdminDashboard,
   });
 
-  const act = async (id: string, status: ListingStatus, label: string) => {
+  const act = async (id: string, status: ListingStatus, label: string, listing: typeof listings[0]) => {
     try {
       await apiFetch("/api/admin/listing-decision", {
         method: "POST",
@@ -141,7 +141,11 @@ function AdminDashboard() {
               ))
             ) : (
               <>
-                <StatCard label="Pending approvals" value={dashboard.totals.pendingApprovals} />
+                <StatCard
+                  label="Pending approvals"
+                  value={dashboard.totals.pendingApprovals}
+                  data-testid="pending-count"
+                />
                 <StatCard label="Total listings" value={dashboard.totals.totalListings} />
                 <StatCard label="Approved listings" value={dashboard.totals.approvedListings} />
                 <StatCard label="Rejected listings" value={dashboard.totals.rejectedListings} />
@@ -237,11 +241,10 @@ function AdminDashboard() {
               <button
                 key={t.value}
                 onClick={() => setTab(t.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
-                  tab === t.value
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${tab === t.value
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 {t.label}
               </button>
@@ -261,6 +264,7 @@ function AdminDashboard() {
               listings.map((l) => (
                 <div
                   key={l.id}
+                  data-listing-id={l.id}
                   className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 md:flex-row"
                 >
                   <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-secondary md:h-28 md:w-28">
@@ -309,13 +313,13 @@ function AdminDashboard() {
                       {l.status === "pending" && (
                         <>
                           <button
-                            onClick={() => act(l.id, "approved", "Listing approved")}
+                            onClick={() => act(l.id, "approved", "Listing approved", l)}
                             className="inline-flex items-center gap-1 rounded-full bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground"
                           >
                             <Check className="h-3.5 w-3.5" /> Approve
                           </button>
                           <button
-                            onClick={() => act(l.id, "rejected", "Listing rejected")}
+                            onClick={() => act(l.id, "rejected", "Listing rejected", l)}
                             className="inline-flex items-center gap-1 rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground"
                           >
                             <X className="h-3.5 w-3.5" /> Reject
@@ -324,7 +328,7 @@ function AdminDashboard() {
                       )}
                       {l.status === "approved" && (
                         <button
-                          onClick={() => act(l.id, "sold", "Marked as sold")}
+                          onClick={() => act(l.id, "sold", "Marked as sold", l)}
                           className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
                         >
                           Mark sold
@@ -332,7 +336,7 @@ function AdminDashboard() {
                       )}
                       {l.status === "rejected" && (
                         <button
-                          onClick={() => act(l.id, "approved", "Listing approved")}
+                          onClick={() => act(l.id, "approved", "Listing approved", l)}
                           className="rounded-full bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground"
                         >
                           Approve instead

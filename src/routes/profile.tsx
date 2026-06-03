@@ -635,19 +635,23 @@ function Field({
   required?: boolean;
   helper?: string;
 }) {
+  const fieldId = label
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
   return (
     <div>
-      <label className="text-sm font-medium">
+      <label htmlFor={fieldId} className="text-sm font-medium">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </label>
       <input
         {...props}
+        id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`mt-1.5 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${
-          error ? "border-destructive" : "border-border"
-        }`}
+        className={`mt-1.5 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? "border-destructive" : "border-border"
+          }`}
       />
       {helper && <p className="mt-1 text-xs text-muted-foreground">{helper}</p>}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}

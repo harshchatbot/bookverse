@@ -160,6 +160,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   icon={<BookOpen className="h-4 w-4" />}
                   label="Listings"
                   value={dashboard?.totals.totalListings ?? 0}
+                  testId="listings-count"
                 />
                 <HeroStat
                   icon={<Heart className="h-4 w-4" />}
@@ -172,6 +173,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   value={
                     (dashboard?.totals.offersMade ?? 0) + (dashboard?.totals.offersReceived ?? 0)
                   }
+                  testId="offers-count"
                 />
                 <HeroStat
                   icon={<Clock3 className="h-4 w-4" />}
@@ -240,9 +242,9 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
             <ChartCard title="Activity summary chart">
               {!dashboard ||
-              dashboard.activitySummary.every(
-                (point) => point.listings + point.offers + point.inquiries === 0,
-              ) ? (
+                dashboard.activitySummary.every(
+                  (point) => point.listings + point.offers + point.inquiries === 0,
+                ) ? (
                 <EmptyChartState
                   title="Nothing to chart yet"
                   body="Recent listings, offers, and inquiries will appear over time."
@@ -308,14 +310,26 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
   );
 }
 
-function HeroStat({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
+function HeroStat({
+  icon,
+  label,
+  value,
+  testId,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  testId?: string;
+}) {
   return (
     <div className="rounded-2xl border border-border bg-background/85 px-4 py-3 shadow-sm backdrop-blur">
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
         <span className="text-primary">{icon}</span>
         {label}
       </div>
-      <div className="mt-2 font-display text-2xl font-bold">{value}</div>
+      <div className="mt-2 font-display text-2xl font-bold" data-testid={testId}>
+        {value}
+      </div>
     </div>
   );
 }

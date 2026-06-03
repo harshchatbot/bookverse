@@ -40,7 +40,7 @@ VITE_ENABLE_PROTECTED_DELIVERY=true
 Go to Firebase Console → Authentication → Sign-in method → Phone:
 
 Add this test phone number:
-- **Phone:** +919928648851
+- **Phone:** +919999999999
 - **Code:** 123456
 
 You already have this configured.

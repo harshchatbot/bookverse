@@ -118,6 +118,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
       <a
         href="/admin#pending-listings"
         aria-label="Pending listings"
+        data-testid="bell-icon"
         className="relative grid h-9 w-9 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-secondary"
       >
         <Bell className={`h-4 w-4 ${unread > 0 ? "animate-bell-swing text-primary" : ""}`} />
@@ -125,6 +126,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
           {unread > 0 && (
             <motion.span
               key="admin-badge"
+              data-testid="unread-badge"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: badgeAnim ? [1, 1.35, 1] : 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
@@ -147,6 +149,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
         transition={{ type: "spring", stiffness: 400, damping: 17 }}
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
+        data-testid="bell-icon"
         className="relative grid h-9 w-9 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-secondary"
       >
         <Bell className={`h-4 w-4 ${unread > 0 ? "animate-bell-swing text-primary" : ""}`} />
@@ -154,6 +157,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
           {unread > 0 && (
             <motion.span
               key="badge"
+              data-testid="unread-badge"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: badgeAnim ? [1, 1.35, 1] : 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
@@ -198,6 +202,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
                     {items.slice(0, 8).map((n) => (
                       <li
                         key={n.id}
+                        data-testid="notification-item"
                         className={`flex items-start gap-1 border-b border-border transition-read last:border-0 hover:bg-secondary ${
                           n.read ? "animate-item-settle" : "bg-secondary/40"
                         }`}
