@@ -177,8 +177,9 @@ export async function verifyIdToken(authHeader: string | null | undefined) {
   try {
     const decoded = await (await adminAuth()).verifyIdToken(token);
     return decoded;
-  } catch {
-    throw new Response(JSON.stringify({ error: "Invalid token" }), {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Response(JSON.stringify({ error: "Invalid token", debug: msg }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
