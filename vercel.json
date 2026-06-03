@@ -3,6 +3,5 @@
   "framework": null,
   "buildCommand": "npm run build",
   "installCommand": "npm install --legacy-peer-deps",
-  "outputDirectory": ".vercel/output",
-  "nodejs": "22.x"
+  "outputDirectory": ".vercel/output"
 }
