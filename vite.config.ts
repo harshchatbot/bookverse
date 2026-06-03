@@ -23,8 +23,6 @@ const tracedNodePackages = [
   "long*",
   "@js-sdsl/ordered-map*",
   "@js-sdsl/*",
-  "gaxios*",
-  "googleapis*",
 ];
 
 const vercelNitro = {
@@ -32,14 +30,17 @@ const vercelNitro = {
   node: true,
   noExternals: false,
   traceDeps: tracedNodePackages,
-  minify: false,
-  sourceMap: false,
-  experimental: {
-    wasm: false,
-  },
-  rollupConfig: {
-    output: {
-      format: "cjs",
+  externals: {
+    inline: [],
+    external: [
+      "@google-cloud/firestore",
+      "firebase-admin",
+      "google-gax",
+      "@grpc/grpc-js",
+      "google-auth-library",
+    ],
+    traceOptions: {
+      conditions: ["node", "require", "default"],
     },
   },
   output: {

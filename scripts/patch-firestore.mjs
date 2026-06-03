@@ -1,18 +1,15 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
-const targets = [
+const target = resolve(
   "node_modules/@google-cloud/firestore/build/src/v1/firestore_client_config.json",
-  "node_modules/google-auth-library/package.json",
-];
+);
 
-for (const target of targets) {
-  const fullPath = resolve(target);
-  if (!existsSync(fullPath)) continue;
-  const content = readFileSync(fullPath, "utf-8");
-  const jsPath = fullPath.replace(".json", ".js");
+if (existsSync(target)) {
+  const content = readFileSync(target, "utf-8");
+  const jsPath = target.replace(".json", ".js");
   if (!existsSync(jsPath)) {
     writeFileSync(jsPath, `export default ${content};\n`);
-    console.log(`[patch] wrote ${jsPath}`);
+    console.log("[patch-firestore] wrote firestore_client_config.js");
   }
 }
