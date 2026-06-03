@@ -59,7 +59,7 @@ export function SaveButton({
       toast.error("Could not update wishlist");
     },
     onSuccess: () => {
-      toast.success(saved ? "Removed from wishlist" : "Added to wishlist");
+      toast.success(saved ? "Added to wishlist" : "Removed from wishlist");
     },
   });
 
