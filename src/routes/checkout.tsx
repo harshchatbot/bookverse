@@ -12,6 +12,11 @@ import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getListingsByIds } from "@/lib/listings";
 import { normalizeListingIds, type CreatedProtectedDeliveryGroup } from "@/lib/protected-delivery";
 import { loadRazorpayCheckout } from "@/lib/razorpay-client";
+import {
+  FREE_DELIVERY_REWARD_CODE,
+  getRewardsSummary,
+  PLATFORM_SUPPORT_FEE_INR,
+} from "@/lib/rewards";
 import type { CheckoutDeliveryAddress, Listing } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
@@ -59,6 +64,7 @@ function CheckoutPage() {
   const [loaderProgress, setLoaderProgress] = useState<number | undefined>(undefined);
   const [createdGroups, setCreatedGroups] = useState<CreatedProtectedDeliveryGroup[]>([]);
   const [paymentStates, setPaymentStates] = useState<Record<string, GroupPaymentState>>({});
+  const [couponSelections, setCouponSelections] = useState<Record<string, string>>({});
 
   const listingIds = useMemo(() => normalizeListingIds(search.ids.split(",")), [search.ids]);
 
@@ -66,6 +72,11 @@ function CheckoutPage() {
     queryKey: ["protected-delivery-listings", listingIds.join(",")],
     queryFn: () => getListingsByIds(listingIds),
     enabled: listingIds.length > 0 && isProtectedDeliveryEnabled(),
+  });
+  const rewardsQuery = useQuery({
+    queryKey: ["rewards-summary", user?.uid],
+    queryFn: getRewardsSummary,
+    enabled: !!user && isProtectedDeliveryEnabled(),
   });
 
   useEffect(() => {
@@ -137,6 +148,10 @@ function CheckoutPage() {
             listingIds,
             buyerDeliveryAddress: address,
             selectedFulfillmentMode: "protected_delivery",
+            couponSelections: Object.entries(couponSelections).map(([sellerUid, couponId]) => ({
+              sellerUid,
+              couponId,
+            })),
           }),
         },
       );
@@ -311,6 +326,8 @@ function CheckoutPage() {
   const allGroupsPaid =
     createdGroups.length > 0 &&
     createdGroups.every((group) => paymentStates[group.orderId] === "paid");
+  const availableCoupons = rewardsQuery.data?.availableCoupons ?? [];
+  const selectedCouponIds = Object.values(couponSelections);
 
   return (
     <AppPageShell>
@@ -345,6 +362,10 @@ function CheckoutPage() {
                     selected books come from different sellers, they will be split into separate
                     protected-delivery groups with separate shipping charges.
                   </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    A small ₹1 platform support fee helps us keep BookVerse safe, verified, and
+                    running.
+                  </p>
                 </div>
               </div>
             </div>
@@ -363,41 +384,84 @@ function CheckoutPage() {
               </div>
 
               <div className="mt-4 space-y-4">
-                {sellerGroups.map((group) => (
-                  <div
-                    key={group.sellerUid}
-                    className="rounded-2xl border border-border bg-background p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">{group.sellerName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          One delivery charge for this seller’s combined parcel.
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                        ₹{group.subtotal.toLocaleString("en-IN")} books subtotal
-                      </span>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {group.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
-                            <p className="text-xs text-muted-foreground">{item.author}</p>
-                          </div>
-                          <p className="shrink-0 text-sm font-semibold">
-                            ₹{item.sellingPrice.toLocaleString("en-IN")}
+                {sellerGroups.map((group) => {
+                  const nextCoupon = availableCoupons.find(
+                    (coupon) => !selectedCouponIds.includes(coupon.id),
+                  );
+                  return (
+                    <div
+                      key={group.sellerUid}
+                      className="rounded-2xl border border-border bg-background p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">{group.sellerName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            One delivery charge for this seller’s combined parcel.
                           </p>
                         </div>
-                      ))}
+                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                          ₹{group.subtotal.toLocaleString("en-IN")} books subtotal
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                          Delivery is calculated once for the combined parcel from this seller.
+                        </span>
+                        {couponSelections[group.sellerUid] ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCouponSelections((current) => {
+                                const next = { ...current };
+                                delete next[group.sellerUid];
+                                return next;
+                              })
+                            }
+                            className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300"
+                          >
+                            {FREE_DELIVERY_REWARD_CODE} applied
+                          </button>
+                        ) : nextCoupon ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCouponSelections((current) => ({
+                                ...current,
+                                [group.sellerUid]: nextCoupon.id,
+                              }))
+                            }
+                            className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-semibold hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Apply {FREE_DELIVERY_REWARD_CODE}
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            Earn 100 points to redeem FREEDEL50 for protected delivery.
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {group.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
+                              <p className="text-xs text-muted-foreground">{item.author}</p>
+                            </div>
+                            <p className="shrink-0 text-sm font-semibold">
+                              ₹{item.sellingPrice.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -489,6 +553,10 @@ function CheckoutPage() {
                 )}
                 Calculate protected-delivery groups
               </button>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Delivery is calculated once for the combined parcel from each seller. Each seller
+                group gets its own ₹{PLATFORM_SUPPORT_FEE_INR} platform support fee.
+              </p>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6">
@@ -538,9 +606,27 @@ function CheckoutPage() {
                         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
                           <Row label="Books subtotal" value={group.breakdown.subtotal} />
                           <Row label="Delivery charge" value={group.breakdown.shippingFee} />
-                          <Row label="Gateway fee" value={group.breakdown.gatewayFee} />
+                          {group.breakdown.couponDiscount > 0 ? (
+                            <Row
+                              label="Coupon discount"
+                              value={group.breakdown.couponDiscount}
+                              negative
+                            />
+                          ) : null}
+                          <Row
+                            label="Buyer delivery payable"
+                            value={group.breakdown.buyerDeliveryPayable}
+                          />
+                          <Row
+                            label="Platform support fee"
+                            value={group.breakdown.platformSupportFee}
+                          />
                           <Row label="Total" value={group.breakdown.total} strong />
                         </dl>
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          Seller payout remains ₹{group.breakdown.subtotal.toLocaleString("en-IN")}.
+                          Delivery and the ₹1 support fee are charged to the buyer separately.
+                        </p>
                       </div>
                     );
                   })}
@@ -578,11 +664,23 @@ function Field({
   );
 }
 
-function Row({ label, value, strong = false }: { label: string; value: number; strong?: boolean }) {
+function Row({
+  label,
+  value,
+  strong = false,
+  negative = false,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+  negative?: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={strong ? "mt-1 font-semibold" : "mt-1"}>₹{value.toLocaleString("en-IN")}</dd>
+      <dd className={strong ? "mt-1 font-semibold" : "mt-1"}>
+        {negative ? "-" : ""}₹{value.toLocaleString("en-IN")}
+      </dd>
     </div>
   );
 }

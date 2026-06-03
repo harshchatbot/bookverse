@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminKit, requireAuth, jsonError, jsonOk } from "@/lib/admin.server";
 import { getStoredOrderItems, getStoredOrderSummary } from "@/lib/order-server";
 import { verifyRazorpaySignature } from "@/lib/razorpay.server";
+import { markCouponUsedForOrder } from "@/lib/rewards.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
 const Body = z.object({
@@ -72,6 +73,12 @@ export const Route = createFileRoute("/api/checkout/verify")({
           paymentStatus: "captured",
           paymentId: paymentRef.id,
           updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        await markCouponUsedForOrder({
+          couponId: typeof order.couponId === "string" ? order.couponId : null,
+          uid: decoded.uid,
+          orderId: orderRef.id,
         });
 
         const items = getStoredOrderItems(order);

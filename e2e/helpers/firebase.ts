@@ -1,6 +1,7 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import crypto from "crypto";
 import type { Listing } from "../../src/lib/types";
 
 const firebaseConfig = {
@@ -25,6 +26,24 @@ export interface TestUser {
   email: string;
   password: string;
   idToken: string;
+}
+
+interface TestProfileInput {
+  name?: string;
+  email?: string;
+  state?: string;
+  city?: string;
+  pincode?: string;
+  locality?: string;
+}
+
+interface TestPickupAddressInput {
+  name?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
 }
 
 const TEST_USER_PREFIX = "e2e_test_";
@@ -123,7 +142,7 @@ export async function approveTestListing(listingId: string): Promise<void> {
 /**
  * Create a test profile in Firestore
  */
-export async function createTestProfile(uid: string, data?: Partial<any>): Promise<void> {
+export async function createTestProfile(uid: string, data?: TestProfileInput): Promise<void> {
   const db = getFirestore(initFirebase());
 
   // Write to USERS collection — this is what isProfileCompleted() reads
@@ -169,7 +188,10 @@ export async function createTestProfile(uid: string, data?: Partial<any>): Promi
 /**
  * Save pickup address for a user
  */
-export async function saveTestPickupAddress(uid: string, address?: Partial<any>): Promise<void> {
+export async function saveTestPickupAddress(
+  uid: string,
+  address?: TestPickupAddressInput,
+): Promise<void> {
   const db = getFirestore(initFirebase());
   await db
     .collection("profiles")
@@ -186,32 +208,130 @@ export async function saveTestPickupAddress(uid: string, address?: Partial<any>)
     });
 }
 
+export async function seedUserRewards(
+  uid: string,
+  data?: Partial<{
+    availablePoints: number;
+    lifetimePoints: number;
+    badges: string[];
+    referralCode: string;
+  }>,
+): Promise<void> {
+  const db = getFirestore(initFirebase());
+  await db
+    .collection("user_rewards")
+    .doc(uid)
+    .set(
+      {
+        userUid: uid,
+        availablePoints: data?.availablePoints ?? 0,
+        lifetimePoints: data?.lifetimePoints ?? 0,
+        badges: data?.badges ?? [],
+        monthlyCouponRedemptions: 0,
+        monthlyCouponRedemptionMonth: new Date().toISOString().slice(0, 7),
+        referralCode: data?.referralCode ?? `BOOK${uid.slice(0, 6).toUpperCase()}`,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+}
+
+export async function seedUserCoupon(
+  uid: string,
+  data?: Partial<{
+    code: string;
+    maxDiscount: number;
+    status: string;
+    expiresAt: string;
+  }>,
+): Promise<string> {
+  const db = getFirestore(initFirebase());
+  const ref = await db.collection("user_coupons").add({
+    userUid: uid,
+    code: data?.code ?? "FREEDEL50",
+    type: "delivery_discount",
+    maxDiscount: data?.maxDiscount ?? 50,
+    minOrderValue: 0,
+    status: data?.status ?? "unused",
+    issuedAt: new Date().toISOString(),
+    expiresAt: data?.expiresAt ?? new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+    usedAt: null,
+    orderId: null,
+    issuedMonth: new Date().toISOString().slice(0, 7),
+  });
+  return ref.id;
+}
+
+export async function seedRewardEvent(
+  uid: string,
+  data?: Partial<{
+    type: string;
+    points: number;
+    status: string;
+    relatedListingId: string;
+  }>,
+): Promise<void> {
+  const db = getFirestore(initFirebase());
+  await db.collection("reward_events").add({
+    userUid: uid,
+    type: data?.type ?? "share_whatsapp",
+    points: data?.points ?? 1,
+    status: data?.status ?? "approved",
+    relatedListingId: data?.relatedListingId ?? null,
+    relatedOrderId: null,
+    createdAt: new Date().toISOString(),
+    metadata: {},
+  });
+}
+
 /**
  * Simulate Razorpay webhook
  */
-export async function simulateRazorpayWebhook(orderId: string, paymentId: string): Promise<void> {
-  const signature = "test_signature";
+export async function simulateRazorpayWebhook(input: {
+  razorpayOrderId: string;
+  paymentId: string;
+  event?: "payment.captured" | "payment.failed" | "order.paid";
+  amountPaise?: number;
+}): Promise<unknown> {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error("RAZORPAY_WEBHOOK_SECRET is required for webhook tests.");
+  }
 
-  await fetch("http://localhost:8080/api/public/razorpay/webhook", {
+  const body = JSON.stringify({
+    event: input.event ?? "payment.captured",
+    payload: {
+      payment: {
+        entity: {
+          id: input.paymentId,
+          order_id: input.razorpayOrderId,
+          status: input.event === "payment.failed" ? "failed" : "captured",
+          amount: input.amountPaise ?? 25000,
+        },
+      },
+    },
+  });
+  const signature = crypto.createHmac("sha256", secret).update(body).digest("hex");
+
+  const response = await fetch("http://localhost:8080/api/public/razorpay/webhook", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Razorpay-Signature": signature,
     },
-    body: JSON.stringify({
-      event: "payment.authorized",
-      payload: {
-        payment: {
-          entity: {
-            id: paymentId,
-            order_id: orderId,
-            status: "captured",
-            amount: 25000,
-          },
-        },
-      },
-    }),
+    body,
   });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`Razorpay webhook failed (${response.status}): ${text}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 /**

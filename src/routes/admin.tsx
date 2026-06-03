@@ -9,6 +9,7 @@ import {
   GroupedBars,
   PieBreakdown,
   StatCard,
+  rupees,
 } from "@/components/dashboard/DashboardKit";
 import { AdminPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
@@ -69,6 +70,7 @@ function AdminDashboard() {
   const [tab, setTab] = useState<ListingStatus>("pending");
   const [seeding, setSeeding] = useState(false);
   const qc = useQueryClient();
+  const protectedDeliveryEnabled = import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY === "true";
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["admin-listings", tab],
@@ -79,7 +81,12 @@ function AdminDashboard() {
     queryFn: getAdminDashboard,
   });
 
-  const act = async (id: string, status: ListingStatus, label: string, listing: typeof listings[0]) => {
+  const act = async (
+    id: string,
+    status: ListingStatus,
+    label: string,
+    listing: (typeof listings)[0],
+  ) => {
     try {
       await apiFetch("/api/admin/listing-decision", {
         method: "POST",
@@ -233,6 +240,59 @@ function AdminDashboard() {
             </ChartCard>
           </div>
 
+          {protectedDeliveryEnabled && (
+            <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+                <h2 className="font-display text-base font-semibold">Protected delivery</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Read-only metrics from grouped protected-delivery orders.
+                </p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <StatCard label="Total orders" value={dashboard?.orders.totalOrders ?? 0} />
+                  <StatCard label="Paid orders" value={dashboard?.orders.paidOrders ?? 0} />
+                  <StatCard label="GMV" value={rupees(dashboard?.orders.totalGMV ?? 0)} />
+                  <StatCard
+                    label="Avg order value"
+                    value={rupees(Math.round(dashboard?.orders.avgOrderValue ?? 0))}
+                  />
+                  <StatCard label="Delivered" value={dashboard?.orders.totalDelivered ?? 0} />
+                  <StatCard
+                    label="Platform support fees"
+                    value={rupees(dashboard?.orders.totalPlatformSupportFees ?? 0)}
+                    testId="admin-platform-support-fees"
+                  />
+                  <StatCard
+                    label="Coupon discounts"
+                    value={rupees(dashboard?.orders.totalCouponDiscount ?? 0)}
+                    testId="admin-coupon-discounts"
+                  />
+                  <StatCard
+                    label="Shipping subsidy"
+                    value={rupees(dashboard?.orders.totalShippingSubsidy ?? 0)}
+                    testId="admin-shipping-subsidy"
+                  />
+                </div>
+              </div>
+
+              <ChartCard title="Orders by status">
+                {!dashboard || dashboard.orders.ordersByStatus.length === 0 ? (
+                  <EmptyChartState
+                    title="No protected-delivery orders yet"
+                    body="Once orders begin flowing through protected delivery, lifecycle metrics will show here."
+                  />
+                ) : (
+                  <GroupedBars
+                    data={dashboard.orders.ordersByStatus.map((entry) => ({
+                      key: entry.label,
+                      count: entry.value,
+                    }))}
+                    series={[{ key: "count", label: "Orders", color: "var(--chart-4)" }]}
+                  />
+                )}
+              </ChartCard>
+            </div>
+          )}
+
           <div
             id="pending-listings"
             className="mt-6 flex gap-1 overflow-x-auto rounded-full border border-border bg-card p-1"
@@ -241,10 +301,11 @@ function AdminDashboard() {
               <button
                 key={t.value}
                 onClick={() => setTab(t.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${tab === t.value
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
+                  tab === t.value
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground"
-                  }`}
+                }`}
               >
                 {t.label}
               </button>

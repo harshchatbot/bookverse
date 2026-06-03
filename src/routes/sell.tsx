@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
 import { celebrate } from "@/lib/confetti";
 import { AuthGate } from "@/components/AuthGate";
@@ -159,6 +159,14 @@ function toWholeNumber(value: string) {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : Number.NaN;
 }
 
+function clampNonNegative(value: number) {
+  return Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
+}
+
+function getBulkExpectedPayout(books: BulkBookForm[]) {
+  return books.reduce((sum, book) => sum + clampNonNegative(toWholeNumber(book.sellingPrice)), 0);
+}
+
 function firstErrorMessage(errors: SharedBulkErrors, bookErrors: BulkBookErrors[]) {
   const sharedMessage = Object.values(errors).find(Boolean);
   if (sharedMessage) return sharedMessage;
@@ -251,6 +259,7 @@ function Sell() {
 function SellForm({ user }: { user: User }) {
   const navigate = useNavigate();
   const access = useMarketplaceAccess();
+  const protectedDeliveryEnabled = import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY === "true";
   const previewUrlsRef = useRef<Map<string, string>>(new Map());
   const [listingMode, setListingMode] = useState<ListingMode>("single");
   const [singleImages, setSingleImages] = useState<File[]>([]);
@@ -330,6 +339,7 @@ function SellForm({ user }: { user: User }) {
   const singleCategory = watch("category");
   const singleCondition = watch("condition");
   const singleDeliveryType = watch("deliveryType");
+  const singleSellingPrice = watch("sellingPrice");
   const singleStateValue = watch("state");
   const singleCityValue = watch("city");
 
@@ -922,6 +932,11 @@ function SellForm({ user }: { user: User }) {
                         className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </Field>
+                    <PayoutPreview
+                      sellingPrice={clampNonNegative(singleSellingPrice ?? 0)}
+                      protectedDeliveryEnabled={protectedDeliveryEnabled}
+                      data-testid="seller-payout-preview-single"
+                    />
                   </Section>
 
                   <Section title="Seller contact">
@@ -1089,9 +1104,17 @@ function SellForm({ user }: { user: User }) {
                           onSetCover={setBulkAsCover}
                           onRemoveBook={removeBulkBook}
                           canRemove={bulkBooks.length > MIN_BULK_BOOKS}
+                          protectedDeliveryEnabled={protectedDeliveryEnabled}
                         />
                       ))}
                     </div>
+                    <PayoutPreview
+                      sellingPrice={getBulkExpectedPayout(bulkBooks)}
+                      protectedDeliveryEnabled={protectedDeliveryEnabled}
+                      heading="Bulk payout preview"
+                      note={`Total expected payout across ${bulkBooks.length} book${bulkBooks.length > 1 ? "s" : ""}`}
+                      data-testid="seller-payout-preview-bulk-total"
+                    />
                   </Section>
 
                   <SubmitArea
@@ -1123,6 +1146,7 @@ function BulkBookCard({
   onSetCover,
   onRemoveBook,
   canRemove,
+  protectedDeliveryEnabled,
 }: {
   book: BulkBookForm;
   index: number;
@@ -1138,6 +1162,7 @@ function BulkBookCard({
   onSetCover: (bookId: string, imageIndex: number) => void;
   onRemoveBook: (bookId: string) => void;
   canRemove: boolean;
+  protectedDeliveryEnabled: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
@@ -1283,6 +1308,14 @@ function BulkBookCard({
             placeholder="Enter selling price"
           />
         </Field>
+        <div className="sm:col-span-2">
+          <PayoutPreview
+            sellingPrice={clampNonNegative(toWholeNumber(book.sellingPrice))}
+            protectedDeliveryEnabled={protectedDeliveryEnabled}
+            heading="Payout preview"
+            compact
+          />
+        </div>
         <Field label="Condition" error={errors.condition}>
           <Select
             value={book.condition}
@@ -1458,6 +1491,47 @@ function SubmitArea({
         </div>
       )}
     </>
+  );
+}
+
+function PayoutPreview({
+  sellingPrice,
+  protectedDeliveryEnabled,
+  heading = "Seller payout preview",
+  note,
+  compact = false,
+  ...rest
+}: ComponentProps<"div"> & {
+  sellingPrice: number;
+  protectedDeliveryEnabled: boolean;
+  heading?: string;
+  note?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      {...rest}
+      className={`rounded-2xl border border-primary/15 bg-primary/5 p-4 ${
+        compact ? "mt-0" : "mt-4"
+      } ${rest.className ?? ""}`}
+    >
+      <p className="text-sm font-semibold">{heading}</p>
+      {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
+      <div className="mt-3 space-y-1.5 text-sm">
+        <p>Your selling price: ₹{sellingPrice.toLocaleString("en-IN")}</p>
+        <p>BookVerse seller fee: ₹0</p>
+        <p>Buyer pays delivery separately for protected delivery</p>
+        <p className="font-semibold">
+          Estimated payout to you: ₹{sellingPrice.toLocaleString("en-IN")}
+        </p>
+      </div>
+      {protectedDeliveryEnabled ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          For protected delivery, buyer pays online. You only need to pack the book and hand it to
+          the courier pickup partner.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

@@ -5,11 +5,19 @@ import { estimateGatewayFee, razorpay, razorpayKeyId } from "@/lib/razorpay.serv
 import {
   estimateListingWeightKg,
   estimateParcelDimensions,
+  getProtectedDeliveryBuyerTotal,
   getOrderItemsSubtotal,
+  getShippingCouponDiscount,
   getOrderTotalWeight,
   normalizeListingIds,
   PROTECTED_DELIVERY_MAX_ITEMS_PER_SELLER,
 } from "@/lib/protected-delivery";
+import {
+  FREE_DELIVERY_REWARD_CODE,
+  PLATFORM_SUPPORT_FEE_INR,
+  type UserCouponRecord,
+} from "@/lib/rewards";
+import { getCouponsByIds } from "@/lib/rewards.server";
 import { checkServiceability } from "@/lib/shiprocket.server";
 import type { Listing, OrderItemSnapshot, PickupAddressSnapshot } from "@/lib/types";
 
@@ -29,6 +37,15 @@ const Body = z.object({
   listingIds: z.array(z.string().min(1).max(100)).min(1).max(50),
   buyerDeliveryAddress: AddressSchema,
   selectedFulfillmentMode: z.literal("protected_delivery"),
+  couponSelections: z
+    .array(
+      z.object({
+        sellerUid: z.string().min(1),
+        couponId: z.string().min(1),
+      }),
+    )
+    .max(10)
+    .optional(),
 });
 
 type AdminListing = Omit<Listing, "id" | "createdAt" | "updatedAt"> & {
@@ -97,6 +114,19 @@ export const Route = createFileRoute("/api/checkout/create-order")({
         if (listingIds.length !== parsed.data.listingIds.length) {
           return jsonError(400, "Duplicate listing IDs are not allowed.");
         }
+        const couponSelections = parsed.data.couponSelections ?? [];
+        const seenCouponIds = new Set<string>();
+        const couponSelectionBySeller = new Map<string, string>();
+        for (const selection of couponSelections) {
+          if (couponSelectionBySeller.has(selection.sellerUid)) {
+            return jsonError(400, "Only one coupon can be applied per seller group.");
+          }
+          if (seenCouponIds.has(selection.couponId)) {
+            return jsonError(400, "The same coupon cannot be used across multiple seller groups.");
+          }
+          seenCouponIds.add(selection.couponId);
+          couponSelectionBySeller.set(selection.sellerUid, selection.couponId);
+        }
 
         const { db, FieldValue } = await adminKit();
         const listingSnapshots = await Promise.all(
@@ -130,6 +160,31 @@ export const Route = createFileRoute("/api/checkout/create-order")({
           const sellerListings = groupedBySeller.get(listing.sellerUid) ?? [];
           sellerListings.push(listing);
           groupedBySeller.set(listing.sellerUid, sellerListings);
+        }
+
+        for (const sellerUid of couponSelectionBySeller.keys()) {
+          if (!groupedBySeller.has(sellerUid)) {
+            return jsonError(400, "Coupon selection does not match the current seller groups.");
+          }
+        }
+
+        const coupons = await getCouponsByIds(decoded.uid, [...seenCouponIds]);
+        const couponById = new Map<string, UserCouponRecord>();
+        for (const coupon of coupons) {
+          couponById.set(coupon.id, coupon);
+        }
+
+        for (const couponId of seenCouponIds) {
+          const coupon = couponById.get(couponId);
+          if (!coupon) {
+            return jsonError(404, "Selected coupon was not found.");
+          }
+          if (coupon.status !== "unused") {
+            return jsonError(409, "Selected coupon is no longer available.");
+          }
+          if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
+            return jsonError(409, "Selected coupon has expired.");
+          }
         }
 
         const preparedGroups: PreparedSellerGroup[] = [];
@@ -205,9 +260,21 @@ export const Route = createFileRoute("/api/checkout/create-order")({
         const groups = [];
 
         for (const group of preparedGroups) {
-          const gatewayFee = estimateGatewayFee(group.subtotal + group.shippingFee);
-          const total = group.subtotal + group.shippingFee + gatewayFee;
-          const platformFee = 0;
+          const couponId = couponSelectionBySeller.get(group.sellerUid) ?? null;
+          const coupon = couponId ? (couponById.get(couponId) ?? null) : null;
+          const couponDiscount = getShippingCouponDiscount(group.shippingFee, !!coupon);
+          const buyerDeliveryPayable = Math.max(0, group.shippingFee - couponDiscount);
+          const platformSupportFee = PLATFORM_SUPPORT_FEE_INR;
+          const gatewayFee = estimateGatewayFee(
+            group.subtotal + buyerDeliveryPayable + platformSupportFee,
+          );
+          const total = getProtectedDeliveryBuyerTotal({
+            subtotal: group.subtotal,
+            shippingFee: group.shippingFee,
+            couponDiscount,
+            platformSupportFee,
+          });
+          const platformFee = platformSupportFee;
           const sellerAmount = group.subtotal;
 
           const orderRef = db.collection("orders").doc();
@@ -257,6 +324,11 @@ export const Route = createFileRoute("/api/checkout/create-order")({
             shippingFee: group.shippingFee,
             gatewayFee,
             platformFee,
+            platformSupportFee,
+            couponId,
+            couponCode: coupon ? FREE_DELIVERY_REWARD_CODE : null,
+            couponDiscount,
+            bookVerseShippingSubsidy: couponDiscount,
             totalAmount: total,
             sellerAmount,
             totalWeightKg: group.totalWeightKg,
@@ -300,7 +372,10 @@ export const Route = createFileRoute("/api/checkout/create-order")({
               subtotal: group.subtotal,
               shippingFee: group.shippingFee,
               gatewayFee,
-              platformFee,
+              platformSupportFee,
+              couponDiscount,
+              buyerDeliveryPayable,
+              bookVerseShippingSubsidy: couponDiscount,
               total,
             },
           });

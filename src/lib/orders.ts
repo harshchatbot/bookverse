@@ -44,7 +44,10 @@ export type ShipmentStatus =
   | "in_transit"
   | "delivered"
   | "cancelled"
-  | "failed";
+  | "failed"
+  | "SHIPROCKET_SKIPPED"
+  | "MOCK_FULFILLMENT"
+  | "READY_FOR_MANUAL_FULFILLMENT";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending_payment: "Awaiting payment",
@@ -91,6 +94,11 @@ export interface Order {
   shippingFee: number;
   gatewayFee: number;
   platformFee: number;
+  platformSupportFee?: number;
+  couponId?: string | null;
+  couponCode?: string | null;
+  couponDiscount?: number;
+  bookVerseShippingSubsidy?: number;
   totalAmount: number;
   // amount the seller is owed (= bookPrice for MVP)
   sellerAmount: number;

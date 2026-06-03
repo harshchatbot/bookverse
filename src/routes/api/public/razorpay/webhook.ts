@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import crypto from "crypto";
 import { adminKit, jsonError, jsonOk } from "@/lib/admin.server";
 import { getStoredOrderItems } from "@/lib/order-server";
+import { markCouponUsedForOrder } from "@/lib/rewards.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 
 function verifySignature(rawBody: string, signature: string | null): boolean {
@@ -97,6 +98,11 @@ export const Route = createFileRoute("/api/public/razorpay/webhook")({
               paymentStatus: "captured",
               paymentId: paymentRef.id,
               updatedAt: FieldValue.serverTimestamp(),
+            });
+            await markCouponUsedForOrder({
+              couponId: typeof order.couponId === "string" ? order.couponId : null,
+              uid: String(order.buyerUid ?? ""),
+              orderId: orderDoc.id,
             });
             try {
               const batch = db.batch();

@@ -35,6 +35,9 @@ import { Route as CheckoutListingIdRouteImport } from './routes/checkout.$listin
 import { Route as BookIdRouteImport } from './routes/book.$id'
 import { Route as ApiShippingRatesRouteImport } from './routes/api/shipping/rates'
 import { Route as ApiSellerRejectOrderRouteImport } from './routes/api/seller/reject-order'
+import { Route as ApiRewardsSummaryRouteImport } from './routes/api/rewards/summary'
+import { Route as ApiRewardsShareRouteImport } from './routes/api/rewards/share'
+import { Route as ApiRewardsRedeemRouteImport } from './routes/api/rewards/redeem'
 import { Route as ApiCheckoutVerifyRouteImport } from './routes/api/checkout/verify'
 import { Route as ApiCheckoutCreateOrderRouteImport } from './routes/api/checkout/create-order'
 import { Route as ApiAdminShipmentStatusRouteImport } from './routes/api/admin/shipment-status'
@@ -178,6 +181,21 @@ const ApiSellerRejectOrderRoute = ApiSellerRejectOrderRouteImport.update({
   path: '/api/seller/reject-order',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRewardsSummaryRoute = ApiRewardsSummaryRouteImport.update({
+  id: '/api/rewards/summary',
+  path: '/api/rewards/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRewardsShareRoute = ApiRewardsShareRouteImport.update({
+  id: '/api/rewards/share',
+  path: '/api/rewards/share',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRewardsRedeemRoute = ApiRewardsRedeemRouteImport.update({
+  id: '/api/rewards/redeem',
+  path: '/api/rewards/redeem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCheckoutVerifyRoute = ApiCheckoutVerifyRouteImport.update({
   id: '/api/checkout/verify',
   path: '/api/checkout/verify',
@@ -275,6 +293,9 @@ export interface FileRoutesByFullPath {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
+  '/api/rewards/share': typeof ApiRewardsShareRoute
+  '/api/rewards/summary': typeof ApiRewardsSummaryRoute
   '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
@@ -315,6 +336,9 @@ export interface FileRoutesByTo {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
+  '/api/rewards/share': typeof ApiRewardsShareRoute
+  '/api/rewards/summary': typeof ApiRewardsSummaryRoute
   '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
@@ -356,6 +380,9 @@ export interface FileRoutesById {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
+  '/api/rewards/share': typeof ApiRewardsShareRoute
+  '/api/rewards/summary': typeof ApiRewardsSummaryRoute
   '/api/seller/reject-order': typeof ApiSellerRejectOrderRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/public/cron/reconcile': typeof ApiPublicCronReconcileRoute
@@ -398,6 +425,9 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/rewards/redeem'
+    | '/api/rewards/share'
+    | '/api/rewards/summary'
     | '/api/seller/reject-order'
     | '/api/shipping/rates'
     | '/api/public/cron/reconcile'
@@ -438,6 +468,9 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/rewards/redeem'
+    | '/api/rewards/share'
+    | '/api/rewards/summary'
     | '/api/seller/reject-order'
     | '/api/shipping/rates'
     | '/api/public/cron/reconcile'
@@ -478,6 +511,9 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/rewards/redeem'
+    | '/api/rewards/share'
+    | '/api/rewards/summary'
     | '/api/seller/reject-order'
     | '/api/shipping/rates'
     | '/api/public/cron/reconcile'
@@ -518,6 +554,9 @@ export interface RootRouteChildren {
   ApiAdminShipmentStatusRoute: typeof ApiAdminShipmentStatusRoute
   ApiCheckoutCreateOrderRoute: typeof ApiCheckoutCreateOrderRoute
   ApiCheckoutVerifyRoute: typeof ApiCheckoutVerifyRoute
+  ApiRewardsRedeemRoute: typeof ApiRewardsRedeemRoute
+  ApiRewardsShareRoute: typeof ApiRewardsShareRoute
+  ApiRewardsSummaryRoute: typeof ApiRewardsSummaryRoute
   ApiSellerRejectOrderRoute: typeof ApiSellerRejectOrderRoute
   ApiShippingRatesRoute: typeof ApiShippingRatesRoute
   ApiPublicCronReconcileRoute: typeof ApiPublicCronReconcileRoute
@@ -709,6 +748,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSellerRejectOrderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/rewards/summary': {
+      id: '/api/rewards/summary'
+      path: '/api/rewards/summary'
+      fullPath: '/api/rewards/summary'
+      preLoaderRoute: typeof ApiRewardsSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rewards/share': {
+      id: '/api/rewards/share'
+      path: '/api/rewards/share'
+      fullPath: '/api/rewards/share'
+      preLoaderRoute: typeof ApiRewardsShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rewards/redeem': {
+      id: '/api/rewards/redeem'
+      path: '/api/rewards/redeem'
+      fullPath: '/api/rewards/redeem'
+      preLoaderRoute: typeof ApiRewardsRedeemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/checkout/verify': {
       id: '/api/checkout/verify'
       path: '/api/checkout/verify'
@@ -841,6 +901,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminShipmentStatusRoute: ApiAdminShipmentStatusRoute,
   ApiCheckoutCreateOrderRoute: ApiCheckoutCreateOrderRoute,
   ApiCheckoutVerifyRoute: ApiCheckoutVerifyRoute,
+  ApiRewardsRedeemRoute: ApiRewardsRedeemRoute,
+  ApiRewardsShareRoute: ApiRewardsShareRoute,
+  ApiRewardsSummaryRoute: ApiRewardsSummaryRoute,
   ApiSellerRejectOrderRoute: ApiSellerRejectOrderRoute,
   ApiShippingRatesRoute: ApiShippingRatesRoute,
   ApiPublicCronReconcileRoute: ApiPublicCronReconcileRoute,

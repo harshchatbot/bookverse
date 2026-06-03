@@ -8,7 +8,13 @@ import { ReportListingButton } from "@/components/ReportListingButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SaveButton } from "@/components/SaveButton";
 import { ProtectedDeliveryPanel } from "@/components/ProtectedDeliveryPanel";
-import { getListing, getRelatedListings, incrementListingViews } from "@/lib/listings";
+import {
+  getListing,
+  getRelatedListings,
+  incrementListingShares,
+  incrementListingViews,
+} from "@/lib/listings";
+import { awardShareReward } from "@/lib/rewards";
 import { BookCard } from "@/components/BookCard";
 import { BookCardSkeleton } from "@/components/BookCardSkeleton";
 import { categoryLabel, conditionLabel, deliveryLabel } from "@/lib/constants";
@@ -393,7 +399,16 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
 function ShareBar({
   listing,
 }: {
-  listing: { id: string; title: string; sellingPrice: number; city: string; images: string[] };
+  listing: {
+    id: string;
+    title: string;
+    author: string;
+    originalPrice: number;
+    sellingPrice: number;
+    city: string;
+    state: string;
+    images: string[];
+  };
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -411,6 +426,20 @@ function ShareBar({
   }, [url]);
 
   const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
+  const whatsappText = [
+    `Check out this book on BookVerse`,
+    `Book: ${listing.title}`,
+    listing.author ? `Author: ${listing.author}` : null,
+    `Selling price: ₹${listing.sellingPrice.toLocaleString("en-IN")}`,
+    listing.originalPrice > 0
+      ? `Original price: ₹${listing.originalPrice.toLocaleString("en-IN")}`
+      : null,
+    `Location: ${[listing.city, listing.state].filter(Boolean).join(", ")}`,
+    url,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
   const handleNativeShare = useCallback(async () => {
     if (!canNativeShare) return;
@@ -424,6 +453,16 @@ function ShareBar({
       // User cancelled or share failed — ignore
     }
   }, [canNativeShare, listing.title, listing.sellingPrice, listing.city, url]);
+
+  const handleWhatsAppShare = useCallback(() => {
+    if (typeof window === "undefined") return;
+    void incrementListingShares(listing.id);
+    void awardShareReward(listing.id).catch(() => null);
+    const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      toast.error("Popup blocked. Please allow popups for BookVerse and try again.");
+    }
+  }, [listing.id, whatsappUrl]);
 
   return (
     <div className="mt-4 flex items-center gap-2">
@@ -446,6 +485,13 @@ function ShareBar({
           <Share2 className="h-3.5 w-3.5" /> Share
         </button>
       )}
+      <button
+        type="button"
+        onClick={handleWhatsAppShare}
+        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary"
+      >
+        <Share2 className="h-3.5 w-3.5" /> Share on WhatsApp
+      </button>
       <SaveButton listingId={listing.id} variant="pill" showLabel stopPropagation={false} />
     </div>
   );

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
@@ -208,6 +209,21 @@ function MyListingsContent({ user }: { user: User }) {
                         {categoryLabel(l.category)} · ₹{l.sellingPrice.toLocaleString("en-IN")} ·{" "}
                         {l.city}
                       </div>
+                      {(l.views ?? 0) > 0 || (l.shares ?? 0) > 0 ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                          {(l.views ?? 0) > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Eye className="h-3 w-3" /> {(l.views ?? 0).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                          {(l.shares ?? 0) > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Share2 className="h-3 w-3" />{" "}
+                              {(l.shares ?? 0).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   </Link>
                   <div className="flex items-center gap-2">

@@ -235,6 +235,14 @@ export async function incrementListingViews(id: string) {
   }
 }
 
+export async function incrementListingShares(id: string) {
+  try {
+    await updateDoc(doc(db, COLLECTION, id), { shares: increment(1) });
+  } catch {
+    // ignore — non-critical analytics
+  }
+}
+
 export async function uploadListingImage(
   uid: string,
   file: File,

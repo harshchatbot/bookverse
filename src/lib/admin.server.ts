@@ -27,6 +27,7 @@ interface DocumentReference {
   get(): Promise<DocumentSnapshot>;
   set(data: JsonMap, options?: JsonMap): Promise<unknown>;
   update(data: JsonMap): Promise<unknown>;
+  delete(): Promise<unknown>;
 }
 
 interface QueryReference {
@@ -43,6 +44,8 @@ interface CollectionReference extends QueryReference {
 interface Transaction {
   get(ref: DocumentReference): Promise<DocumentSnapshot>;
   update(ref: DocumentReference, data: JsonMap): unknown;
+  set(ref: DocumentReference, data: JsonMap, options?: JsonMap): unknown;
+  delete(ref: DocumentReference): unknown;
 }
 
 export interface AdminFirestore {
@@ -73,6 +76,7 @@ interface AdminFirestoreModule {
   FieldValue: {
     serverTimestamp(): unknown;
     arrayUnion(...elements: unknown[]): unknown;
+    increment(amount: number): unknown;
   };
   Timestamp: unknown;
 }
@@ -109,16 +113,27 @@ async function init(): Promise<AdminApp> {
     const { initializeApp, getApps, cert } = await loadAppModule();
     if (getApps().length) return getApps()[0]!;
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    if (!raw) {
-      throw new Error(
-        "FIREBASE_SERVICE_ACCOUNT_JSON is not set. Add the service account JSON in Lovable Cloud secrets.",
-      );
-    }
-    let parsed: { project_id: string; client_email: string; private_key: string };
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON");
+    let parsed: { project_id: string; client_email: string; private_key: string } | null = null;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON");
+      }
+    } else {
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+      if (!projectId || !clientEmail || !privateKey) {
+        throw new Error(
+          "FIREBASE_SERVICE_ACCOUNT_JSON is not set. Add the service account JSON in Lovable Cloud secrets.",
+        );
+      }
+      parsed = {
+        project_id: projectId,
+        client_email: clientEmail,
+        private_key: privateKey,
+      };
     }
     // Normalise \n in private_key when pasted as a single line.
     const privateKey = parsed.private_key.replace(/\\n/g, "\n");

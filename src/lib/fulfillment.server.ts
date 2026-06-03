@@ -32,6 +32,26 @@ export interface FulfillmentResult {
   error?: string;
 }
 
+function getShiprocketMode() {
+  return (process.env.SHIPROCKET_MODE ?? "").trim().toLowerCase();
+}
+
+function isShiprocketAutoFulfillmentEnabled() {
+  return process.env.SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT === "true";
+}
+
+function isLiveShiprocketOrderCreationAllowed() {
+  return process.env.SHIPROCKET_ALLOW_LIVE_ORDER_CREATION === "true";
+}
+
+function shouldCreateLiveShiprocketOrder() {
+  return (
+    getShiprocketMode() === "live" &&
+    isShiprocketAutoFulfillmentEnabled() &&
+    isLiveShiprocketOrderCreationAllowed()
+  );
+}
+
 /**
  * Drive the full Shiprocket pipeline for an order. Idempotent: skips steps
  * that have already completed (based on orders/{id} fields).
@@ -57,6 +77,34 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   const items = getStoredOrderItems(order);
   if (items.length === 0) {
     return { ok: false, reachedStep: null, error: "Order items missing" };
+  }
+
+  if (!shouldCreateLiveShiprocketOrder()) {
+    const now = new Date().toISOString();
+    const shiprocketMode = getShiprocketMode();
+    const fulfillmentState = "SHIPROCKET_SKIPPED";
+    await orderRef.update({
+      status: order.status === "paid" ? "paid" : order.status,
+      shipmentStatus: fulfillmentState,
+      shiprocketOrderId: null,
+      shiprocketShipmentId: null,
+      awb: null,
+      courierAssigned: null,
+      trackingUrl: null,
+      updatedAt: FieldValue.serverTimestamp(),
+      fulfillmentState,
+      fulfillmentSkippedReason:
+        shiprocketMode !== "live"
+          ? "mock_mode"
+          : !isShiprocketAutoFulfillmentEnabled()
+            ? "auto_create_disabled"
+            : "live_creation_not_allowed",
+      fulfillmentLastCheckedAt: now,
+    });
+    return {
+      ok: true,
+      reachedStep: "order_created",
+    };
   }
 
   let shipmentId = order.shiprocketShipmentId as number | null;

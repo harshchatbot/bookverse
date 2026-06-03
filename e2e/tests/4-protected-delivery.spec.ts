@@ -141,7 +141,10 @@ test("Protected delivery flow with mocked Razorpay + Shiprocket", async ({
 
   // PART D: Simulate Razorpay payment webhook
   const paymentId = `pay_e2e_${Date.now()}`;
-  await simulateRazorpayWebhook(orderId, paymentId);
+  await simulateRazorpayWebhook({
+    razorpayOrderId: orderDoc.get("razorpayOrderId"),
+    paymentId,
+  });
   await page.waitForTimeout(3000);
 
   const orderAfterPayment = await db.collection("orders").doc(orderId).get();
@@ -149,6 +152,9 @@ test("Protected delivery flow with mocked Razorpay + Shiprocket", async ({
   const paymentStatus = orderAfterPayment.get("paymentStatus") ?? orderAfterPayment.get("status");
   console.log("Payment status after webhook:", paymentStatus);
   expect(typeof paymentStatus).toBe("string");
+  expect(orderAfterPayment.get("shipmentStatus")).toBe("SHIPROCKET_SKIPPED");
+  expect(orderAfterPayment.get("shiprocketOrderId")).toBeNull();
+  expect(orderAfterPayment.get("shiprocketShipmentId")).toBeNull();
 
   // PART E: Simulate Shiprocket delivery status updates
   await simulateShiprocketWebhook(orderId, "pickup_scheduled");

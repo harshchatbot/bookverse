@@ -21,6 +21,7 @@ export interface Listing {
   createdAt: string | null;
   updatedAt: string | null;
   views?: number;
+  shares?: number;
 }
 
 export type FulfillmentMode = "protected_delivery";

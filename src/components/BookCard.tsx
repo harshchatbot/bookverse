@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Truck, Eye, Store, Package } from "lucide-react";
+import { MapPin, Eye, Share2, Store, Package } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
 import { SaveButton } from "@/components/SaveButton";
@@ -62,6 +62,11 @@ export function BookCard({ listing }: { listing: Listing }) {
           {typeof listing.views === "number" && listing.views > 0 && (
             <span className="inline-flex items-center gap-1">
               <Eye className="h-3 w-3" /> {listing.views.toLocaleString("en-IN")}
+            </span>
+          )}
+          {typeof listing.shares === "number" && listing.shares > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Share2 className="h-3 w-3" /> {listing.shares.toLocaleString("en-IN")}
             </span>
           )}
         </div>

@@ -1,7 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { BarChart3, BookOpen, Clock3, Heart, ListChecks, MessageSquareText, X } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  BarChart3,
+  BadgeCheck,
+  BookOpen,
+  Copy,
+  Eye,
+  Heart,
+  IndianRupee,
+  ListChecks,
+  MessageSquareText,
+  PartyPopper,
+  Ticket,
+  Share2,
+  ShoppingBag,
+  Wallet,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
@@ -11,10 +28,16 @@ import {
   GroupedBars,
   PieBreakdown,
   StatCard,
+  rupees,
 } from "@/components/dashboard/DashboardKit";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { getUserDashboard } from "@/lib/dashboard";
 import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
+import {
+  FREE_DELIVERY_POINTS_COST,
+  FREE_DELIVERY_REWARD_CODE,
+  redeemFreeDeliveryCoupon,
+} from "@/lib/rewards";
 import { categoryLabel } from "@/lib/constants";
 
 export const Route = createFileRoute("/dashboard")({
@@ -62,8 +85,10 @@ function DashboardPage() {
 function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
   const access = useMarketplaceAccess();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [dismissedPickupBanner, setDismissedPickupBanner] = useState(false);
   const [pickupIncomplete, setPickupIncomplete] = useState(false);
+  const protectedDeliveryEnabled = import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY === "true";
 
   useEffect(() => {
     if (access.loading) return;
@@ -78,7 +103,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
   useEffect(() => {
     const checkPickupAddress = async () => {
-      if (!import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY) return;
+      if (!protectedDeliveryEnabled) return;
       try {
         const profile = await getProfile(uid);
         if (!hasCompletePickupAddress(profile?.pickupAddress)) {
@@ -89,7 +114,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
       }
     };
     checkPickupAddress();
-  }, [uid]);
+  }, [protectedDeliveryEnabled, uid]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", uid],
@@ -109,11 +134,36 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
   const dashboard = data;
 
+  const referralLink =
+    dashboard?.rewards.referralCode && typeof window !== "undefined"
+      ? `${window.location.origin}/login?ref=${dashboard.rewards.referralCode}`
+      : "";
+
+  const copyReferralLink = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      toast.success("Referral link copied");
+    } catch {
+      toast.error("Could not copy referral link");
+    }
+  };
+
+  const redeemCoupon = async () => {
+    try {
+      await redeemFreeDeliveryCoupon();
+      await qc.invalidateQueries({ queryKey: ["dashboard", uid] });
+      toast.success(`${FREE_DELIVERY_REWARD_CODE} redeemed and added to your coupons.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not redeem coupon.");
+    }
+  };
+
   return (
     <AppPageShell>
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          {pickupIncomplete && !dismissedPickupBanner && import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY && (
+          {pickupIncomplete && !dismissedPickupBanner && protectedDeliveryEnabled && (
             <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
               <div>
                 <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
@@ -168,6 +218,11 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   value={dashboard?.totals.wishlistCount ?? 0}
                 />
                 <HeroStat
+                  icon={<Share2 className="h-4 w-4" />}
+                  label="Shares"
+                  value={dashboard?.totals.totalShares ?? 0}
+                />
+                <HeroStat
                   icon={<MessageSquareText className="h-4 w-4" />}
                   label="Offers"
                   value={
@@ -176,9 +231,9 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   testId="offers-count"
                 />
                 <HeroStat
-                  icon={<Clock3 className="h-4 w-4" />}
-                  label="Pending"
-                  value={dashboard?.totals.pendingListings ?? 0}
+                  icon={<IndianRupee className="h-4 w-4" />}
+                  label="Spend"
+                  value={rupees(dashboard?.totals.buyerTotalSpent ?? 0)}
                 />
               </div>
             </div>
@@ -196,6 +251,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                 <StatCard label="Approved listings" value={dashboard.totals.approvedListings} />
                 <StatCard label="Rejected listings" value={dashboard.totals.rejectedListings} />
                 <StatCard label="Sold listings" value={dashboard.totals.soldListings} />
+                <StatCard label="Views" value={dashboard.totals.totalViews} />
+                <StatCard label="Shares" value={dashboard.totals.totalShares} />
                 <StatCard label="Wishlist count" value={dashboard.totals.wishlistCount} />
                 <StatCard label="Offers made" value={dashboard.totals.offersMade} />
                 <StatCard label="Offers received" value={dashboard.totals.offersReceived} />
@@ -228,6 +285,196 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
             />
           </section>
 
+          {((dashboard?.totals.sellerEarnings ?? 0) > 0 ||
+            (dashboard?.totals.sellerOrderCount ?? 0) > 0) && (
+            <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-primary" />
+                <h2 className="font-display text-base font-semibold">Your earnings</h2>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  label="Protected delivery earnings"
+                  value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
+                  hint="Paid protected-delivery orders only"
+                />
+                <StatCard
+                  label="Seller orders"
+                  value={dashboard?.totals.sellerOrderCount ?? 0}
+                  hint="Orders already captured through protected delivery"
+                />
+              </div>
+            </section>
+          )}
+
+          {(dashboard?.totals.buyerTotalSpent ?? 0) > 0 && (
+            <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                <h2 className="font-display text-base font-semibold">Your purchases</h2>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  label="Total spent"
+                  value={rupees(dashboard?.totals.buyerTotalSpent ?? 0)}
+                  hint="Protected-delivery orders paid through BookVerse"
+                />
+                <StatCard
+                  label="Discovery"
+                  value={`${(dashboard?.totals.totalViews ?? 0).toLocaleString("en-IN")} / ${(dashboard?.totals.totalShares ?? 0).toLocaleString("en-IN")}`}
+                  hint="Views / shares across your listings"
+                />
+              </div>
+            </section>
+          )}
+
+          <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <PartyPopper className="h-4 w-4 text-primary" />
+                  <h2 className="font-display text-base font-semibold">Rewards and sharing</h2>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Earn points when your listings travel further and redeem FREEDEL50 for protected
+                  delivery.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={redeemCoupon}
+                disabled={(dashboard?.rewards.availablePoints ?? 0) < FREE_DELIVERY_POINTS_COST}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Ticket className="h-4 w-4" />
+                Redeem {FREE_DELIVERY_REWARD_CODE}
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Available points" value={dashboard?.rewards.availablePoints ?? 0} />
+              <StatCard label="Lifetime points" value={dashboard?.rewards.lifetimePoints ?? 0} />
+              <StatCard
+                label="Badges"
+                value={dashboard?.rewards.badges.length ?? 0}
+                hint="Book Buddy at 50, Campus Promoter at 200, Champion at 500"
+              />
+              <StatCard
+                label="Available coupons"
+                value={dashboard?.rewards.availableCoupons.length ?? 0}
+              />
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Referral code</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Share this link with classmates. Referral rewards can build on this later.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyReferralLink}
+                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy link
+                  </button>
+                </div>
+                <div className="mt-3 rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-sm font-medium">
+                  {dashboard?.rewards.referralCode || "BOOKVERSE"}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <p className="text-sm font-semibold">Badges and available coupons</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(dashboard?.rewards.badges.length ?? 0) > 0 ? (
+                    dashboard?.rewards.badges.map((badge) => (
+                      <span
+                        key={badge}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                      >
+                        <BadgeCheck className="h-3.5 w-3.5" />
+                        {badge}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Keep sharing to unlock your first badge.
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 space-y-2">
+                  {dashboard?.rewards.availableCoupons.length ? (
+                    dashboard.rewards.availableCoupons.map((coupon) => (
+                      <div
+                        key={coupon.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold">{coupon.code}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Free delivery up to ₹50. Expires {coupon.expiresAt?.slice(0, 10)}.
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                          Unused
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Redeem {FREE_DELIVERY_POINTS_COST} points to get a {FREE_DELIVERY_REWARD_CODE}{" "}
+                      coupon.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm font-semibold">Reward history</p>
+              <div className="mt-3 space-y-2">
+                {dashboard?.rewards.history.length ? (
+                  dashboard.rewards.history.slice(0, 6).map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">
+                          {event.type === "share_whatsapp"
+                            ? "WhatsApp share"
+                            : event.type === "coupon_redeemed"
+                              ? "Coupon redeemed"
+                              : "Reward activity"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {event.createdAt?.slice(0, 10) || "Recently"}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-sm font-semibold ${
+                          event.points >= 0 ? "text-emerald-600 dark:text-emerald-300" : ""
+                        }`}
+                      >
+                        {event.points >= 0 ? "+" : ""}
+                        {event.points}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Share a listing on WhatsApp to start earning points.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
           <section className="mt-8 grid gap-4 lg:grid-cols-2">
             <ChartCard title="Listing status chart">
               {!dashboard || dashboard.listingStatus.every((item) => item.value === 0) ? (
@@ -242,9 +489,9 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
             <ChartCard title="Activity summary chart">
               {!dashboard ||
-                dashboard.activitySummary.every(
-                  (point) => point.listings + point.offers + point.inquiries === 0,
-                ) ? (
+              dashboard.activitySummary.every(
+                (point) => point.listings + point.offers + point.inquiries === 0,
+              ) ? (
                 <EmptyChartState
                   title="Nothing to chart yet"
                   body="Recent listings, offers, and inquiries will appear over time."
@@ -301,6 +548,12 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   title="Check offers"
                   body="Follow up on price conversations and accepted offers."
                 />
+                <QuickLink
+                  to="/my-listings"
+                  icon={<Eye className="h-4 w-4" />}
+                  title="Track views and shares"
+                  body="See which books are getting the most attention and shares."
+                />
               </div>
             </div>
           </section>
@@ -318,7 +571,7 @@ function HeroStat({
 }: {
   icon: ReactNode;
   label: string;
-  value: number;
+  value: number | string;
   testId?: string;
 }) {
   return (

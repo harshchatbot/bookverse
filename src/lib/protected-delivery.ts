@@ -1,4 +1,5 @@
 import type { CheckoutDeliveryAddress, Listing, OrderItemSnapshot } from "@/lib/types";
+import { FREE_DELIVERY_MAX_DISCOUNT, PLATFORM_SUPPORT_FEE_INR } from "./rewards";
 
 export const PROTECTED_DELIVERY_MAX_ITEMS_PER_SELLER = 10;
 export const DEFAULT_BOOK_WEIGHT_KG = 0.5;
@@ -39,6 +40,24 @@ export function getOrderTotalWeight(items: OrderItemSnapshot[]) {
   return Number(weight.toFixed(2));
 }
 
+export function getShippingCouponDiscount(shippingFee: number, couponApplied: boolean) {
+  if (!couponApplied) return 0;
+  return Math.min(shippingFee, FREE_DELIVERY_MAX_DISCOUNT);
+}
+
+export function getProtectedDeliveryBuyerTotal(input: {
+  subtotal: number;
+  shippingFee: number;
+  couponDiscount?: number;
+  platformSupportFee?: number;
+}) {
+  return (
+    input.subtotal +
+    Math.max(0, input.shippingFee - (input.couponDiscount ?? 0)) +
+    (input.platformSupportFee ?? PLATFORM_SUPPORT_FEE_INR)
+  );
+}
+
 export interface CreatedProtectedDeliveryGroup {
   orderId: string;
   sellerUid: string;
@@ -58,7 +77,10 @@ export interface CreatedProtectedDeliveryGroup {
     subtotal: number;
     shippingFee: number;
     gatewayFee: number;
-    platformFee: number;
+    platformSupportFee: number;
+    couponDiscount: number;
+    buyerDeliveryPayable: number;
+    bookVerseShippingSubsidy: number;
     total: number;
   };
 }
@@ -67,4 +89,5 @@ export interface CreateProtectedDeliveryOrderInput {
   listingIds: string[];
   buyerDeliveryAddress: CheckoutDeliveryAddress;
   selectedFulfillmentMode: "protected_delivery";
+  couponSelections?: Array<{ sellerUid: string; couponId: string }>;
 }

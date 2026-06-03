@@ -1,8 +1,10 @@
+import { createServerFn } from "@tanstack/react-start";
 import { collection, getCountFromServer, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/integrations/firebase/client";
 import { isProfileCompleted, normalizeIndianMobile, type BookVerseUserProfile } from "./users";
 import { serializeFirestore } from "./serialize";
 import type { Listing } from "./types";
+import { z } from "zod";
 
 export interface DashboardStat {
   label: string;
@@ -24,6 +26,17 @@ export interface AdminDashboardData {
     verifiedUsers: number;
     totalInquiries: number;
     totalOffers: number;
+  };
+  orders: {
+    totalOrders: number;
+    paidOrders: number;
+    totalGMV: number;
+    avgOrderValue: number;
+    totalDelivered: number;
+    totalPlatformSupportFees: number;
+    totalCouponDiscount: number;
+    totalShippingSubsidy: number;
+    ordersByStatus: DashboardStat[];
   };
   listingsByStatus: DashboardStat[];
   listingsByCategory: DashboardStat[];
@@ -99,6 +112,73 @@ function normalizeUserProfile(
   };
 }
 
+function isRevenueOrder(order: Record<string, unknown>) {
+  const paymentStatus = typeof order.paymentStatus === "string" ? order.paymentStatus : "";
+  return paymentStatus === "paid" || paymentStatus === "captured";
+}
+
+export const getProtectedDeliveryOrderMetrics = createServerFn({ method: "POST" })
+  .inputValidator(z.object({}))
+  .handler(async () => {
+    try {
+      const { adminKit } = await import("./admin.server");
+      const { db: adminDb } = await adminKit();
+      const ordersSnap = await adminDb.collection("orders").get();
+      const orders = ordersSnap.docs.map((docSnap) => docSnap.data() as Record<string, unknown>);
+      const paidOrders = orders.filter(isRevenueOrder);
+      const deliveredOrders = orders.filter((order) => order.status === "delivered");
+      const totalGMV = paidOrders.reduce((sum, order) => {
+        const value = typeof order.totalAmount === "number" ? order.totalAmount : 0;
+        return sum + value;
+      }, 0);
+      const totalPlatformSupportFees = paidOrders.reduce((sum, order) => {
+        const value =
+          typeof order.platformSupportFee === "number"
+            ? order.platformSupportFee
+            : typeof order.platformFee === "number"
+              ? order.platformFee
+              : 0;
+        return sum + value;
+      }, 0);
+      const totalCouponDiscount = paidOrders.reduce((sum, order) => {
+        const value = typeof order.couponDiscount === "number" ? order.couponDiscount : 0;
+        return sum + value;
+      }, 0);
+      const totalShippingSubsidy = paidOrders.reduce((sum, order) => {
+        const value =
+          typeof order.bookVerseShippingSubsidy === "number" ? order.bookVerseShippingSubsidy : 0;
+        return sum + value;
+      }, 0);
+
+      return {
+        totalOrders: orders.length,
+        paidOrders: paidOrders.length,
+        totalGMV,
+        avgOrderValue: paidOrders.length > 0 ? totalGMV / paidOrders.length : 0,
+        totalDelivered: deliveredOrders.length,
+        totalPlatformSupportFees,
+        totalCouponDiscount,
+        totalShippingSubsidy,
+        ordersByStatus: countValues(
+          orders.map((order) => (typeof order.status === "string" ? order.status : "unknown")),
+        ),
+      };
+    } catch (error) {
+      console.error("[admin dashboard] order metrics unavailable", error);
+      return {
+        totalOrders: 0,
+        paidOrders: 0,
+        totalGMV: 0,
+        avgOrderValue: 0,
+        totalDelivered: 0,
+        totalPlatformSupportFees: 0,
+        totalCouponDiscount: 0,
+        totalShippingSubsidy: 0,
+        ordersByStatus: [] as DashboardStat[],
+      };
+    }
+  });
+
 export async function getAdminDashboard(): Promise<AdminDashboardData> {
   const listingsRef = collection(db, "listings");
   const usersRef = collection(db, "users");
@@ -115,6 +195,7 @@ export async function getAdminDashboard(): Promise<AdminDashboardData> {
     totalInquiriesSnap,
     listingsDocsSnap,
     usersDocsSnap,
+    orderMetrics,
   ] = await Promise.all([
     getCountFromServer(listingsRef),
     getCountFromServer(query(listingsRef, where("status", "==", "pending"))),
@@ -125,6 +206,7 @@ export async function getAdminDashboard(): Promise<AdminDashboardData> {
     getCountFromServer(inquiriesRef),
     getDocs(listingsRef),
     getDocs(usersRef),
+    getProtectedDeliveryOrderMetrics({ data: {} }),
   ]);
 
   const listings = listingsDocsSnap.docs.map((docSnap) =>
@@ -159,6 +241,17 @@ export async function getAdminDashboard(): Promise<AdminDashboardData> {
       verifiedUsers,
       totalInquiries: totalInquiriesSnap.data().count,
       totalOffers: totalOffersSnap.data().count,
+    },
+    orders: {
+      totalOrders: orderMetrics.totalOrders ?? 0,
+      paidOrders: orderMetrics.paidOrders ?? 0,
+      totalGMV: orderMetrics.totalGMV ?? 0,
+      avgOrderValue: orderMetrics.avgOrderValue ?? 0,
+      totalDelivered: orderMetrics.totalDelivered ?? 0,
+      totalPlatformSupportFees: orderMetrics.totalPlatformSupportFees ?? 0,
+      totalCouponDiscount: orderMetrics.totalCouponDiscount ?? 0,
+      totalShippingSubsidy: orderMetrics.totalShippingSubsidy ?? 0,
+      ordersByStatus: orderMetrics.ordersByStatus ?? [],
     },
     listingsByStatus: countValues(listings.map((listing) => listing.status)),
     listingsByCategory: countValues(listings.map((listing) => listing.category)).slice(0, 8),
