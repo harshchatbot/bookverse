@@ -1,7 +1,7 @@
 import { apiFetch } from "./api-client";
 
 export const FREE_DELIVERY_REWARD_CODE = "FREEDEL50";
-export const FREE_DELIVERY_POINTS_COST = 100;
+export const FREE_DELIVERY_POINTS_COST = 50;
 export const FREE_DELIVERY_MAX_DISCOUNT = 50;
 export const FREE_DELIVERY_EXPIRY_DAYS = 15;
 export const DAILY_SHARE_REWARD_CAP = 5;

@@ -143,9 +143,22 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
     if (!referralLink) return;
     try {
       await navigator.clipboard.writeText(referralLink);
-      toast.success("Referral link copied");
+      toast.success("Referral link copied!");
     } catch {
-      toast.error("Could not copy referral link");
+      try {
+        const el = document.createElement("textarea");
+        el.value = referralLink;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+        toast.success("Referral link copied!");
+      } catch {
+        toast.error("Could not copy — please copy manually: " + referralLink);
+      }
     }
   };
 
@@ -287,25 +300,25 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
           {((dashboard?.totals.sellerEarnings ?? 0) > 0 ||
             (dashboard?.totals.sellerOrderCount ?? 0) > 0) && (
-            <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-primary" />
-                <h2 className="font-display text-base font-semibold">Your earnings</h2>
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <StatCard
-                  label="Protected delivery earnings"
-                  value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
-                  hint="Paid protected-delivery orders only"
-                />
-                <StatCard
-                  label="Seller orders"
-                  value={dashboard?.totals.sellerOrderCount ?? 0}
-                  hint="Orders already captured through protected delivery"
-                />
-              </div>
-            </section>
-          )}
+              <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <h2 className="font-display text-base font-semibold">Your earnings</h2>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <StatCard
+                    label="Protected delivery earnings"
+                    value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
+                    hint="Paid protected-delivery orders only"
+                  />
+                  <StatCard
+                    label="Seller orders"
+                    value={dashboard?.totals.sellerOrderCount ?? 0}
+                    hint="Orders already captured through protected delivery"
+                  />
+                </div>
+              </section>
+            )}
 
           {(dashboard?.totals.buyerTotalSpent ?? 0) > 0 && (
             <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
@@ -336,8 +349,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   <h2 className="font-display text-base font-semibold">Rewards and sharing</h2>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Earn points when your listings travel further and redeem FREEDEL50 for protected
-                  delivery.
+                  Share listings to earn points. Redeem 50 points for FREEDEL50 — a coupon that
+                  makes your next delivery free (we cover shipping up to ₹50).
                 </p>
               </div>
               <button
@@ -427,8 +440,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Redeem {FREE_DELIVERY_POINTS_COST} points to get a {FREE_DELIVERY_REWARD_CODE}{" "}
-                      coupon.
+                      Redeem {FREE_DELIVERY_POINTS_COST} points → get free delivery on your next order (covers shipping up to ₹50).
+
                     </p>
                   )}
                 </div>
@@ -447,7 +460,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                       <div>
                         <p className="text-sm font-medium">
                           {event.type === "share_whatsapp"
-                            ? "WhatsApp share"
+                            ? "Listing shared"
                             : event.type === "coupon_redeemed"
                               ? "Coupon redeemed"
                               : "Reward activity"}
@@ -457,9 +470,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                         </p>
                       </div>
                       <span
-                        className={`text-sm font-semibold ${
-                          event.points >= 0 ? "text-emerald-600 dark:text-emerald-300" : ""
-                        }`}
+                        className={`text-sm font-semibold ${event.points >= 0 ? "text-emerald-600 dark:text-emerald-300" : ""
+                          }`}
                       >
                         {event.points >= 0 ? "+" : ""}
                         {event.points}
@@ -468,7 +480,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Share a listing on WhatsApp to start earning points.
+                    Share any listing to start earning points — 1 point per share, up to 5 per day.
                   </p>
                 )}
               </div>
@@ -489,9 +501,9 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
 
             <ChartCard title="Activity summary chart">
               {!dashboard ||
-              dashboard.activitySummary.every(
-                (point) => point.listings + point.offers + point.inquiries === 0,
-              ) ? (
+                dashboard.activitySummary.every(
+                  (point) => point.listings + point.offers + point.inquiries === 0,
+                ) ? (
                 <EmptyChartState
                   title="Nothing to chart yet"
                   body="Recent listings, offers, and inquiries will appear over time."

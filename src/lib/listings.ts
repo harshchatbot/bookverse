@@ -74,6 +74,7 @@ export interface ApprovedListingsPage {
 export async function getApprovedListings(options?: {
   category?: string;
   condition?: string;
+  deliveryType?: string;
   minPrice?: number;
   maxPrice?: number;
   sort?: "newest" | "price_asc" | "price_desc";
@@ -83,6 +84,7 @@ export async function getApprovedListings(options?: {
   const constraints: QueryConstraint[] = [where("status", "==", "approved")];
   if (options?.category) constraints.push(where("category", "==", options.category));
   if (options?.condition) constraints.push(where("condition", "==", options.condition));
+  if (options?.deliveryType) constraints.push(where("deliveryType", "==", options.deliveryType));
 
   const hasMin = !!options?.minPrice && options.minPrice > 0;
   const hasMax = !!options?.maxPrice && options.maxPrice > 0;

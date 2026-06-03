@@ -209,9 +209,8 @@ function BookDetail() {
                   <button
                     key={i}
                     onClick={() => setActiveImg(i)}
-                    className={`aspect-square overflow-hidden rounded-xl border-2 ${
-                      activeImg === i ? "border-primary" : "border-transparent"
-                    }`}
+                    className={`aspect-square overflow-hidden rounded-xl border-2 ${activeImg === i ? "border-primary" : "border-transparent"
+                      }`}
                   >
                     <img
                       src={img}
@@ -340,6 +339,25 @@ function BookDetail() {
               <div className="mt-6 space-y-2">
                 <WhatsAppButton listing={listing} className="w-full" />
                 <MakeOfferButton listing={listing} className="w-full" />
+                {import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY === "true" &&
+                  listing.deliveryType === "shipping" &&
+                  user &&
+                  !isOwn && (
+                    <>
+                      <Link
+                        to="/checkout"
+                        search={{ ids: listing.id }}
+                        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                        data-testid="buy-protected-delivery-btn"
+                      >
+                        <Package className="h-4 w-4" />
+                        Buy with Protected Delivery
+                      </Link>
+                      <p className="text-center text-xs text-muted-foreground">
+                        Secure payment · Shiprocket delivery · 72h dispute window
+                      </p>
+                    </>
+                  )}
                 <p className="mt-2 text-center text-xs text-muted-foreground">
                   BookVerse V1 is peer-to-peer. Contact the seller on WhatsApp or make an offer to
                   arrange details directly.
@@ -449,10 +467,13 @@ function ShareBar({
         text: `Check out this book for ₹${listing.sellingPrice.toLocaleString("en-IN")} in ${listing.city} on BookVerse.`,
         url,
       });
+      // Track share and award points on successful share
+      void incrementListingShares(listing.id);
+      void awardShareReward(listing.id).catch(() => null);
     } catch (e) {
       // User cancelled or share failed — ignore
     }
-  }, [canNativeShare, listing.title, listing.sellingPrice, listing.city, url]);
+  }, [canNativeShare, listing.id, listing.title, listing.sellingPrice, listing.city, url]);
 
   const handleWhatsAppShare = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -477,20 +498,13 @@ function ShareBar({
         )}
         {copied ? "Copied" : "Copy link"}
       </button>
-      {canNativeShare && (
-        <button
-          onClick={handleNativeShare}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary"
-        >
-          <Share2 className="h-3.5 w-3.5" /> Share
-        </button>
-      )}
       <button
         type="button"
-        onClick={handleWhatsAppShare}
+        onClick={canNativeShare ? handleNativeShare : handleWhatsAppShare}
         className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:bg-secondary"
+        data-testid="share-button"
       >
-        <Share2 className="h-3.5 w-3.5" /> Share on WhatsApp
+        <Share2 className="h-3.5 w-3.5" /> Share
       </button>
       <SaveButton listingId={listing.id} variant="pill" showLabel stopPropagation={false} />
     </div>
