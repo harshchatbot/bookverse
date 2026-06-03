@@ -1,16 +1,29 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro (build-only using cloudflare as a default target),
-//     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
-//     error logger plugins, and sandbox detection (port/host/strictPort).
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
 
 const isVercel = !!process.env.VERCEL;
 
-// Firebase Admin / Google Cloud Firestore are Node packages. Let Nitro's own
-// traceDeps externalizer handle them so Vercel receives the matching node_modules
-// files; using Rollup's raw external hook skips tracing and causes module-not-found
-// errors such as missing @grpc/grpc-js at runtime.
+function patchPackageJsonType(pkgPath: string) {
+  const full = resolve(pkgPath);
+  if (!existsSync(full)) return;
+  try {
+    const pkg = JSON.parse(readFileSync(full, "utf-8"));
+    if (pkg.type === "module") {
+      pkg.type = "commonjs";
+      writeFileSync(full, JSON.stringify(pkg, null, 2));
+      console.log(`[patch] ${pkgPath} → type:commonjs`);
+    }
+  } catch {}
+}
+
+// Patch at import time (before Nitro reads node_modules)
+patchPackageJsonType("node_modules/google-auth-library/package.json");
+patchPackageJsonType("node_modules/@google-cloud/firestore/package.json");
+patchPackageJsonType("node_modules/google-gax/package.json");
+patchPackageJsonType("node_modules/gaxios/package.json");
+patchPackageJsonType("node_modules/gcp-metadata/package.json");
+
 const tracedNodePackages = [
   "firebase-admin*",
   "@google-cloud/firestore*",
@@ -23,6 +36,7 @@ const tracedNodePackages = [
   "long*",
   "@js-sdsl/ordered-map*",
   "@js-sdsl/*",
+  "gaxios*",
 ];
 
 const vercelNitro = {
@@ -30,19 +44,6 @@ const vercelNitro = {
   node: true,
   noExternals: false,
   traceDeps: tracedNodePackages,
-  externals: {
-    inline: [],
-    external: [
-      "@google-cloud/firestore",
-      "firebase-admin",
-      "google-gax",
-      "@grpc/grpc-js",
-      "google-auth-library",
-    ],
-    traceOptions: {
-      conditions: ["node", "require", "default"],
-    },
-  },
   output: {
     dir: ".vercel/output",
     serverDir: ".vercel/output/functions/__server.func",
@@ -57,5 +58,4 @@ const config = {
   ...(isVercel ? { nitro: vercelNitro } : {}),
 };
 
-// Cast: the wrapper's Nitro type omits some Nitro options used by Vercel builds.
 export default defineConfig(config as Parameters<typeof defineConfig>[0]);
