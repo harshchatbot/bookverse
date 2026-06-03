@@ -44,10 +44,23 @@ const vercelNitro = {
   node: true,
   noExternals: false,
   traceDeps: tracedNodePackages,
+  nodeModulesDirs: ["node_modules"],
+  serverAssets: [],
   output: {
     dir: ".vercel/output",
     serverDir: ".vercel/output/functions/__server.func",
     publicDir: ".vercel/output/static",
+  },
+  externals: {
+    external: [
+      "google-auth-library",
+      "@google-cloud/firestore",
+      "firebase-admin",
+      "google-gax",
+      "gaxios",
+      "gcp-metadata",
+      "googleapis",
+    ],
   },
 };
 
