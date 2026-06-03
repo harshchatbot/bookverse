@@ -1520,14 +1520,14 @@ function PayoutPreview({
       <div className="mt-3 space-y-1.5 text-sm">
         <p>Your selling price: ₹{sellingPrice.toLocaleString("en-IN")}</p>
         <p>BookVerse seller fee: ₹0</p>
-        <p>Buyer pays delivery separately for protected delivery</p>
+        <p>Buyer pays delivery separately for home delivery</p>
         <p className="font-semibold">
           Estimated payout to you: ₹{sellingPrice.toLocaleString("en-IN")}
         </p>
       </div>
       {protectedDeliveryEnabled ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          For protected delivery, buyer pays online. You only need to pack the book and hand it to
+          For home delivery, buyer pays online. You only need to pack the book and hand it to
           the courier pickup partner.
         </p>
       ) : null}

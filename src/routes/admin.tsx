@@ -243,9 +243,9 @@ function AdminDashboard() {
           {protectedDeliveryEnabled && (
             <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-card">
-                <h2 className="font-display text-base font-semibold">Protected delivery</h2>
+                <h2 className="font-display text-base font-semibold">Home delivery</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Read-only metrics from grouped protected-delivery orders.
+                  Read-only metrics from grouped home delivery orders.
                 </p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <StatCard label="Total orders" value={dashboard?.orders.totalOrders ?? 0} />
@@ -277,8 +277,8 @@ function AdminDashboard() {
               <ChartCard title="Orders by status">
                 {!dashboard || dashboard.orders.ordersByStatus.length === 0 ? (
                   <EmptyChartState
-                    title="No protected-delivery orders yet"
-                    body="Once orders begin flowing through protected delivery, lifecycle metrics will show here."
+                    title="No home delivery orders yet"
+                    body="Once orders begin flowing through home delivery, lifecycle metrics will show here."
                   />
                 ) : (
                   <GroupedBars

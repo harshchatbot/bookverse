@@ -183,7 +183,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
             <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
               <div>
                 <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                  Protected delivery is not enabled for your listings.
+                  Home delivery is not enabled for your listings.
                 </p>
                 <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
                   Add a courier pickup address in your{" "}
@@ -294,14 +294,14 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                 </div>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <StatCard
-                    label="Protected delivery earnings"
+                    label="Home delivery earnings"
                     value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
-                    hint="Paid protected-delivery orders only"
+                    hint="Paid home delivery orders only"
                   />
                   <StatCard
                     label="Seller orders"
                     value={dashboard?.totals.sellerOrderCount ?? 0}
-                    hint="Orders already captured through protected delivery"
+                    hint="Orders placed through home delivery"
                   />
                 </div>
               </section>
@@ -317,7 +317,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                 <StatCard
                   label="Total spent"
                   value={rupees(dashboard?.totals.buyerTotalSpent ?? 0)}
-                  hint="Protected-delivery orders paid through BookVerse"
+                  hint="Home delivery orders paid through BookVerse"
                 />
                 <StatCard
                   label="Discovery"

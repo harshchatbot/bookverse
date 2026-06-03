@@ -586,7 +586,7 @@ test("whatsapp self-managed flow stays usable without protected-delivery pricing
   await expect(page.getByRole("button", { name: /contact seller on whatsapp/i })).toBeVisible();
   await expect(page.getByText("Platform support fee", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Buyer delivery payable", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Protected delivery from this seller")).toHaveCount(0);
+  await expect(page.getByText("Home Delivery from this seller")).toHaveCount(0);
 
   await expect(page.getByRole("button", { name: /contact seller on whatsapp/i })).toBeEnabled();
 });
@@ -642,7 +642,7 @@ test("admin protected-delivery metrics include support fee, coupon discount, shi
   await loginPage.goto();
   await loginPage.loginWithEmail(adminUser.email, adminUser.password);
   await adminPage.goto();
-  await expect(page.getByRole("heading", { name: "Protected delivery" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Home delivery" })).toBeVisible();
 
   const ordersSnap = await db.collection("orders").where("paymentStatus", "==", "captured").get();
   const totals = ordersSnap.docs.reduce(

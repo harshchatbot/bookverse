@@ -60,7 +60,7 @@ function CheckoutPage() {
   });
   const [creatingOrders, setCreatingOrders] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [loaderMessage, setLoaderMessage] = useState("Preparing your protected delivery…");
+  const [loaderMessage, setLoaderMessage] = useState("Preparing your home delivery…");
   const [loaderProgress, setLoaderProgress] = useState<number | undefined>(undefined);
   const [createdGroups, setCreatedGroups] = useState<CreatedProtectedDeliveryGroup[]>([]);
   const [paymentStates, setPaymentStates] = useState<Record<string, GroupPaymentState>>({});
@@ -136,7 +136,7 @@ function CheckoutPage() {
     }
 
     setCreatingOrders(true);
-    setLoaderMessage("Calculating one protected-delivery parcel per seller…");
+    setLoaderMessage("Calculating delivery charges per seller…");
     setLoaderProgress(20);
 
     try {
@@ -166,14 +166,14 @@ function CheckoutPage() {
       setLoaderProgress(100);
       toast.success(
         response.groups.length === 1
-          ? "Protected delivery parcel is ready for payment."
+          ? "Home delivery is ready for payment."
           : `${response.groups.length} seller groups are ready for payment.`,
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Could not prepare checkout.";
       if (errorMessage.toLowerCase().includes("pickup address")) {
         toast.error(
-          "Protected delivery is unavailable for one or more items because the seller has not added a pickup address yet. You can contact the seller via WhatsApp instead.",
+          "Home delivery is unavailable for one or more items — the seller hasn't added a pickup address yet. You can contact them on WhatsApp instead.",
         );
       } else {
         toast.error(errorMessage);
@@ -213,7 +213,7 @@ function CheckoutPage() {
         amount: group.amount,
         currency: group.currency,
         name: "BookVerse",
-        description: `Protected delivery from ${group.sellerName}`,
+        description: `Home delivery from ${group.sellerName}`,
         order_id: group.razorpayOrderId,
         prefill: {
           name: group.buyerName,
@@ -281,7 +281,7 @@ function CheckoutPage() {
     } finally {
       setProcessing(false);
       setLoaderProgress(undefined);
-      setLoaderMessage("Preparing your protected delivery…");
+      setLoaderMessage("Preparing your home delivery…");
     }
   };
 
@@ -296,7 +296,7 @@ function CheckoutPage() {
   if (access.loading || selectedListingsQuery.isLoading) {
     return (
       <AppPageShell>
-        <PageSpinner label="Preparing protected delivery…" />
+        <PageSpinner label="Preparing home delivery…" />
       </AppPageShell>
     );
   }
@@ -315,7 +315,7 @@ function CheckoutPage() {
             <PackageCheck className="mx-auto h-10 w-10 text-muted-foreground" />
             <h1 className="mt-4 font-display text-2xl font-bold">No books selected</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Choose one or more books first, then come back here for protected delivery.
+              Choose one or more books first, then come back here for home delivery.
             </p>
           </div>
         </div>
@@ -333,7 +333,7 @@ function CheckoutPage() {
     <AppPageShell>
       <FullScreenLoader
         open={creatingOrders || processing}
-        title="Protected delivery in progress…"
+        title="Home delivery in progress…"
         message={loaderMessage}
         progress={loaderProgress}
       />
@@ -355,12 +355,12 @@ function CheckoutPage() {
                 </div>
                 <div>
                   <h1 className="font-display text-2xl font-bold tracking-tight">
-                    Protected delivery checkout
+                    Home Delivery Checkout
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground">
                     We calculate delivery once for the combined parcel from each seller. If your
                     selected books come from different sellers, they will be split into separate
-                    protected-delivery groups with separate shipping charges.
+                    home delivery groups with separate shipping charges.
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     A small ₹1 platform support fee helps us keep BookVerse safe, verified, and
@@ -438,7 +438,7 @@ function CheckoutPage() {
                           </button>
                         ) : (
                           <span className="text-[11px] text-muted-foreground">
-                            Earn 100 points to redeem FREEDEL50 for protected delivery.
+                            Earn 50 points to redeem FREEDEL50 for free home delivery.
                           </span>
                         )}
                       </div>

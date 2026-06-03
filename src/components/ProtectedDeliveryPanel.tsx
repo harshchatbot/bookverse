@@ -56,7 +56,7 @@ export function ProtectedDeliveryPanel({
 
   const continueToCheckout = () => {
     if (selectedIds.length === 0) {
-      toast.error("Select at least one book for protected delivery.");
+      toast.error("Select at least one book for home delivery.");
       return;
     }
 
@@ -75,11 +75,8 @@ export function ProtectedDeliveryPanel({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-lg font-bold tracking-tight">
-              Protected delivery from this seller
+              Home Delivery from this seller
             </h2>
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-              Hidden beta
-            </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Delivery charges are calculated once for the combined parcel from this seller.
@@ -93,7 +90,7 @@ export function ProtectedDeliveryPanel({
             <p className="text-sm font-semibold">Select books for one parcel</p>
             <p className="text-xs text-muted-foreground">
               Add more books from the same seller now. Different sellers are split into separate
-              protected-delivery groups later.
+              home delivery groups later.
             </p>
           </div>
           <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
@@ -105,7 +102,7 @@ export function ProtectedDeliveryPanel({
           {sellerListingsQuery.isLoading ? (
             <div className="flex items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading seller books for protected delivery…
+              Loading seller books for home delivery…
             </div>
           ) : (
             sellerListings.map((item) => {
@@ -158,7 +155,7 @@ export function ProtectedDeliveryPanel({
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition hover:opacity-90"
         >
           <Truck className="h-4 w-4" />
-          Continue to protected delivery
+          Continue to Home Delivery
         </button>
       </div>
     </section>
