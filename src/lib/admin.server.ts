@@ -1,5 +1,6 @@
 // Server-only Firebase Admin access. Never import Firebase Admin at module scope:
 // Vercel/Nitro may otherwise bundle google-gax as ESM and crash on __dirname.
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 type AdminApp = unknown;
 type JsonMap = Record<string, unknown>;
@@ -175,8 +176,29 @@ export async function verifyIdToken(authHeader: string | null | undefined) {
   }
   const token = authHeader.slice("Bearer ".length).trim();
   try {
-    const decoded = await (await adminAuth()).verifyIdToken(token);
-    return decoded;
+    const JWKS = createRemoteJWKSet(
+      new URL(
+        "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
+      ),
+    );
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID ??
+      (() => {
+        try {
+          return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? "{}").project_id;
+        } catch {
+          return "";
+        }
+      })();
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    return {
+      uid: payload.sub as string,
+      email: payload.email as string | undefined,
+      ...payload,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Response(JSON.stringify({ error: "Invalid token", debug: msg }), {
