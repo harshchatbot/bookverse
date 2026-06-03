@@ -1,15 +1,31 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
+import { resolve, join } from "path";
 
-const target = resolve(
-  "node_modules/@google-cloud/firestore/build/src/v1/firestore_client_config.json",
-);
-
-if (existsSync(target)) {
-  const content = readFileSync(target, "utf-8");
-  const jsPath = target.replace(".json", ".js");
-  if (!existsSync(jsPath)) {
-    writeFileSync(jsPath, `export default ${content};\n`);
-    console.log("[patch-firestore] wrote firestore_client_config.js");
+function patchJson(filePath) {
+  const fullPath = resolve(filePath);
+  if (!existsSync(fullPath)) {
+    console.log(`[patch] skipping (not found): ${filePath}`);
+    return;
+  }
+  const content = readFileSync(fullPath, "utf-8");
+  try {
+    JSON.parse(content);
+  } catch {
+    console.log(`[patch] skipping (invalid JSON): ${filePath}`);
+    return;
+  }
+  // Add type: commonjs to package.json files to prevent ESM JSON import issues
+  const parsed = JSON.parse(content);
+  if (parsed.type === "module") {
+    parsed.type = "commonjs";
+    writeFileSync(fullPath, JSON.stringify(parsed, null, 2));
+    console.log(`[patch] set type:commonjs in ${filePath}`);
   }
 }
+
+// Patch google-auth-library package.json
+patchJson("node_modules/google-auth-library/package.json");
+patchJson("node_modules/@google-cloud/firestore/package.json");
+patchJson("node_modules/google-gax/package.json");
+patchJson("node_modules/gaxios/package.json");
+patchJson("node_modules/gcp-metadata/package.json");
