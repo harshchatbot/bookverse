@@ -225,13 +225,24 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
     rewardMetrics,
   ] = await Promise.all([
     getUserProfile(uid),
-    getMyListings(uid),
-    getWishlistIds(uid),
-    getOffersForBuyer(uid),
-    getOffersForSeller(uid),
-    getInquiriesForSeller(uid),
-    getUserOrderMetrics({ data: { uid } }),
-    getUserRewardsMetrics({ data: { uid } }),
+    getMyListings(uid).catch(() => []),
+    getWishlistIds(uid).catch(() => []),
+    getOffersForBuyer(uid).catch(() => []),
+    getOffersForSeller(uid).catch(() => []),
+    getInquiriesForSeller(uid).catch(() => []),
+    getUserOrderMetrics({ data: { uid } }).catch(() => ({
+      sellerEarnings: 0,
+      sellerOrderCount: 0,
+      buyerTotalSpent: 0,
+    })),
+    getUserRewardsMetrics({ data: { uid } }).catch(() => ({
+      availablePoints: 0,
+      lifetimePoints: 0,
+      badges: [],
+      referralCode: "",
+      availableCoupons: [],
+      history: [],
+    })),
   ]);
 
   if (
@@ -243,21 +254,23 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
     throw new Error("Complete your profile to unlock your dashboard.");
   }
 
+  const safeListings = Array.isArray(listings) ? listings : [];
+
   const listingStatus = [
-    { label: "Pending", value: listings.filter((listing) => listing.status === "pending").length },
+    { label: "Pending", value: safeListings.filter((listing) => listing.status === "pending").length },
     {
       label: "Approved",
-      value: listings.filter((listing) => listing.status === "approved").length,
+      value: safeListings.filter((listing) => listing.status === "approved").length,
     },
     {
       label: "Rejected",
-      value: listings.filter((listing) => listing.status === "rejected").length,
+      value: safeListings.filter((listing) => listing.status === "rejected").length,
     },
-    { label: "Sold", value: listings.filter((listing) => listing.status === "sold").length },
+    { label: "Sold", value: safeListings.filter((listing) => listing.status === "sold").length },
   ];
 
   const activitySummary = lastNDays(7);
-  listings.forEach((listing) => incrementDay(activitySummary, "listings", listing.createdAt));
+  safeListings.forEach((listing) => incrementDay(activitySummary, "listings", listing.createdAt));
   [...offersMade, ...offersReceived].forEach((offer) =>
     incrementDay(activitySummary, "offers", offer.createdAt),
   );
@@ -267,7 +280,7 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
 
   return {
     totals: {
-      totalListings: listings.length,
+      totalListings: safeListings.length,
       pendingListings: listingStatus[0].value,
       approvedListings: listingStatus[1].value,
       rejectedListings: listingStatus[2].value,
@@ -276,8 +289,8 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
       offersMade: offersMade.length,
       offersReceived: offersReceived.length,
       inquiriesReceived: inquiriesReceived.length,
-      totalViews: listings.reduce((sum, listing) => sum + (listing.views ?? 0), 0),
-      totalShares: listings.reduce((sum, listing) => sum + (listing.shares ?? 0), 0),
+      totalViews: safeListings.reduce((sum, listing) => sum + (listing.views ?? 0), 0),
+      totalShares: safeListings.reduce((sum, listing) => sum + (listing.shares ?? 0), 0),
       sellerEarnings: orderMetrics.sellerEarnings ?? 0,
       sellerOrderCount: orderMetrics.sellerOrderCount ?? 0,
       buyerTotalSpent: orderMetrics.buyerTotalSpent ?? 0,
@@ -291,7 +304,7 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
       history: rewardMetrics.history ?? [],
     },
     listingStatus,
-    categoryBreakdown: toCountMap(listings.map((listing: Listing) => listing.category)),
+    categoryBreakdown: toCountMap(safeListings.map((listing: Listing) => listing.category)),
     activitySummary,
   };
 }

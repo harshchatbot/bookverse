@@ -140,7 +140,10 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
       : "";
 
   const copyReferralLink = async () => {
-    if (!referralLink) return;
+    if (!referralLink) {
+      toast.error("Referral link not available yet — try refreshing.");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(referralLink);
       toast.success("Referral link copied!");
