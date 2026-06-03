@@ -251,53 +251,37 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   label="Spend"
                   value={rupees(dashboard?.totals.buyerTotalSpent ?? 0)}
                 />
+                {(dashboard?.totals.sellerEarnings ?? 0) > 0 && (
+                  <HeroStat
+                    icon={<Wallet className="h-4 w-4" />}
+                    label="Earnings"
+                    value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
+                  />
+                )}
               </div>
             </div>
           </section>
 
-          <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {isLoading || !dashboard ? (
-              Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="h-32 animate-pulse rounded-2xl bg-secondary" />
-              ))
-            ) : (
-              <>
-                <StatCard label="My total listings" value={dashboard.totals.totalListings} />
-                <StatCard label="Pending listings" value={dashboard.totals.pendingListings} />
-                <StatCard label="Approved listings" value={dashboard.totals.approvedListings} />
-                <StatCard label="Rejected listings" value={dashboard.totals.rejectedListings} />
-                <StatCard label="Sold listings" value={dashboard.totals.soldListings} />
-                <StatCard label="Views" value={dashboard.totals.totalViews} />
-                <StatCard label="Shares" value={dashboard.totals.totalShares} />
-                <StatCard label="Wishlist count" value={dashboard.totals.wishlistCount} />
-                <StatCard label="Offers made" value={dashboard.totals.offersMade} />
-                <StatCard label="Offers received" value={dashboard.totals.offersReceived} />
-              </>
-            )}
-          </section>
-
-          <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Inquiries received"
+              label="WhatsApp inquiries"
               value={dashboard?.totals.inquiriesReceived ?? 0}
-              hint="WhatsApp contact attempts on your listings"
+              hint="Buyers who contacted you on WhatsApp"
             />
             <StatCard
-              label="Live marketplace items"
+              label="Books live"
               value={dashboard?.totals.approvedListings ?? 0}
               hint="Currently visible to buyers"
             />
             <StatCard
-              label="Listings in review"
+              label="Pending approval"
               value={dashboard?.totals.pendingListings ?? 0}
-              hint="Waiting for admin approval"
+              hint="Waiting for admin review"
             />
             <StatCard
-              label="Closed activity"
-              value={
-                (dashboard?.totals.rejectedListings ?? 0) + (dashboard?.totals.soldListings ?? 0)
-              }
-              hint="Rejected or sold listings"
+              label="Total views"
+              value={dashboard?.totals.totalViews ?? 0}
+              hint="Views across all your listings"
             />
           </section>
 
