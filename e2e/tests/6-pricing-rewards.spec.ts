@@ -270,7 +270,7 @@ test("protected delivery checkout groups same-seller books with one delivery fee
 
   await page.goto(`/checkout?ids=${listingIdOne},${listingIdTwo}`);
   await page.waitForLoadState("domcontentloaded");
-  await page.getByRole("button", { name: /calculate protected-delivery groups/i }).click();
+  await page.getByRole("button", { name: /confirm & calculate delivery/i }).click();
 
   await expect(page.getByText("Same Seller Book One")).toBeVisible();
   await expect(page.getByText("Platform support fee", { exact: true })).toBeVisible();
@@ -381,7 +381,7 @@ test("protected delivery checkout splits different sellers into separate groups"
 
     await page.goto(`/checkout?ids=${listingIdOne},${listingIdTwo}`);
     await page.waitForLoadState("domcontentloaded");
-    await page.getByRole("button", { name: /calculate protected-delivery groups/i }).click();
+    await page.getByRole("button", { name: /confirm & calculate delivery/i }).click();
 
     await expect(page.getByText("Seller One", { exact: true })).toBeVisible();
     await expect(page.getByText("Seller Two", { exact: true })).toBeVisible();

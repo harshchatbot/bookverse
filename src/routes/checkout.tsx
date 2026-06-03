@@ -551,7 +551,7 @@ function CheckoutPage() {
                 ) : (
                   <Truck className="h-4 w-4" />
                 )}
-                Calculate protected-delivery groups
+                Confirm & Calculate Delivery
               </button>
               <p className="mt-3 text-xs text-muted-foreground">
                 Delivery is calculated once for the combined parcel from each seller. Each seller

@@ -351,10 +351,10 @@ function BookDetail() {
                         data-testid="buy-protected-delivery-btn"
                       >
                         <Package className="h-4 w-4" />
-                        Buy with Protected Delivery
+                        Buy with Home Delivery
                       </Link>
                       <p className="text-center text-xs text-muted-foreground">
-                        Secure payment · Shiprocket delivery · 72h dispute window
+                        Secure payment · Delivered to your door · 72h return window
                       </p>
                     </>
                   )}
