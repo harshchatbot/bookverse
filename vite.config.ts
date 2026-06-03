@@ -30,6 +30,19 @@ const vercelNitro = {
   node: true,
   noExternals: false,
   traceDeps: tracedNodePackages,
+  externals: {
+    inline: [],
+    external: [
+      "@google-cloud/firestore",
+      "firebase-admin",
+      "google-gax",
+      "@grpc/grpc-js",
+      "google-auth-library",
+    ],
+    traceOptions: {
+      conditions: ["node", "require", "default"],
+    },
+  },
   output: {
     dir: ".vercel/output",
     serverDir: ".vercel/output/functions/__server.func",
