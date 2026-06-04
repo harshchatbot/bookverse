@@ -32,6 +32,67 @@ export interface FulfillmentResult {
   error?: string;
 }
 
+interface PickupAddressLike {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  location?: string | null;
+}
+
+interface ShippingAddressLike {
+  name: string;
+  phone: string;
+  email: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+interface ParcelDimensionsLike {
+  lengthCm?: number;
+  breadthCm?: number;
+  heightCm?: number;
+}
+
+function isPickupAddressLike(value: unknown): value is PickupAddressLike {
+  if (!value || typeof value !== "object") return false;
+  const pickup = value as Record<string, unknown>;
+  return (
+    typeof pickup.name === "string" &&
+    typeof pickup.phone === "string" &&
+    typeof pickup.address === "string" &&
+    typeof pickup.city === "string" &&
+    typeof pickup.state === "string" &&
+    typeof pickup.pincode === "string"
+  );
+}
+
+function isShippingAddressLike(value: unknown): value is ShippingAddressLike {
+  if (!value || typeof value !== "object") return false;
+  const address = value as Record<string, unknown>;
+  return (
+    typeof address.name === "string" &&
+    typeof address.phone === "string" &&
+    typeof address.email === "string" &&
+    typeof address.address1 === "string" &&
+    typeof address.address2 === "string" &&
+    typeof address.city === "string" &&
+    typeof address.state === "string" &&
+    typeof address.pincode === "string" &&
+    typeof address.country === "string"
+  );
+}
+
+function isParcelDimensionsLike(value: unknown): value is ParcelDimensionsLike {
+  return !!value && typeof value === "object";
+}
+
 function getShiprocketMode() {
   return (process.env.SHIPROCKET_MODE ?? "").trim().toLowerCase();
 }
@@ -62,14 +123,17 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   const orderSnap = await orderRef.get();
   if (!orderSnap.exists) return { ok: false, reachedStep: null, error: "Order not found" };
   const order = orderSnap.data()!;
+  const orderStatus = typeof order.status === "string" ? order.status : "";
+  const sellerUid = typeof order.sellerUid === "string" ? order.sellerUid : "";
 
   // Must have a captured payment.
-  if (!["paid", "shipment_created", "pickup_scheduled"].includes(order.status)) {
-    return { ok: false, reachedStep: null, error: `Cannot fulfill from status ${order.status}` };
+  if (!["paid", "shipment_created", "pickup_scheduled"].includes(orderStatus)) {
+    return { ok: false, reachedStep: null, error: `Cannot fulfill from status ${orderStatus}` };
   }
 
-  const sellerProfileSnap = await db.collection("profiles").doc(order.sellerUid).get();
-  const pickup = sellerProfileSnap.exists ? sellerProfileSnap.data()?.pickupAddress : null;
+  const sellerProfileSnap = await db.collection("profiles").doc(sellerUid).get();
+  const pickupCandidate = sellerProfileSnap.exists ? sellerProfileSnap.data()?.pickupAddress : null;
+  const pickup = isPickupAddressLike(pickupCandidate) ? pickupCandidate : null;
   if (!pickup) {
     return { ok: false, reachedStep: null, error: "Seller pickup address missing" };
   }
@@ -78,13 +142,24 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   if (items.length === 0) {
     return { ok: false, reachedStep: null, error: "Order items missing" };
   }
+  const buyerAddress = isShippingAddressLike(order.shippingAddress) ? order.shippingAddress : null;
+  if (!buyerAddress) {
+    return { ok: false, reachedStep: null, error: "Buyer shipping address missing" };
+  }
+  const parcelDimensions = isParcelDimensionsLike(order.parcelDimensions)
+    ? order.parcelDimensions
+    : null;
+  const shippingFee = typeof order.shippingFee === "number" ? order.shippingFee : 0;
+  const totalWeightKg = typeof order.totalWeightKg === "number" ? order.totalWeightKg : null;
+  const subtotal = typeof order.subtotal === "number" ? order.subtotal : null;
+  const courierId = typeof order.courierId === "number" ? order.courierId : undefined;
 
   if (!shouldCreateLiveShiprocketOrder()) {
     const now = new Date().toISOString();
     const shiprocketMode = getShiprocketMode();
     const fulfillmentState = "SHIPROCKET_SKIPPED";
     await orderRef.update({
-      status: order.status === "paid" ? "paid" : order.status,
+      status: orderStatus === "paid" ? "paid" : orderStatus,
       shipmentStatus: fulfillmentState,
       shiprocketOrderId: null,
       shiprocketShipmentId: null,
@@ -125,28 +200,24 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         pincode: pickup.pincode,
         location: pickup.location ?? "Primary",
       },
-      buyer: order.shippingAddress,
+      buyer: buyerAddress,
       items: items.map((item) => ({
         name: item.title,
         sku: item.listingId,
         unitsPriceInr: item.price,
         quantity: item.quantity,
       })),
-      weightKg:
-        typeof order.totalWeightKg === "number" ? order.totalWeightKg : getOrderTotalWeight(items),
-      parcel:
-        order.parcelDimensions && typeof order.parcelDimensions === "object"
-          ? {
-              lengthCm: Number(order.parcelDimensions.lengthCm ?? 22),
-              breadthCm: Number(order.parcelDimensions.breadthCm ?? 16),
-              heightCm: Number(order.parcelDimensions.heightCm ?? 4),
-            }
-          : estimateParcelDimensions(items.length),
+      weightKg: totalWeightKg ?? getOrderTotalWeight(items),
+      parcel: parcelDimensions
+        ? {
+            lengthCm: Number(parcelDimensions.lengthCm ?? 22),
+            breadthCm: Number(parcelDimensions.breadthCm ?? 16),
+            heightCm: Number(parcelDimensions.heightCm ?? 4),
+          }
+        : estimateParcelDimensions(items.length),
       paymentMethod: "Prepaid",
       subtotalInr:
-        typeof order.subtotal === "number"
-          ? order.subtotal + order.shippingFee
-          : getOrderItemsSubtotal(items) + order.shippingFee,
+        subtotal !== null ? subtotal + shippingFee : getOrderItemsSubtotal(items) + shippingFee,
     };
     try {
       const sr = await createShiprocketOrder(input);
@@ -192,7 +263,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
     try {
       const res = await assignAwb({
         shipmentId,
-        courierId: order.courierId ?? undefined,
+        courierId,
       });
       awb = res.awb;
       const trackingUrl = `https://shiprocket.co/tracking/${encodeURIComponent(res.awb)}`;
@@ -230,7 +301,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   }
 
   // ---- Step 3: request pickup ----
-  if (order.status !== "pickup_scheduled" && shipmentId) {
+  if (orderStatus !== "pickup_scheduled" && shipmentId) {
     try {
       const pr = await generatePickup(shipmentId);
       const shipUpdate: Record<string, unknown> = {

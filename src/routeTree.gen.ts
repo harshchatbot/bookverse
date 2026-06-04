@@ -38,6 +38,7 @@ import { Route as ApiSellerRejectOrderRouteImport } from './routes/api/seller/re
 import { Route as ApiRewardsSummaryRouteImport } from './routes/api/rewards/summary'
 import { Route as ApiRewardsShareRouteImport } from './routes/api/rewards/share'
 import { Route as ApiRewardsRedeemRouteImport } from './routes/api/rewards/redeem'
+import { Route as ApiDashboardOrderMetricsRouteImport } from './routes/api/dashboard/order-metrics'
 import { Route as ApiCheckoutVerifyRouteImport } from './routes/api/checkout/verify'
 import { Route as ApiCheckoutCreateOrderRouteImport } from './routes/api/checkout/create-order'
 import { Route as ApiAdminShipmentStatusRouteImport } from './routes/api/admin/shipment-status'
@@ -47,6 +48,7 @@ import { Route as ApiAdminReconcileRouteImport } from './routes/api/admin/reconc
 import { Route as ApiAdminPayoutPaidRouteImport } from './routes/api/admin/payout-paid'
 import { Route as ApiAdminListingDecisionRouteImport } from './routes/api/admin/listing-decision'
 import { Route as ApiAdminDisputeResolveRouteImport } from './routes/api/admin/dispute-resolve'
+import { Route as ApiAdminDashboardOrdersRouteImport } from './routes/api/admin/dashboard-orders'
 import { Route as ApiPublicShiprocketWebhookRouteImport } from './routes/api/public/shiprocket/webhook'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay/webhook'
 import { Route as ApiPublicCronReconcileRouteImport } from './routes/api/public/cron/reconcile'
@@ -196,6 +198,12 @@ const ApiRewardsRedeemRoute = ApiRewardsRedeemRouteImport.update({
   path: '/api/rewards/redeem',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDashboardOrderMetricsRoute =
+  ApiDashboardOrderMetricsRouteImport.update({
+    id: '/api/dashboard/order-metrics',
+    path: '/api/dashboard/order-metrics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCheckoutVerifyRoute = ApiCheckoutVerifyRouteImport.update({
   id: '/api/checkout/verify',
   path: '/api/checkout/verify',
@@ -241,6 +249,11 @@ const ApiAdminDisputeResolveRoute = ApiAdminDisputeResolveRouteImport.update({
   path: '/api/admin/dispute-resolve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminDashboardOrdersRoute = ApiAdminDashboardOrdersRouteImport.update({
+  id: '/api/admin/dashboard-orders',
+  path: '/api/admin/dashboard-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicShiprocketWebhookRoute =
   ApiPublicShiprocketWebhookRouteImport.update({
     id: '/api/public/shiprocket/webhook',
@@ -284,6 +297,7 @@ export interface FileRoutesByFullPath {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
@@ -293,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/dashboard/order-metrics': typeof ApiDashboardOrderMetricsRoute
   '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
   '/api/rewards/share': typeof ApiRewardsShareRoute
   '/api/rewards/summary': typeof ApiRewardsSummaryRoute
@@ -327,6 +342,7 @@ export interface FileRoutesByTo {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
@@ -336,6 +352,7 @@ export interface FileRoutesByTo {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/dashboard/order-metrics': typeof ApiDashboardOrderMetricsRoute
   '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
   '/api/rewards/share': typeof ApiRewardsShareRoute
   '/api/rewards/summary': typeof ApiRewardsSummaryRoute
@@ -371,6 +388,7 @@ export interface FileRoutesById {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
   '/api/admin/payout-paid': typeof ApiAdminPayoutPaidRoute
@@ -380,6 +398,7 @@ export interface FileRoutesById {
   '/api/admin/shipment-status': typeof ApiAdminShipmentStatusRoute
   '/api/checkout/create-order': typeof ApiCheckoutCreateOrderRoute
   '/api/checkout/verify': typeof ApiCheckoutVerifyRoute
+  '/api/dashboard/order-metrics': typeof ApiDashboardOrderMetricsRoute
   '/api/rewards/redeem': typeof ApiRewardsRedeemRoute
   '/api/rewards/share': typeof ApiRewardsShareRoute
   '/api/rewards/summary': typeof ApiRewardsSummaryRoute
@@ -416,6 +435,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
@@ -425,6 +445,7 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/dashboard/order-metrics'
     | '/api/rewards/redeem'
     | '/api/rewards/share'
     | '/api/rewards/summary'
@@ -459,6 +480,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
@@ -468,6 +490,7 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/dashboard/order-metrics'
     | '/api/rewards/redeem'
     | '/api/rewards/share'
     | '/api/rewards/summary'
@@ -502,6 +525,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
     | '/api/admin/payout-paid'
@@ -511,6 +535,7 @@ export interface FileRouteTypes {
     | '/api/admin/shipment-status'
     | '/api/checkout/create-order'
     | '/api/checkout/verify'
+    | '/api/dashboard/order-metrics'
     | '/api/rewards/redeem'
     | '/api/rewards/share'
     | '/api/rewards/summary'
@@ -545,6 +570,7 @@ export interface RootRouteChildren {
   BookIdRoute: typeof BookIdRoute
   OrderIdRoute: typeof OrderIdRoute
   SellerUidRoute: typeof SellerUidRoute
+  ApiAdminDashboardOrdersRoute: typeof ApiAdminDashboardOrdersRoute
   ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
   ApiAdminListingDecisionRoute: typeof ApiAdminListingDecisionRoute
   ApiAdminPayoutPaidRoute: typeof ApiAdminPayoutPaidRoute
@@ -554,6 +580,7 @@ export interface RootRouteChildren {
   ApiAdminShipmentStatusRoute: typeof ApiAdminShipmentStatusRoute
   ApiCheckoutCreateOrderRoute: typeof ApiCheckoutCreateOrderRoute
   ApiCheckoutVerifyRoute: typeof ApiCheckoutVerifyRoute
+  ApiDashboardOrderMetricsRoute: typeof ApiDashboardOrderMetricsRoute
   ApiRewardsRedeemRoute: typeof ApiRewardsRedeemRoute
   ApiRewardsShareRoute: typeof ApiRewardsShareRoute
   ApiRewardsSummaryRoute: typeof ApiRewardsSummaryRoute
@@ -769,6 +796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRewardsRedeemRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/dashboard/order-metrics': {
+      id: '/api/dashboard/order-metrics'
+      path: '/api/dashboard/order-metrics'
+      fullPath: '/api/dashboard/order-metrics'
+      preLoaderRoute: typeof ApiDashboardOrderMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/checkout/verify': {
       id: '/api/checkout/verify'
       path: '/api/checkout/verify'
@@ -832,6 +866,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminDisputeResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/dashboard-orders': {
+      id: '/api/admin/dashboard-orders'
+      path: '/api/admin/dashboard-orders'
+      fullPath: '/api/admin/dashboard-orders'
+      preLoaderRoute: typeof ApiAdminDashboardOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/shiprocket/webhook': {
       id: '/api/public/shiprocket/webhook'
       path: '/api/public/shiprocket/webhook'
@@ -892,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookIdRoute: BookIdRoute,
   OrderIdRoute: OrderIdRoute,
   SellerUidRoute: SellerUidRoute,
+  ApiAdminDashboardOrdersRoute: ApiAdminDashboardOrdersRoute,
   ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,
   ApiAdminListingDecisionRoute: ApiAdminListingDecisionRoute,
   ApiAdminPayoutPaidRoute: ApiAdminPayoutPaidRoute,
@@ -901,6 +943,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminShipmentStatusRoute: ApiAdminShipmentStatusRoute,
   ApiCheckoutCreateOrderRoute: ApiCheckoutCreateOrderRoute,
   ApiCheckoutVerifyRoute: ApiCheckoutVerifyRoute,
+  ApiDashboardOrderMetricsRoute: ApiDashboardOrderMetricsRoute,
   ApiRewardsRedeemRoute: ApiRewardsRedeemRoute,
   ApiRewardsShareRoute: ApiRewardsShareRoute,
   ApiRewardsSummaryRoute: ApiRewardsSummaryRoute,

@@ -1,12 +1,16 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { getMyListings } from "./listings";
 import { getUserProfile, isProfileCompleted } from "./users";
 import { getWishlistIds } from "./wishlist";
 import { getOffersForBuyer, getOffersForSeller } from "./offers";
 import { getInquiriesForSeller } from "./inquiries";
 import type { Listing } from "./types";
-import type { RewardEventRecord, RewardBadge, UserCouponRecord } from "./rewards";
+import {
+  getRewardsSummary,
+  type RewardEventRecord,
+  type RewardBadge,
+  type UserCouponRecord,
+} from "./rewards";
+import { apiFetch } from "./api-client";
 
 export interface DashboardStat {
   label: string;
@@ -123,95 +127,21 @@ function toCountMap(values: string[]): DashboardStat[] {
     .sort((a, b) => b.value - a.value);
 }
 
-function isPaidOrder(data: Record<string, unknown>) {
-  const paymentStatus = typeof data.paymentStatus === "string" ? data.paymentStatus : "";
-  const status = typeof data.status === "string" ? data.status : "";
-
-  return (
-    paymentStatus === "paid" ||
-    paymentStatus === "captured" ||
-    [
-      "paid",
-      "shipment_created",
-      "pickup_scheduled",
-      "in_transit",
-      "dispute_window",
-      "completed",
-    ].includes(status)
-  );
+async function getUserOrderMetrics(): Promise<UserOrderMetrics> {
+  return apiFetch<UserOrderMetrics>("/api/dashboard/order-metrics", { method: "GET" });
 }
 
-export const getUserOrderMetrics = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ uid: z.string().min(1) }))
-  .handler(async ({ data }): Promise<UserOrderMetrics> => {
-    try {
-      const { adminKit } = await import("./admin.server");
-      const { db } = await adminKit();
-
-      const [sellerOrdersSnap, buyerOrdersSnap] = await Promise.all([
-        db.collection("orders").where("sellerUid", "==", data.uid).get(),
-        db.collection("orders").where("buyerUid", "==", data.uid).get(),
-      ]);
-
-      const sellerOrders = sellerOrdersSnap.docs
-        .map((docSnap) => docSnap.data() as Record<string, unknown>)
-        .filter(isPaidOrder);
-      const buyerOrders = buyerOrdersSnap.docs
-        .map((docSnap) => docSnap.data() as Record<string, unknown>)
-        .filter(isPaidOrder);
-
-      return {
-        sellerEarnings: sellerOrders.reduce((sum, order) => {
-          const value =
-            typeof order.sellerAmount === "number"
-              ? order.sellerAmount
-              : typeof order.subtotal === "number"
-                ? order.subtotal
-                : 0;
-          return sum + value;
-        }, 0),
-        sellerOrderCount: sellerOrders.length,
-        buyerTotalSpent: buyerOrders.reduce((sum, order) => {
-          const value = typeof order.totalAmount === "number" ? order.totalAmount : 0;
-          return sum + value;
-        }, 0),
-      };
-    } catch (error) {
-      console.error("[dashboard] order metrics unavailable", error);
-      return {
-        sellerEarnings: 0,
-        sellerOrderCount: 0,
-        buyerTotalSpent: 0,
-      };
-    }
-  });
-
-export const getUserRewardsMetrics = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ uid: z.string().min(1) }))
-  .handler(async ({ data }): Promise<UserRewardsMetrics> => {
-    try {
-      const { getRewardsSummaryForUser } = await import("./rewards.server");
-      const summary = await getRewardsSummaryForUser(data.uid);
-      return {
-        availablePoints: summary.rewards.availablePoints,
-        lifetimePoints: summary.rewards.lifetimePoints,
-        badges: summary.rewards.badges,
-        referralCode: summary.rewards.referralCode,
-        availableCoupons: summary.availableCoupons,
-        history: summary.history,
-      };
-    } catch (error) {
-      console.error("[dashboard] reward metrics unavailable", error);
-      return {
-        availablePoints: 0,
-        lifetimePoints: 0,
-        badges: [],
-        referralCode: "",
-        availableCoupons: [],
-        history: [],
-      };
-    }
-  });
+async function getUserRewardsMetrics(): Promise<UserRewardsMetrics> {
+  const summary = await getRewardsSummary();
+  return {
+    availablePoints: summary.rewards.availablePoints,
+    lifetimePoints: summary.rewards.lifetimePoints,
+    badges: summary.rewards.badges,
+    referralCode: summary.rewards.referralCode,
+    availableCoupons: summary.availableCoupons,
+    history: summary.history,
+  };
+}
 
 export async function getUserDashboard(uid: string): Promise<UserDashboardData> {
   const [
@@ -230,12 +160,12 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
     getOffersForBuyer(uid).catch(() => []),
     getOffersForSeller(uid).catch(() => []),
     getInquiriesForSeller(uid).catch(() => []),
-    getUserOrderMetrics({ data: { uid } }).catch(() => ({
+    getUserOrderMetrics().catch(() => ({
       sellerEarnings: 0,
       sellerOrderCount: 0,
       buyerTotalSpent: 0,
     })),
-    getUserRewardsMetrics({ data: { uid } }).catch(() => ({
+    getUserRewardsMetrics().catch(() => ({
       availablePoints: 0,
       lifetimePoints: 0,
       badges: [],
@@ -257,7 +187,10 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
   const safeListings = Array.isArray(listings) ? listings : [];
 
   const listingStatus = [
-    { label: "Pending", value: safeListings.filter((listing) => listing.status === "pending").length },
+    {
+      label: "Pending",
+      value: safeListings.filter((listing) => listing.status === "pending").length,
+    },
     {
       label: "Approved",
       value: safeListings.filter((listing) => listing.status === "approved").length,

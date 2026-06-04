@@ -136,6 +136,9 @@ async function init(): Promise<AdminApp> {
         private_key: privateKey,
       };
     }
+    if (!parsed) {
+      throw new Error("Firebase Admin credentials could not be resolved.");
+    }
     // Normalise \n in private_key when pasted as a single line.
     const privateKey = parsed.private_key.replace(/\\n/g, "\n");
     return initializeApp({
