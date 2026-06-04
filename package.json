@@ -13,6 +13,8 @@
     "next:dev": "next dev",
     "next:build": "next build",
     "next:start": "next start",
+    "api:dev": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "api:test": "cd backend && pytest",
     "lint": "eslint .",
     "format": "prettier --write .",
     "cleanup:books-pii": "node scripts/cleanup-books-pii.mjs",

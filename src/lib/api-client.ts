@@ -1,5 +1,46 @@
 // Tiny client helper that attaches the Firebase ID token automatically.
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/integrations/firebase/client";
+
+const viteEnv =
+  typeof import.meta !== "undefined" && import.meta.env
+    ? (import.meta.env as Record<string, string | undefined>)
+    : undefined;
+const apiBaseUrl = viteEnv?.VITE_API_BASE_URL?.trim().replace(/\/$/, "");
+const migratedApiPaths = new Set(["/api/dashboard/order-metrics", "/api/rewards/summary"]);
+
+function resolveApiUrl(path: string) {
+  if (apiBaseUrl && migratedApiPaths.has(path)) {
+    if (path === "/api/dashboard/order-metrics") {
+      return `${apiBaseUrl}/dashboard/order-metrics`;
+    }
+    if (path === "/api/rewards/summary") {
+      return `${apiBaseUrl}/rewards/summary`;
+    }
+  }
+
+  return path;
+}
+
+async function getFirebaseToken(): Promise<string | null> {
+  if (auth.currentUser) {
+    return auth.currentUser.getIdToken();
+  }
+
+  if (typeof auth.authStateReady === "function") {
+    await auth.authStateReady();
+    return auth.currentUser ? auth.currentUser.getIdToken() : null;
+  }
+
+  const user = await new Promise<User | null>((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      unsubscribe();
+      resolve(nextUser);
+    });
+  });
+
+  return user ? user.getIdToken() : null;
+}
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -9,14 +50,13 @@ export async function apiFetch<T = unknown>(
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  if (init.auth !== false) {
-    const user = auth.currentUser;
-    if (user) {
-      const token = await user.getIdToken();
+  if (init.auth !== false && !headers.has("Authorization")) {
+    const token = await getFirebaseToken();
+    if (token) {
       headers.set("Authorization", `Bearer ${token}`);
-    }
+    } 
   }
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(resolveApiUrl(path), { ...init, headers });
   const text = await res.text();
   let json: unknown = null;
   try {

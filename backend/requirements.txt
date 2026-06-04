@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+firebase-admin
+python-dotenv
+httpx
+pytest
+pytest-asyncio
+ruff
+
