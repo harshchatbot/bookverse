@@ -73,13 +73,21 @@ def get_protected_delivery_buyer_total(
 def _is_complete_pickup_address(value: Any) -> bool:
     if not isinstance(value, Mapping):
         return False
+    phone = str(value.get("phone", "")).strip()
+    email = str(value.get("email", "")).strip()
+    pickup_location_name = str(value.get("pickupLocationName") or value.get("location") or "").strip()
+    address_line_1 = str(value.get("address1") or value.get("address") or "").strip()
+    valid_phone = (
+        phone.isdigit() and len(phone) == 10 and phone[0] in {"6", "7", "8", "9"}
+    ) or (phone.startswith("+91") and phone[3:].isdigit() and len(phone) == 13)
+    valid_email = "@" in email and "." in email.split("@")[-1]
     return (
-        isinstance(value.get("name"), str)
+        bool(pickup_location_name)
+        and isinstance(value.get("name"), str)
         and value["name"].strip()
-        and isinstance(value.get("phone"), str)
-        and len(value["phone"].strip()) >= 10
-        and isinstance(value.get("address"), str)
-        and len(value["address"].strip()) >= 3
+        and valid_phone
+        and valid_email
+        and len(address_line_1) >= 3
         and isinstance(value.get("city"), str)
         and value["city"].strip()
         and isinstance(value.get("state"), str)

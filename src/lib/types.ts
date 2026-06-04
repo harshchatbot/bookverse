@@ -39,12 +39,18 @@ export interface CheckoutDeliveryAddress {
 }
 
 export interface PickupAddressSnapshot {
+  pickupLocationName?: string;
   name: string;
   phone: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
   address: string;
   city: string;
   state: string;
   pincode: string;
+  country?: string;
+  landmark?: string;
   location?: string | null;
 }
 

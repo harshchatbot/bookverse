@@ -9,12 +9,17 @@ export interface ProfileData {
 }
 
 export interface PickupAddressData {
+  pickupLocationName: string;
   name: string;
   phone: string;
-  address: string;
+  email: string;
+  address1: string;
+  address2?: string;
   city: string;
   state: string;
   pincode: string;
+  country?: string;
+  landmark?: string;
 }
 
 export class ProfilePage {
@@ -60,30 +65,29 @@ export class ProfilePage {
   }
 
   async fillPickupAddress(data: PickupAddressData) {
-    // Pickup address section starts after "Courier Pickup Address" heading
-    // textboxes in that section: Contact Name, Mobile, Address, City, State, Pincode
-    const section = this.page.locator("text=Courier Pickup Address").locator("../..");
-    const inputs = section.getByRole("textbox");
-
-    await inputs.nth(0).fill(data.name); // Contact Name
-    await inputs.nth(1).fill(data.phone); // Mobile
-    await inputs.nth(2).fill(data.address); // Address
-    await inputs.nth(3).fill(data.city); // City
-    await inputs.nth(4).fill(data.state); // State
-    await inputs.nth(5).fill(data.pincode); // Pincode
+    await this.page.getByRole("heading", { name: /Courier Pickup Address/i }).waitFor();
+    await this.page.getByTestId("pickup-location-name").fill(data.pickupLocationName);
+    await this.page.getByTestId("pickup-contact-name").fill(data.name);
+    await this.page.getByTestId("pickup-phone").fill(data.phone);
+    await this.page.getByTestId("pickup-email").fill(data.email);
+    await this.page.getByTestId("pickup-address1").fill(data.address1);
+    await this.page.getByTestId("pickup-address2").fill(data.address2 ?? "");
+    await this.page.getByTestId("pickup-landmark").fill(data.landmark ?? "");
+    await this.page.getByTestId("pickup-city").fill(data.city);
+    await this.page.getByTestId("pickup-state").fill(data.state);
+    await this.page.getByTestId("pickup-pincode").fill(data.pincode);
+    await this.page.getByTestId("pickup-country").fill(data.country ?? "India");
   }
 
   async savePickupAddress() {
-    await this.page.getByRole("button", { name: /save pickup/i }).click();
+    await this.page.getByTestId("pickup-save-button").click();
     await this.page.waitForLoadState("domcontentloaded");
   }
 
   async hasCompleteBadge(): Promise<boolean> {
-    // Use exact match on the pickup address Complete badge specifically
+    await this.page.getByRole("heading", { name: /Courier Pickup Address/i }).scrollIntoViewIfNeeded();
     return this.page
-      .locator("div")
-      .filter({ hasText: /^Complete$/ })
-      .first()
+      .getByText(/Pickup address complete/i)
       .isVisible({ timeout: 3_000 })
       .catch(() => false);
   }

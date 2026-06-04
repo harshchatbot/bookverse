@@ -38,6 +38,22 @@ def _now_iso() -> str:
     return datetime.utcnow().isoformat()
 
 
+def _pickup_address_line(pickup: dict[str, Any]) -> str:
+    return str(
+        pickup.get("address")
+        or pickup.get("address1")
+        or ""
+    ).strip()
+
+
+def _pickup_location_name(pickup: dict[str, Any]) -> str:
+    return str(
+        pickup.get("location")
+        or pickup.get("pickupLocationName")
+        or "Primary"
+    ).strip() or "Primary"
+
+
 async def run_fulfillment(order_id: str) -> dict[str, Any]:
     db = get_firestore()
     order_ref = db.collection("orders").document(order_id)
@@ -85,7 +101,7 @@ async def run_fulfillment(order_id: str) -> dict[str, Any]:
             {
                 "order_id": order_id,
                 "order_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
-                "pickup_location": pickup.get("location") or "Primary",
+                "pickup_location": _pickup_location_name(pickup),
                 "billing_customer_name": str(buyer.get("name", "")).split(" ")[0] or "Buyer",
                 "billing_last_name": " ".join(str(buyer.get("name", "")).split(" ")[1:]) or ".",
                 "billing_address": buyer.get("address1", ""),

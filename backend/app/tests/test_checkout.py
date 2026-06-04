@@ -93,3 +93,36 @@ def test_pricing_helpers_keep_seller_payout_unchanged() -> None:
     assert coupon_discount == 50
     assert total == 831
     assert subtotal == 800
+
+
+def test_pickup_address_completeness_accepts_courier_ready_shape() -> None:
+    assert checkout_service._is_complete_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "email": "pickup@example.com",
+            "address1": "123 Test Street",
+            "address2": "Block A",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+            "landmark": "Near Gate",
+        }
+    )
+
+
+def test_pickup_address_completeness_rejects_missing_email() -> None:
+    assert not checkout_service._is_complete_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "address1": "123 Test Street",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+        }
+    )

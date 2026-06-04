@@ -21,10 +21,16 @@ export const TEST_PROFILE = {
 };
 
 export const TEST_PICKUP_ADDRESS = {
+  pickupLocationName: 'Home',
   name: 'E2E Test Pickup',
   phone: '9999999999',
-  address: '123 Test Street',
+  email: 'pickup@test.local',
+  address1: '123 Test Street',
+  address2: 'Near Main Gate',
   city: 'Pune',
   state: 'Maharashtra',
   pincode: '411001',
+  country: 'India',
+  landmark: 'Opposite test landmark',
+  address: '123 Test Street, Near Main Gate, Opposite test landmark',
 };

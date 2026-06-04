@@ -57,13 +57,22 @@ type AdminListing = Omit<Listing, "id" | "createdAt" | "updatedAt"> & {
 function isCompletePickupAddress(value: unknown): value is PickupAddressSnapshot {
   if (!value || typeof value !== "object") return false;
   const pickup = value as Record<string, unknown>;
+  const phone = typeof pickup.phone === "string" ? pickup.phone.trim() : "";
+  const email = typeof pickup.email === "string" ? pickup.email.trim() : "";
+  const addressLine1 =
+    typeof pickup.address1 === "string"
+      ? pickup.address1.trim()
+      : typeof pickup.address === "string"
+        ? pickup.address.trim()
+        : "";
   return (
+    typeof (pickup.pickupLocationName ?? pickup.location) === "string" &&
+    String(pickup.pickupLocationName ?? pickup.location).trim().length > 0 &&
     typeof pickup.name === "string" &&
     pickup.name.trim().length > 0 &&
-    typeof pickup.phone === "string" &&
-    pickup.phone.trim().length >= 10 &&
-    typeof pickup.address === "string" &&
-    pickup.address.trim().length >= 3 &&
+    ((/^[6-9]\d{9}$/.test(phone) || /^\+91[6-9]\d{9}$/.test(phone))) &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+    addressLine1.length >= 3 &&
     typeof pickup.city === "string" &&
     pickup.city.trim().length > 0 &&
     typeof pickup.state === "string" &&

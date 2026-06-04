@@ -33,12 +33,18 @@ export interface FulfillmentResult {
 }
 
 interface PickupAddressLike {
+  pickupLocationName?: string;
   name: string;
   phone: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
   address: string;
   city: string;
   state: string;
   pincode: string;
+  country?: string;
+  landmark?: string;
   location?: string | null;
 }
 
@@ -66,7 +72,7 @@ function isPickupAddressLike(value: unknown): value is PickupAddressLike {
   return (
     typeof pickup.name === "string" &&
     typeof pickup.phone === "string" &&
-    typeof pickup.address === "string" &&
+    (typeof pickup.address === "string" || typeof pickup.address1 === "string") &&
     typeof pickup.city === "string" &&
     typeof pickup.state === "string" &&
     typeof pickup.pincode === "string"
@@ -194,11 +200,11 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       pickup: {
         name: pickup.name,
         phone: pickup.phone,
-        address: pickup.address,
+        address: pickup.address || pickup.address1 || "",
         city: pickup.city,
         state: pickup.state,
         pincode: pickup.pincode,
-        location: pickup.location ?? "Primary",
+        location: pickup.location ?? pickup.pickupLocationName ?? "Primary",
       },
       buyer: buyerAddress,
       items: items.map((item) => ({

@@ -28,6 +28,7 @@ import { citiesForState, OTHER_CITY, isValidIndianMobile } from "@/data/indiaLoc
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { indianMobileNational } from "@/lib/users";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
+import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -269,6 +270,7 @@ function SellForm({ user }: { user: User }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pickupIncomplete, setPickupIncomplete] = useState(false);
   const [bulkShared, setBulkShared] = useState<SharedBulkFields>({
     sellerName: access.profile?.name || user.displayName || "",
     sellerMobile: indianMobileNational(
@@ -298,6 +300,25 @@ function SellForm({ user }: { user: User }) {
       urls.clear();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkPickupAddress = async () => {
+      if (!protectedDeliveryEnabled) return;
+      try {
+        const profile = await getProfile(user.uid);
+        if (!cancelled) {
+          setPickupIncomplete(!hasCompletePickupAddress(profile?.pickupAddress));
+        }
+      } catch (error) {
+        console.error("Could not check pickup address:", error);
+      }
+    };
+    checkPickupAddress();
+    return () => {
+      cancelled = true;
+    };
+  }, [protectedDeliveryEnabled, user.uid]);
 
   const getPreviewUrl = (file: File) => {
     const key = `${file.name}-${file.size}-${file.lastModified}`;
@@ -768,6 +789,21 @@ function SellForm({ user }: { user: User }) {
                   Every listing stays P2P and goes live after admin approval.
                 </p>
               </div>
+
+              {protectedDeliveryEnabled && pickupIncomplete ? (
+                <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    Courier pickup address required for protected delivery
+                  </p>
+                  <p className="mt-1 text-amber-800 dark:text-amber-200">
+                    Add your courier pickup address in{" "}
+                    <Link to="/profile" className="font-semibold underline">
+                      profile
+                    </Link>{" "}
+                    before you choose home delivery. WhatsApp/manual flow still works.
+                  </p>
+                </div>
+              ) : null}
 
               {!access.canUseMarketplace && (
                 <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm">

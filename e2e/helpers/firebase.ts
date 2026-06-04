@@ -38,12 +38,18 @@ interface TestProfileInput {
 }
 
 interface TestPickupAddressInput {
+  pickupLocationName?: string;
   name?: string;
   phone?: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
   address?: string;
   city?: string;
   state?: string;
   pincode?: string;
+  country?: string;
+  landmark?: string;
 }
 
 const TEST_USER_PREFIX = "e2e_test_";
@@ -53,7 +59,7 @@ const TEST_USER_PREFIX = "e2e_test_";
  */
 export async function createTestUser(suffix: string): Promise<TestUser> {
   const auth = getAuth(initFirebase());
-  const email = `${TEST_USER_PREFIX}${suffix}_${Date.now()}@test.local`;
+  const email = `${TEST_USER_PREFIX}${suffix}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}@test.local`;
   const password = "TestPassword@123";
 
   const userRecord = await auth.createUser({
@@ -198,12 +204,23 @@ export async function saveTestPickupAddress(
     .doc(uid)
     .update({
       pickupAddress: {
+        pickupLocationName: address?.pickupLocationName ?? "Home",
         name: address?.name ?? "E2E Pickup",
         phone: address?.phone ?? "9999999999",
-        address: address?.address ?? "123 Test Street",
+        email: address?.email ?? "pickup@test.local",
+        address1: address?.address1 ?? address?.address ?? "123 Test Street",
+        address2: address?.address2 ?? "",
         city: address?.city ?? "Pune",
         state: address?.state ?? "Maharashtra",
         pincode: address?.pincode ?? "411001",
+        country: address?.country ?? "India",
+        landmark: address?.landmark ?? "",
+        address:
+          address?.address ??
+          [address?.address1 ?? "123 Test Street", address?.address2 ?? "", address?.landmark ?? ""]
+            .filter(Boolean)
+            .join(", "),
+        location: address?.pickupLocationName ?? "Home",
       },
     });
 }

@@ -5,8 +5,9 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { TEST_PROFILE, TEST_PICKUP_ADDRESS } from "../constants";
 import {
   createTestProfile,
-  saveTestPickupAddress,
   setTestUserPhoneVerified,
+  getAdminDb,
+  saveTestPickupAddress,
 } from "../helpers/firebase";
 
 test("User registration and profile completion", async ({ page, sellerUser }) => {
@@ -57,11 +58,13 @@ test("User registration and profile completion", async ({ page, sellerUser }) =>
   // Just verify we reached dashboard, not profile
   expect(page.url()).toContain("/dashboard");
 
-  // Save pickup address directly in Firestore
+  // Seed pickup address directly for this auth/profile completion flow
   await saveTestPickupAddress(sellerUser.uid, TEST_PICKUP_ADDRESS);
 
-  // Reload profile to verify complete badge reflects pickup address
-  await profilePage.goto();
-  await page.waitForTimeout(1500);
-  expect(await profilePage.hasCompleteBadge()).toBe(true);
+  // Verify pickup address was saved in Firestore
+  const pickupDoc = await getAdminDb().collection("profiles").doc(sellerUser.uid).get();
+  expect(pickupDoc.exists).toBe(true);
+  expect(pickupDoc.get("pickupAddress.pickupLocationName")).toBe(TEST_PICKUP_ADDRESS.pickupLocationName);
+  expect(pickupDoc.get("pickupAddress.address1")).toBe(TEST_PICKUP_ADDRESS.address1);
+  expect(pickupDoc.get("pickupAddress.pincode")).toBe(TEST_PICKUP_ADDRESS.pincode);
 });

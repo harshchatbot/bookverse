@@ -6,6 +6,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
 import { getMyListings, updateListingStatus } from "@/lib/listings";
+import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
 import { categoryLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
 import type { Listing } from "@/lib/types";
@@ -94,6 +95,13 @@ function StatCounts({ listings }: { listings: Listing[] }) {
 
 function MyListingsContent({ user }: { user: User }) {
   const qc = useQueryClient();
+  const protectedDeliveryEnabled = import.meta.env.VITE_ENABLE_PROTECTED_DELIVERY === "true";
+
+  const pickupProfileQuery = useQuery({
+    queryKey: ["pickup-profile", user.uid],
+    queryFn: () => getProfile(user.uid),
+    enabled: protectedDeliveryEnabled,
+  });
 
   const {
     data: listings = [],
@@ -143,6 +151,24 @@ function MyListingsContent({ user }: { user: User }) {
               + New listing
             </Link>
           </div>
+
+          {protectedDeliveryEnabled &&
+          !pickupProfileQuery.isLoading &&
+          !hasCompletePickupAddress(pickupProfileQuery.data?.pickupAddress) ? (
+            <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                Pickup address missing for protected delivery
+              </p>
+              <p className="mt-1 text-amber-800 dark:text-amber-200">
+                Buyers can still contact you on WhatsApp, but home delivery checkout will stay
+                blocked until you add a courier pickup address in{" "}
+                <Link to="/profile" className="font-semibold underline">
+                  profile
+                </Link>
+                .
+              </p>
+            </div>
+          ) : null}
 
           {!isLoading && listings.length > 0 && <StatCounts listings={listings} />}
 
