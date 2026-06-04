@@ -28,3 +28,18 @@ When you want the existing TanStack frontend to call FastAPI for migrated endpoi
 ```bash
 VITE_API_BASE_URL=http://localhost:8000
 ```
+
+## Protected delivery env
+
+For protected-delivery checkout routes migrated to FastAPI, set:
+
+```bash
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+SHIPROCKET_EMAIL=
+SHIPROCKET_PASSWORD=
+SHIPROCKET_TOKEN=
+SHIPROCKET_MODE=
+SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT=
+SHIPROCKET_ALLOW_LIVE_ORDER_CREATION=
+```

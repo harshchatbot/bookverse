@@ -7,7 +7,12 @@ const viteEnv =
     ? (import.meta.env as Record<string, string | undefined>)
     : undefined;
 const apiBaseUrl = viteEnv?.VITE_API_BASE_URL?.trim().replace(/\/$/, "");
-const migratedApiPaths = new Set(["/api/dashboard/order-metrics", "/api/rewards/summary"]);
+const migratedApiPaths = new Set([
+  "/api/dashboard/order-metrics",
+  "/api/rewards/summary",
+  "/api/checkout/create-order",
+  "/api/checkout/verify",
+]);
 
 function resolveApiUrl(path: string) {
   if (apiBaseUrl && migratedApiPaths.has(path)) {
@@ -16,6 +21,12 @@ function resolveApiUrl(path: string) {
     }
     if (path === "/api/rewards/summary") {
       return `${apiBaseUrl}/rewards/summary`;
+    }
+    if (path === "/api/checkout/create-order") {
+      return `${apiBaseUrl}/checkout/create-order`;
+    }
+    if (path === "/api/checkout/verify") {
+      return `${apiBaseUrl}/checkout/verify`;
     }
   }
 

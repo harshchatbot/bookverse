@@ -206,7 +206,7 @@ test("protected delivery checkout groups same-seller books with one delivery fee
   await loginPage.goto();
   await loginPage.loginWithEmail(buyerUser.email, buyerUser.password);
 
-  await page.route("**/api/checkout/create-order", async (route) => {
+  await page.route(/\/(?:api\/)?checkout\/create-order$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -316,7 +316,7 @@ test("protected delivery checkout splits different sellers into separate groups"
     await loginPage.goto();
     await loginPage.loginWithEmail(buyerUser.email, buyerUser.password);
 
-    await page.route("**/api/checkout/create-order", async (route) => {
+    await page.route(/\/(?:api\/)?checkout\/create-order$/, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",

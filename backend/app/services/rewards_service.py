@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, Literal, cast
 
 from google.cloud.firestore_v1 import FieldFilter
@@ -136,3 +137,41 @@ def get_rewards_summary(uid: str) -> dict[str, Any]:
         }
     except Exception:
         return {**fallback, "unavailable": True}
+
+
+def get_coupons_by_ids(uid: str, coupon_ids: list[str]) -> list[dict[str, Any]]:
+    if not coupon_ids:
+        return []
+
+    db = get_firestore()
+    snapshots = [db.collection("user_coupons").document(coupon_id).get() for coupon_id in coupon_ids]
+    coupons = [
+        _serialize_coupon(snapshot.id, snapshot.to_dict() or {})
+        for snapshot in snapshots
+        if snapshot.exists
+    ]
+    return [coupon for coupon in coupons if coupon["userUid"] == uid]
+
+
+def mark_coupon_used_for_order(*, coupon_id: str | None, uid: str, order_id: str) -> None:
+    if not coupon_id:
+        return
+
+    db = get_firestore()
+    coupon_ref = db.collection("user_coupons").document(coupon_id)
+    coupon_snap = coupon_ref.get()
+    if not coupon_snap.exists:
+        return
+
+    coupon = _serialize_coupon(coupon_snap.id, coupon_snap.to_dict() or {})
+    if coupon["userUid"] != uid or coupon["status"] != "unused":
+        return
+
+    coupon_ref.set(
+        {
+            "status": "used",
+            "usedAt": datetime.utcnow().isoformat(),
+            "orderId": order_id,
+        },
+        merge=True,
+    )
