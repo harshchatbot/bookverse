@@ -21,6 +21,7 @@ export interface PickupAddress {
   location?: string | null;
   lat?: number;
   lon?: number;
+  lng?: number;
 }
 
 export interface UserProfile {
@@ -93,8 +94,54 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
       }),
     location: pickupLocationName || null,
     lat: typeof raw?.lat === "number" ? raw.lat : undefined,
-    lon: typeof raw?.lon === "number" ? raw.lon : undefined,
+    lon:
+      typeof raw?.lon === "number"
+        ? raw.lon
+        : typeof raw?.lng === "number"
+          ? raw.lng
+          : undefined,
+    lng:
+      typeof raw?.lng === "number"
+        ? raw.lng
+        : typeof raw?.lon === "number"
+          ? raw.lon
+          : undefined,
   };
+}
+
+export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<string, unknown> {
+  const normalized = normalizePickupAddress(input);
+  const payload: Record<string, unknown> = {
+    pickupLocationName: normalized.pickupLocationName || "",
+    name: normalized.name || "",
+    phone: normalized.phone || "",
+    email: normalized.email || "",
+    address1: normalized.address1 || "",
+    address2: normalized.address2 || "",
+    city: normalized.city || "",
+    state: normalized.state || "",
+    pincode: normalized.pincode || "",
+    country: normalized.country || "India",
+    landmark: normalized.landmark || "",
+    address: normalized.address || "",
+    location: normalized.location ?? null,
+  };
+
+  if (typeof normalized.lat === "number" && Number.isFinite(normalized.lat)) {
+    payload.lat = normalized.lat;
+  }
+
+  const numericLng =
+    typeof normalized.lng === "number"
+      ? normalized.lng
+      : typeof normalized.lon === "number"
+        ? normalized.lon
+        : null;
+  if (typeof numericLng === "number" && Number.isFinite(numericLng)) {
+    payload.lon = numericLng;
+  }
+
+  return payload;
 }
 
 export function hasCompletePickupAddress(p: PickupAddress | null | undefined): boolean {
@@ -155,10 +202,9 @@ export async function saveProfile(uid: string, input: Omit<UserProfile, "uid">):
 }
 
 export async function savePickupAddress(uid: string, pickup: PickupAddress): Promise<void> {
-  const normalized = normalizePickupAddress(pickup);
   await setDoc(
     doc(db, COLLECTION, uid),
-    { pickupAddress: normalized, updatedAt: serverTimestamp() },
+    { pickupAddress: sanitizePickupAddressForFirestore(pickup), updatedAt: serverTimestamp() },
     { merge: true },
   );
 }

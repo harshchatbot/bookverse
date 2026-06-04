@@ -99,6 +99,7 @@ function ProfileContent({ user }: { user: User }) {
     address: "",
     location: null,
   });
+  const [pickupSameAsProfile, setPickupSameAsProfile] = useState(false);
   const [manualCity, setManualCity] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingPickup, setSavingPickup] = useState(false);
@@ -171,6 +172,41 @@ function ProfileContent({ user }: { user: User }) {
   const completed = isProfileCompleted(profile);
   const emailVerified = user.emailVerified;
   const actualCity = form.city === OTHER_CITY ? manualCity.trim() : form.city.trim();
+  const homePickupDraft = useMemo<PickupAddress>(
+    () => ({
+      pickupLocationName: "Home",
+      name: form.name.trim() || user.displayName || "",
+      phone: form.mobile.replace(/\D/g, "").slice(0, 10),
+      email: user.email || "",
+      address1: form.locality.trim(),
+      address2: "",
+      city: actualCity,
+      state: form.state.trim(),
+      pincode: form.pincode.replace(/\D/g, "").slice(0, 6),
+      country: "India",
+      landmark: "",
+      address: "",
+      location: "Home",
+    }),
+    [
+      actualCity,
+      form.locality,
+      form.mobile,
+      form.name,
+      form.pincode,
+      form.state,
+      user.displayName,
+      user.email,
+    ],
+  );
+
+  useEffect(() => {
+    if (!pickupSameAsProfile) return;
+    setPickupForm((current) => ({
+      ...current,
+      ...homePickupDraft,
+    }));
+  }, [homePickupDraft, pickupSameAsProfile]);
 
   const errors = useMemo(() => {
     const next: Partial<Record<keyof EditableUserProfile, string>> = {};
@@ -500,6 +536,31 @@ function ProfileContent({ user }: { user: User }) {
                     : "Pickup address missing"}
                 </div>
               </div>
+
+              <label className="flex items-start gap-3 rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={pickupSameAsProfile}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setPickupSameAsProfile(checked);
+                    if (checked) {
+                      setPickupForm((current) => ({
+                        ...current,
+                        ...homePickupDraft,
+                      }));
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span>
+                  <span className="font-medium">Pickup address is same as my basic profile location</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    We&apos;ll prefill this form using your name, mobile, city, state, pincode,
+                    and locality. Please review the courier address before saving.
+                  </span>
+                </span>
+              </label>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
