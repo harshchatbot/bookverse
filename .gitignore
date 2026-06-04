@@ -39,3 +39,7 @@ dist-ssr
 # Playwright
 /test-results/
 /playwright-report/
+
+# Playwright output
+test-results/
+playwright-report/
