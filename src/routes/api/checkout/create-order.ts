@@ -82,6 +82,22 @@ function isCompletePickupAddress(value: unknown): value is PickupAddressSnapshot
   );
 }
 
+function isValidatedPickupAddress(value: unknown): value is PickupAddressSnapshot {
+  if (!isCompletePickupAddress(value)) return false;
+  const pickup = value as PickupAddressSnapshot;
+  return !!(
+    pickup.isCourierReady === true &&
+    pickup.validationLevel === "google_validated" &&
+    pickup.sellerConfirmed === true &&
+    typeof pickup.formattedAddress === "string" &&
+    pickup.formattedAddress.trim().length > 0 &&
+    typeof pickup.lat === "number" &&
+    Number.isFinite(pickup.lat) &&
+    typeof pickup.lon === "number" &&
+    Number.isFinite(pickup.lon)
+  );
+}
+
 type PreparedSellerGroup = {
   sellerUid: string;
   sellerEmail: string;
@@ -210,10 +226,10 @@ export const Route = createFileRoute("/api/checkout/create-order")({
           const sellerProfile = sellerProfileSnap.exists ? sellerProfileSnap.data() : null;
           const pickupAddress = sellerProfile?.pickupAddress;
 
-          if (!isCompletePickupAddress(pickupAddress)) {
+          if (!isValidatedPickupAddress(pickupAddress)) {
             return jsonError(
               409,
-              `${sellerListings[0]?.sellerName || "This seller"} has not added a courier pickup address yet.`,
+              "Seller pickup address is not validated yet. Seller must select address on map and validate it.",
             );
           }
 

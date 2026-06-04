@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.routers.address import router as address_router
 from app.routers.auth import router as auth_router
 from app.routers.checkout import router as checkout_router
 from app.routers.dashboard import router as dashboard_router
@@ -31,6 +32,7 @@ app.add_middleware(
 
 app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(address_router, prefix="/address", tags=["address"])
 app.include_router(checkout_router, prefix="/checkout", tags=["checkout"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(rewards_router, prefix="/rewards", tags=["rewards"])

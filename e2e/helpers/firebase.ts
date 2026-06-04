@@ -50,6 +50,13 @@ interface TestPickupAddressInput {
   pincode?: string;
   country?: string;
   landmark?: string;
+  formattedAddress?: string;
+  placeId?: string;
+  lat?: number;
+  lon?: number;
+  sellerConfirmed?: boolean;
+  isCourierReady?: boolean;
+  validationLevel?: string;
 }
 
 const TEST_USER_PREFIX = "e2e_test_";
@@ -221,6 +228,24 @@ export async function saveTestPickupAddress(
             .filter(Boolean)
             .join(", "),
         location: address?.pickupLocationName ?? "Home",
+        formattedAddress:
+          address?.formattedAddress ??
+          `${address?.address1 ?? "123 Test Street"}, ${address?.city ?? "Pune"}, ${address?.state ?? "Maharashtra"} ${address?.pincode ?? "411001"}, India`,
+        placeId: address?.placeId ?? "test-place-id",
+        lat: address?.lat ?? 18.5204,
+        lon: address?.lon ?? 73.8567,
+        sellerConfirmed: address?.sellerConfirmed ?? true,
+        pinConfirmedAt: new Date().toISOString(),
+        googleValidatedAt: new Date().toISOString(),
+        isCourierReady: address?.isCourierReady ?? true,
+        validationLevel: address?.validationLevel ?? "google_validated",
+        googleValidation: {
+          addressComplete: true,
+          validationGranularity: "PREMISE",
+          geocodeGranularity: "PREMISE",
+          reasonCodes: [],
+          message: "Pickup address is Google-validated and courier-ready.",
+        },
       },
     });
 }

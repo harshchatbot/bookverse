@@ -27,6 +27,13 @@ When you want the existing TanStack frontend to call FastAPI for migrated endpoi
 
 ```bash
 VITE_API_BASE_URL=http://localhost:8000
+VITE_GOOGLE_MAPS_BROWSER_KEY=
+```
+
+The browser key is only for Google Maps JavaScript + Places Autocomplete. Keep Address Validation on the backend only:
+
+```bash
+GOOGLE_MAPS_SERVER_API_KEY=
 ```
 
 ## Protected delivery env
@@ -43,3 +50,13 @@ SHIPROCKET_MODE=
 SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT=
 SHIPROCKET_ALLOW_LIVE_ORDER_CREATION=
 ```
+
+## Pickup address validation
+
+FastAPI now exposes:
+
+```bash
+POST /address/validate-pickup
+```
+
+This route requires a Firebase Bearer token and uses `GOOGLE_MAPS_SERVER_API_KEY` server-side. Do not call Google Address Validation directly from the frontend.

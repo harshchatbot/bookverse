@@ -111,6 +111,27 @@ def test_pickup_address_completeness_accepts_courier_ready_shape() -> None:
             "landmark": "Near Gate",
         }
     )
+    assert checkout_service._is_google_validated_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "email": "pickup@example.com",
+            "address1": "123 Test Street",
+            "address2": "Block A",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+            "landmark": "Near Gate",
+            "formattedAddress": "123 Test Street, Pune, Maharashtra 411001, India",
+            "lat": 18.5204,
+            "lon": 73.8567,
+            "sellerConfirmed": True,
+            "isCourierReady": True,
+            "validationLevel": "google_validated",
+        }
+    )
 
 
 def test_pickup_address_completeness_rejects_missing_email() -> None:
@@ -124,5 +145,22 @@ def test_pickup_address_completeness_rejects_missing_email() -> None:
             "state": "Maharashtra",
             "pincode": "411001",
             "country": "India",
+        }
+    )
+    assert not checkout_service._is_google_validated_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "email": "pickup@example.com",
+            "address1": "123 Test Street",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+            "formattedAddress": "123 Test Street, Pune, Maharashtra 411001, India",
+            "sellerConfirmed": True,
+            "isCourierReady": True,
+            "validationLevel": "google_validated",
         }
     )

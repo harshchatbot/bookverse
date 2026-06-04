@@ -49,6 +49,7 @@ import { Route as ApiAdminPayoutPaidRouteImport } from './routes/api/admin/payou
 import { Route as ApiAdminListingDecisionRouteImport } from './routes/api/admin/listing-decision'
 import { Route as ApiAdminDisputeResolveRouteImport } from './routes/api/admin/dispute-resolve'
 import { Route as ApiAdminDashboardOrdersRouteImport } from './routes/api/admin/dashboard-orders'
+import { Route as ApiAddressValidatePickupRouteImport } from './routes/api/address/validate-pickup'
 import { Route as ApiPublicShiprocketWebhookRouteImport } from './routes/api/public/shiprocket/webhook'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay/webhook'
 import { Route as ApiPublicCronReconcileRouteImport } from './routes/api/public/cron/reconcile'
@@ -254,6 +255,12 @@ const ApiAdminDashboardOrdersRoute = ApiAdminDashboardOrdersRouteImport.update({
   path: '/api/admin/dashboard-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAddressValidatePickupRoute =
+  ApiAddressValidatePickupRouteImport.update({
+    id: '/api/address/validate-pickup',
+    path: '/api/address/validate-pickup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicShiprocketWebhookRoute =
   ApiPublicShiprocketWebhookRouteImport.update({
     id: '/api/public/shiprocket/webhook',
@@ -297,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/address/validate-pickup': typeof ApiAddressValidatePickupRoute
   '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
@@ -342,6 +350,7 @@ export interface FileRoutesByTo {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/address/validate-pickup': typeof ApiAddressValidatePickupRoute
   '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
@@ -388,6 +397,7 @@ export interface FileRoutesById {
   '/checkout/$listingId': typeof CheckoutListingIdRoute
   '/order/$id': typeof OrderIdRoute
   '/seller/$uid': typeof SellerUidRoute
+  '/api/address/validate-pickup': typeof ApiAddressValidatePickupRoute
   '/api/admin/dashboard-orders': typeof ApiAdminDashboardOrdersRoute
   '/api/admin/dispute-resolve': typeof ApiAdminDisputeResolveRoute
   '/api/admin/listing-decision': typeof ApiAdminListingDecisionRoute
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/address/validate-pickup'
     | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
@@ -480,6 +491,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/address/validate-pickup'
     | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
@@ -525,6 +537,7 @@ export interface FileRouteTypes {
     | '/checkout/$listingId'
     | '/order/$id'
     | '/seller/$uid'
+    | '/api/address/validate-pickup'
     | '/api/admin/dashboard-orders'
     | '/api/admin/dispute-resolve'
     | '/api/admin/listing-decision'
@@ -570,6 +583,7 @@ export interface RootRouteChildren {
   BookIdRoute: typeof BookIdRoute
   OrderIdRoute: typeof OrderIdRoute
   SellerUidRoute: typeof SellerUidRoute
+  ApiAddressValidatePickupRoute: typeof ApiAddressValidatePickupRoute
   ApiAdminDashboardOrdersRoute: typeof ApiAdminDashboardOrdersRoute
   ApiAdminDisputeResolveRoute: typeof ApiAdminDisputeResolveRoute
   ApiAdminListingDecisionRoute: typeof ApiAdminListingDecisionRoute
@@ -873,6 +887,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminDashboardOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/address/validate-pickup': {
+      id: '/api/address/validate-pickup'
+      path: '/api/address/validate-pickup'
+      fullPath: '/api/address/validate-pickup'
+      preLoaderRoute: typeof ApiAddressValidatePickupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/shiprocket/webhook': {
       id: '/api/public/shiprocket/webhook'
       path: '/api/public/shiprocket/webhook'
@@ -933,6 +954,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookIdRoute: BookIdRoute,
   OrderIdRoute: OrderIdRoute,
   SellerUidRoute: SellerUidRoute,
+  ApiAddressValidatePickupRoute: ApiAddressValidatePickupRoute,
   ApiAdminDashboardOrdersRoute: ApiAdminDashboardOrdersRoute,
   ApiAdminDisputeResolveRoute: ApiAdminDisputeResolveRoute,
   ApiAdminListingDecisionRoute: ApiAdminListingDecisionRoute,

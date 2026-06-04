@@ -12,6 +12,7 @@ const migratedApiPaths = new Set([
   "/api/rewards/summary",
   "/api/checkout/create-order",
   "/api/checkout/verify",
+  "/api/address/validate-pickup",
 ]);
 
 function resolveApiUrl(path: string) {
@@ -27,6 +28,9 @@ function resolveApiUrl(path: string) {
     }
     if (path === "/api/checkout/verify") {
       return `${apiBaseUrl}/checkout/verify`;
+    }
+    if (path === "/api/address/validate-pickup") {
+      return `${apiBaseUrl}/address/validate-pickup`;
     }
   }
 

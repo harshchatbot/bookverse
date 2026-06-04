@@ -33,4 +33,11 @@ export const TEST_PICKUP_ADDRESS = {
   country: 'India',
   landmark: 'Opposite test landmark',
   address: '123 Test Street, Near Main Gate, Opposite test landmark',
+  formattedAddress: '123 Test Street, Near Main Gate, Opposite test landmark, Pune, Maharashtra 411001, India',
+  placeId: 'test-place-id',
+  lat: 18.5204,
+  lon: 73.8567,
+  sellerConfirmed: true,
+  isCourierReady: true,
+  validationLevel: 'google_validated',
 };

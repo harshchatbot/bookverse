@@ -19,9 +19,23 @@ export interface PickupAddress {
   landmark: string;
   address: string;
   location?: string | null;
+  placeId?: string;
+  formattedAddress?: string;
   lat?: number;
   lon?: number;
   lng?: number;
+  sellerConfirmed?: boolean;
+  pinConfirmedAt?: string | null;
+  googleValidatedAt?: string | null;
+  isCourierReady?: boolean;
+  validationLevel?: "google_validated" | "needs_more_detail" | "failed" | null;
+  googleValidation?: {
+    addressComplete?: boolean;
+    validationGranularity?: string | null;
+    geocodeGranularity?: string | null;
+    reasonCodes?: string[];
+    message?: string;
+  } | null;
 }
 
 export interface UserProfile {
@@ -48,6 +62,14 @@ const EMPTY_PICKUP: PickupAddress = {
   landmark: "",
   address: "",
   location: null,
+  placeId: "",
+  formattedAddress: "",
+  sellerConfirmed: false,
+  pinConfirmedAt: null,
+  googleValidatedAt: null,
+  isCourierReady: false,
+  validationLevel: null,
+  googleValidation: null,
 };
 
 function normalizePickupPhone(value: string | undefined): string {
@@ -93,6 +115,8 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
         landmark,
       }),
     location: pickupLocationName || null,
+    placeId: raw?.placeId?.trim() || "",
+    formattedAddress: raw?.formattedAddress?.trim() || "",
     lat: typeof raw?.lat === "number" ? raw.lat : undefined,
     lon:
       typeof raw?.lon === "number"
@@ -106,6 +130,45 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
         : typeof raw?.lon === "number"
           ? raw.lon
           : undefined,
+    sellerConfirmed: raw?.sellerConfirmed === true,
+    pinConfirmedAt: typeof raw?.pinConfirmedAt === "string" ? raw.pinConfirmedAt : null,
+    googleValidatedAt:
+      typeof raw?.googleValidatedAt === "string" ? raw.googleValidatedAt : null,
+    isCourierReady: raw?.isCourierReady === true,
+    validationLevel:
+      raw?.validationLevel === "google_validated" ||
+      raw?.validationLevel === "needs_more_detail" ||
+      raw?.validationLevel === "failed"
+        ? raw.validationLevel
+        : null,
+    googleValidation:
+      raw?.googleValidation && typeof raw.googleValidation === "object"
+        ? {
+            addressComplete:
+              (raw.googleValidation as { addressComplete?: unknown }).addressComplete === true,
+            validationGranularity:
+              typeof (raw.googleValidation as { validationGranularity?: unknown })
+                .validationGranularity === "string"
+                ? ((raw.googleValidation as { validationGranularity?: string })
+                    .validationGranularity ?? null)
+                : null,
+            geocodeGranularity:
+              typeof (raw.googleValidation as { geocodeGranularity?: unknown })
+                .geocodeGranularity === "string"
+                ? ((raw.googleValidation as { geocodeGranularity?: string }).geocodeGranularity ??
+                  null)
+                : null,
+            reasonCodes: Array.isArray((raw.googleValidation as { reasonCodes?: unknown }).reasonCodes)
+              ? ((raw.googleValidation as { reasonCodes?: unknown[] }).reasonCodes ?? []).filter(
+                  (value): value is string => typeof value === "string" && value.trim().length > 0,
+                )
+              : [],
+            message:
+              typeof (raw.googleValidation as { message?: unknown }).message === "string"
+                ? ((raw.googleValidation as { message?: string }).message ?? "")
+                : "",
+          }
+        : null,
   };
 }
 
@@ -125,7 +188,30 @@ export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<
     landmark: normalized.landmark || "",
     address: normalized.address || "",
     location: normalized.location ?? null,
+    placeId: normalized.placeId?.trim() || "",
+    formattedAddress: normalized.formattedAddress?.trim() || "",
+    sellerConfirmed: normalized.sellerConfirmed === true,
+    pinConfirmedAt: normalized.pinConfirmedAt ?? null,
+    googleValidatedAt: normalized.googleValidatedAt ?? null,
+    isCourierReady: normalized.isCourierReady === true,
+    validationLevel: normalized.validationLevel ?? null,
   };
+
+  if (normalized.googleValidation && typeof normalized.googleValidation === "object") {
+    payload.googleValidation = {
+      addressComplete: normalized.googleValidation.addressComplete === true,
+      validationGranularity: normalized.googleValidation.validationGranularity ?? null,
+      geocodeGranularity: normalized.googleValidation.geocodeGranularity ?? null,
+      reasonCodes: Array.isArray(normalized.googleValidation.reasonCodes)
+        ? normalized.googleValidation.reasonCodes.filter(
+            (value): value is string => typeof value === "string" && value.trim().length > 0,
+          )
+        : [],
+      message: normalized.googleValidation.message?.trim() || "",
+    };
+  } else {
+    payload.googleValidation = null;
+  }
 
   if (typeof normalized.lat === "number" && Number.isFinite(normalized.lat)) {
     payload.lat = normalized.lat;
@@ -155,8 +241,30 @@ export function hasCompletePickupAddress(p: PickupAddress | null | undefined): b
     normalized.address1 &&
     normalized.city &&
     normalized.state &&
-    /^\d{6}$/.test(normalized.pincode)
+    /^\d{6}$/.test(normalized.pincode) &&
+    normalized.formattedAddress?.trim() &&
+    normalized.sellerConfirmed === true &&
+    normalized.isCourierReady === true &&
+    normalized.validationLevel === "google_validated" &&
+    typeof normalized.lat === "number" &&
+    Number.isFinite(normalized.lat) &&
+    typeof normalized.lon === "number" &&
+    Number.isFinite(normalized.lon)
   );
+}
+
+export function clearPickupValidationState(
+  pickup: PickupAddress,
+  overrides: Partial<PickupAddress> = {},
+): PickupAddress {
+  return {
+    ...pickup,
+    ...overrides,
+    isCourierReady: false,
+    validationLevel: null,
+    googleValidatedAt: null,
+    googleValidation: null,
+  };
 }
 
 export async function getProfile(uid: string): Promise<UserProfile | null> {

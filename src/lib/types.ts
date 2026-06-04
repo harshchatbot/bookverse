@@ -52,6 +52,22 @@ export interface PickupAddressSnapshot {
   country?: string;
   landmark?: string;
   location?: string | null;
+  placeId?: string;
+  formattedAddress?: string;
+  lat?: number;
+  lon?: number;
+  sellerConfirmed?: boolean;
+  pinConfirmedAt?: string | null;
+  googleValidatedAt?: string | null;
+  isCourierReady?: boolean;
+  validationLevel?: "google_validated" | "needs_more_detail" | "failed" | null;
+  googleValidation?: {
+    addressComplete?: boolean;
+    validationGranularity?: string | null;
+    geocodeGranularity?: string | null;
+    reasonCodes?: string[];
+    message?: string;
+  } | null;
 }
 
 export interface OrderItemSnapshot {

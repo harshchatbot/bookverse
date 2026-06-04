@@ -55,7 +55,15 @@ service cloud.firestore {
           'address',
           'location',
           'lat',
-          'lon'
+          'lon',
+          'placeId',
+          'formattedAddress',
+          'sellerConfirmed',
+          'pinConfirmedAt',
+          'googleValidatedAt',
+          'googleValidation',
+          'isCourierReady',
+          'validationLevel'
         ])
         && nonEmpty(value.pickupLocationName)
         && nonEmpty(value.name)
@@ -65,7 +73,33 @@ service cloud.firestore {
         && nonEmpty(value.city)
         && nonEmpty(value.state)
         && validPincode(value.pincode)
-        && nonEmpty(value.country);
+        && nonEmpty(value.country)
+        && (!('placeId' in value) || value.placeId is string)
+        && (!('formattedAddress' in value) || value.formattedAddress is string)
+        && (!('lat' in value) || value.lat is number)
+        && (!('lon' in value) || value.lon is number)
+        && (!('sellerConfirmed' in value) || value.sellerConfirmed is bool)
+        && (!('pinConfirmedAt' in value) || value.pinConfirmedAt == null || value.pinConfirmedAt is string)
+        && (!('googleValidatedAt' in value) || value.googleValidatedAt == null || value.googleValidatedAt is string)
+        && (!('isCourierReady' in value) || value.isCourierReady is bool)
+        && (!('validationLevel' in value)
+            || value.validationLevel == null
+            || value.validationLevel in ['google_validated', 'needs_more_detail', 'failed'])
+        && (!('googleValidation' in value) || (
+          value.googleValidation is map
+          && value.googleValidation.keys().hasOnly([
+            'addressComplete',
+            'validationGranularity',
+            'geocodeGranularity',
+            'reasonCodes',
+            'message'
+          ])
+          && (!('addressComplete' in value.googleValidation) || value.googleValidation.addressComplete is bool)
+          && (!('validationGranularity' in value.googleValidation) || value.googleValidation.validationGranularity == null || value.googleValidation.validationGranularity is string)
+          && (!('geocodeGranularity' in value.googleValidation) || value.googleValidation.geocodeGranularity == null || value.googleValidation.geocodeGranularity is string)
+          && (!('reasonCodes' in value.googleValidation) || value.googleValidation.reasonCodes is list)
+          && (!('message' in value.googleValidation) || value.googleValidation.message is string)
+        ));
     }
 
     function phoneTokenMatches(data) {

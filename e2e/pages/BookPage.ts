@@ -10,11 +10,12 @@ export class BookPage {
 
   async makeOffer(amount: number) {
     await this.page.getByRole("button", { name: /make an offer/i }).click();
+    const dialog = this.page.getByRole("dialog");
+    await dialog.waitFor({ state: "visible", timeout: 10_000 });
 
     // Try spinbutton first (number inputs often have role=spinbutton)
-    const spinInput = this.page.getByRole("spinbutton").first();
-    const numberInput = this.page.locator('input[type="number"]').first();
-    const textInput = this.page.locator('input[type="text"]').first();
+    const spinInput = dialog.getByRole("spinbutton").first();
+    const numberInput = dialog.locator('input[type="number"]').first();
 
     // Wait for any of these to appear
     await Promise.race([
@@ -29,10 +30,7 @@ export class BookPage {
       await numberInput.fill(String(amount));
     }
 
-    await this.page
-      .getByRole("button", { name: /send offer|submit|confirm|make offer/i })
-      .last()
-      .click();
+    await dialog.getByRole("button", { name: /send offer|submit|confirm/i }).click();
 
     await this.page.waitForLoadState("domcontentloaded");
   }

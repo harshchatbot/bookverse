@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     )
     firebase_client_email: str | None = Field(default=None, alias="FIREBASE_CLIENT_EMAIL")
     firebase_private_key: str | None = Field(default=None, alias="FIREBASE_PRIVATE_KEY")
+    google_maps_server_api_key: str | None = Field(
+        default=None, alias="GOOGLE_MAPS_SERVER_API_KEY"
+    )
     razorpay_key_id: str | None = Field(default=None, alias="RAZORPAY_KEY_ID")
     razorpay_key_secret: str | None = Field(default=None, alias="RAZORPAY_KEY_SECRET")
     shiprocket_email: str | None = Field(default=None, alias="SHIPROCKET_EMAIL")

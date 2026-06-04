@@ -98,6 +98,23 @@ def _is_complete_pickup_address(value: Any) -> bool:
     )
 
 
+def _is_google_validated_pickup_address(value: Any) -> bool:
+    if not _is_complete_pickup_address(value) or not isinstance(value, Mapping):
+        return False
+    lat = value.get("lat")
+    lon = value.get("lon")
+    formatted_address = value.get("formattedAddress")
+    return (
+        value.get("isCourierReady") is True
+        and value.get("validationLevel") == "google_validated"
+        and value.get("sellerConfirmed") is True
+        and isinstance(formatted_address, str)
+        and formatted_address.strip()
+        and isinstance(lat, (int, float))
+        and isinstance(lon, (int, float))
+    )
+
+
 def _order_summary(order: Mapping[str, Any]) -> str:
     items = order.get("items") if isinstance(order.get("items"), list) else []
     if not items:
@@ -171,9 +188,10 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
         seller_profile_snap = db.collection("profiles").document(seller_uid).get()
         seller_profile = seller_profile_snap.to_dict() or {}
         pickup_address = seller_profile.get("pickupAddress")
-        if not _is_complete_pickup_address(pickup_address):
-            seller_name = seller_listings[0].get("sellerName") or "This seller"
-            raise RuntimeError(f"{seller_name} has not added a courier pickup address yet.")
+        if not _is_google_validated_pickup_address(pickup_address):
+            raise RuntimeError(
+                "Seller pickup address is not validated yet. Seller must select address on map and validate it."
+            )
 
         items = []
         for listing in seller_listings:
