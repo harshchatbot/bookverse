@@ -7,9 +7,13 @@ const Body = z.object({
   name: z.string().trim().min(1),
   phone: z.string().regex(/^\+91[6-9]\d{9}$/),
   email: z.string().trim().email(),
-  address1: z.string().trim().min(15),
+  houseOrFlat: z.string().trim().min(1),
+  buildingOrSociety: z.string().trim().default(""),
+  streetOrRoad: z.string().trim().default(""),
+  areaOrLocality: z.string().trim().min(1),
+  address1: z.string().trim().min(1),
   address2: z.string().trim().default(""),
-  landmark: z.string().trim().default(""),
+  landmark: z.string().trim().min(1),
   city: z.string().trim().min(1),
   state: z.string().trim().min(1),
   pincode: z.string().regex(/^\d{6}$/),
@@ -22,6 +26,7 @@ const Body = z.object({
 });
 
 const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand", "ana sagar lake"]);
+const WEAK_TOKENS = new Set(["test", "home", "near", "abc"]);
 
 export const Route = createFileRoute("/api/address/validate-pickup")({
   server: {
@@ -45,7 +50,11 @@ export const Route = createFileRoute("/api/address/validate-pickup")({
           return jsonError(422, parsed.error.issues[0]?.message ?? "Invalid pickup address");
         }
 
-        if (JUNK_ADDRESS_HINTS.has(parsed.data.address1.trim().toLowerCase())) {
+        if (
+          WEAK_TOKENS.has(parsed.data.houseOrFlat.trim().toLowerCase()) ||
+          JUNK_ADDRESS_HINTS.has(parsed.data.areaOrLocality.trim().toLowerCase()) ||
+          JUNK_ADDRESS_HINTS.has(parsed.data.landmark.trim().toLowerCase())
+        ) {
           return jsonError(422, "Pickup address needs a real courier-ready street address.");
         }
 
@@ -65,6 +74,10 @@ export const Route = createFileRoute("/api/address/validate-pickup")({
                   regionCode: "IN",
                   languageCode: "en",
                   addressLines: [
+                    parsed.data.houseOrFlat,
+                    parsed.data.buildingOrSociety,
+                    parsed.data.streetOrRoad,
+                    parsed.data.areaOrLocality,
                     parsed.data.address1,
                     parsed.data.address2,
                     parsed.data.landmark,

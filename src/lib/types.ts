@@ -43,6 +43,10 @@ export interface PickupAddressSnapshot {
   name: string;
   phone: string;
   email?: string;
+  houseOrFlat?: string;
+  buildingOrSociety?: string;
+  streetOrRoad?: string;
+  areaOrLocality?: string;
   address1?: string;
   address2?: string;
   address: string;

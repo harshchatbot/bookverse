@@ -17,17 +17,21 @@ def _valid_payload() -> dict:
         "name": "Seller Pickup",
         "phone": "+919999999999",
         "email": "pickup@example.com",
-        "address1": "Flat 201, Sunrise Residency, JM Road",
-        "address2": "Near college gate",
-        "landmark": "Opposite library",
-        "city": "Pune",
-        "state": "Maharashtra",
-        "pincode": "411001",
+        "houseOrFlat": "H.No 10",
+        "buildingOrSociety": "Lake View Apartments",
+        "streetOrRoad": "Ana Sagar Link Road",
+        "areaOrLocality": "Anand Nagar",
+        "address1": "H.No 10, Lake View Apartments, Ana Sagar Link Road, Anand Nagar",
+        "address2": "Near Anasagar Lake",
+        "landmark": "Near Anasagar Lake",
+        "city": "Ajmer",
+        "state": "Rajasthan",
+        "pincode": "305001",
         "country": "India",
         "placeId": "test-place-id",
-        "formattedAddress": "Flat 201, Sunrise Residency, JM Road, Pune, Maharashtra 411001, India",
-        "lat": 18.5204,
-        "lon": 73.8567,
+        "formattedAddress": "H.No 10, Lake View Apartments, Ana Sagar Link Road, Anand Nagar, Ajmer, Rajasthan 305001, India",
+        "lat": 26.4499,
+        "lon": 74.6399,
         "sellerConfirmed": True,
     }
 
@@ -37,7 +41,7 @@ def test_validate_pickup_requires_auth() -> None:
     assert response.status_code == 401
 
 
-def test_validate_pickup_rejects_weak_address_before_google_call(monkeypatch) -> None:
+def test_validate_pickup_rejects_locality_only_before_google_call(monkeypatch) -> None:
     app.dependency_overrides[address_router.get_current_user] = _fake_user
 
     called = False
@@ -49,7 +53,13 @@ def test_validate_pickup_rejects_weak_address_before_google_call(monkeypatch) ->
 
     monkeypatch.setattr(address_router, "validate_pickup_address", _fake_validate)
     payload = _valid_payload()
-    payload["address1"] = "home"
+    payload["houseOrFlat"] = ""
+    payload["buildingOrSociety"] = ""
+    payload["streetOrRoad"] = ""
+    payload["areaOrLocality"] = "Anand Nagar"
+    payload["address1"] = "Anand Nagar"
+    payload["address2"] = ""
+    payload["landmark"] = "Near Anasagar Lake"
     response = client.post(
         "/address/validate-pickup",
         headers={"Authorization": "Bearer test"},
@@ -57,6 +67,71 @@ def test_validate_pickup_rejects_weak_address_before_google_call(monkeypatch) ->
     )
     assert response.status_code == 422
     assert called is False
+    app.dependency_overrides.clear()
+
+
+def test_validate_pickup_rejects_landmark_only_before_google_call(monkeypatch) -> None:
+    app.dependency_overrides[address_router.get_current_user] = _fake_user
+    called = False
+
+    async def _fake_validate(_: object) -> dict:
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(address_router, "validate_pickup_address", _fake_validate)
+    payload = _valid_payload()
+    payload["houseOrFlat"] = ""
+    payload["areaOrLocality"] = ""
+    payload["streetOrRoad"] = ""
+    payload["buildingOrSociety"] = ""
+    payload["address1"] = ""
+    payload["address2"] = ""
+    payload["landmark"] = "Ana sagar lake"
+    response = client.post(
+        "/address/validate-pickup",
+        headers={"Authorization": "Bearer test"},
+        json=payload,
+    )
+    assert response.status_code == 422
+    assert called is False
+    app.dependency_overrides.clear()
+
+
+def test_validate_pickup_accepts_structured_indian_address(monkeypatch) -> None:
+    app.dependency_overrides[address_router.get_current_user] = _fake_user
+
+    async def _fake_validate(_: object) -> dict:
+        return {
+            "ok": True,
+            "isCourierReady": True,
+            "validationLevel": "google_validated",
+            "formattedAddress": "Validated address",
+            "lat": 26.4499,
+            "lon": 74.6399,
+            "placeId": "test-place-id",
+            "reasonCodes": [],
+            "message": "Pickup address is Google-validated and courier-ready.",
+            "googleVerdict": {
+                "addressComplete": True,
+                "validationGranularity": "PREMISE",
+                "geocodeGranularity": "PREMISE",
+            },
+        }
+
+    monkeypatch.setattr(address_router, "validate_pickup_address", _fake_validate)
+    payload = _valid_payload()
+    payload["buildingOrSociety"] = ""
+    payload["streetOrRoad"] = ""
+    payload["address1"] = "H.No 10, Anand Nagar"
+    payload["address2"] = "Near Anasagar lake"
+    response = client.post(
+        "/address/validate-pickup",
+        headers={"Authorization": "Bearer test"},
+        json=payload,
+    )
+    assert response.status_code == 200
+    assert response.json()["validationLevel"] == "google_validated"
     app.dependency_overrides.clear()
 
 

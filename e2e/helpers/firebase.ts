@@ -42,6 +42,10 @@ interface TestPickupAddressInput {
   name?: string;
   phone?: string;
   email?: string;
+  houseOrFlat?: string;
+  buildingOrSociety?: string;
+  streetOrRoad?: string;
+  areaOrLocality?: string;
   address1?: string;
   address2?: string;
   address?: string;
@@ -215,7 +219,20 @@ export async function saveTestPickupAddress(
         name: address?.name ?? "E2E Pickup",
         phone: address?.phone ?? "9999999999",
         email: address?.email ?? "pickup@test.local",
-        address1: address?.address1 ?? address?.address ?? "123 Test Street",
+        houseOrFlat: address?.houseOrFlat ?? "H.No 10",
+        buildingOrSociety: address?.buildingOrSociety ?? "Lake View Apartments",
+        streetOrRoad: address?.streetOrRoad ?? "Campus Road",
+        areaOrLocality: address?.areaOrLocality ?? "Anand Nagar",
+        address1:
+          address?.address1 ??
+          [
+            address?.houseOrFlat ?? "H.No 10",
+            address?.buildingOrSociety ?? "Lake View Apartments",
+            address?.streetOrRoad ?? "Campus Road",
+            address?.areaOrLocality ?? "Anand Nagar",
+          ]
+            .filter(Boolean)
+            .join(", "),
         address2: address?.address2 ?? "",
         city: address?.city ?? "Pune",
         state: address?.state ?? "Maharashtra",
@@ -224,7 +241,13 @@ export async function saveTestPickupAddress(
         landmark: address?.landmark ?? "",
         address:
           address?.address ??
-          [address?.address1 ?? "123 Test Street", address?.address2 ?? "", address?.landmark ?? ""]
+          [
+            address?.houseOrFlat ?? "H.No 10",
+            address?.buildingOrSociety ?? "Lake View Apartments",
+            address?.streetOrRoad ?? "Campus Road",
+            address?.areaOrLocality ?? "Anand Nagar",
+            address?.landmark ?? "",
+          ]
             .filter(Boolean)
             .join(", "),
         location: address?.pickupLocationName ?? "Home",

@@ -92,6 +92,10 @@ function ProfileContent({ user }: { user: User }) {
     name: "",
     phone: "",
     email: user.email || "",
+    houseOrFlat: "",
+    buildingOrSociety: "",
+    streetOrRoad: "",
+    areaOrLocality: "",
     address1: "",
     address2: "",
     city: "",
@@ -191,13 +195,17 @@ function ProfileContent({ user }: { user: User }) {
       name: form.name.trim() || user.displayName || "",
       phone: form.mobile.replace(/\D/g, "").slice(0, 10),
       email: user.email || "",
+      houseOrFlat: "",
+      buildingOrSociety: "",
+      streetOrRoad: "",
+      areaOrLocality: form.locality.trim(),
       address1: form.locality.trim(),
       address2: "",
       city: actualCity,
       state: form.state.trim(),
       pincode: form.pincode.replace(/\D/g, "").slice(0, 6),
       country: "India",
-      landmark: "",
+      landmark: form.locality.trim(),
       address: "",
       location: "Home",
       placeId: "",
@@ -295,7 +303,9 @@ function ProfileContent({ user }: { user: User }) {
     if (!pickupForm.email?.trim()) pickupErrors.email = "Email is required";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pickupForm.email?.trim() || ""))
       pickupErrors.email = "Enter a valid email address";
-    if (!pickupForm.address1?.trim()) pickupErrors.address1 = "Address line 1 is required";
+    if (!pickupForm.houseOrFlat?.trim()) pickupErrors.address1 = "House / Flat / Building No. is required";
+    if (!pickupForm.areaOrLocality?.trim()) pickupErrors.address1 = "Area / Locality is required";
+    if (!pickupForm.landmark?.trim()) pickupErrors.address1 = "Landmark is required";
     if (!pickupForm.city?.trim()) pickupErrors.city = "City is required";
     if (!pickupForm.state?.trim()) pickupErrors.state = "State is required";
     if (!/^\d{6}$/.test(pickupForm.pincode))
@@ -322,8 +332,19 @@ function ProfileContent({ user }: { user: User }) {
         name: pickupForm.name.trim(),
         phone: pickupForm.phone.replace(/\D/g, "").slice(0, 10),
         email: pickupForm.email.trim(),
-        address1: pickupForm.address1.trim(),
-        address2: pickupForm.address2.trim(),
+        houseOrFlat: pickupForm.houseOrFlat?.trim() || "",
+        buildingOrSociety: pickupForm.buildingOrSociety?.trim() || "",
+        streetOrRoad: pickupForm.streetOrRoad?.trim() || "",
+        areaOrLocality: pickupForm.areaOrLocality?.trim() || "",
+        address1: [
+          pickupForm.houseOrFlat?.trim(),
+          pickupForm.buildingOrSociety?.trim(),
+          pickupForm.streetOrRoad?.trim(),
+          pickupForm.areaOrLocality?.trim(),
+        ]
+          .filter(Boolean)
+          .join(", "),
+        address2: pickupForm.landmark.trim(),
         city: pickupForm.city.trim(),
         state: pickupForm.state.trim(),
         pincode: pickupForm.pincode.replace(/\D/g, "").slice(0, 6),
@@ -353,7 +374,13 @@ function ProfileContent({ user }: { user: User }) {
 
   const validatePickupAddress = async () => {
     const normalizedPhone = pickupForm.phone.replace(/\D/g, "").slice(0, 10);
-    if (!pickupForm.address1.trim() || !pickupForm.city.trim() || !pickupForm.state.trim()) {
+    if (
+      !pickupForm.houseOrFlat?.trim() ||
+      !pickupForm.areaOrLocality?.trim() ||
+      !pickupForm.landmark?.trim() ||
+      !pickupForm.city.trim() ||
+      !pickupForm.state.trim()
+    ) {
       toast.error("Enter the full pickup address before validating it.");
       return;
     }
@@ -403,8 +430,19 @@ function ProfileContent({ user }: { user: User }) {
           name: pickupForm.name.trim(),
           phone: `+91${normalizedPhone}`,
           email: pickupForm.email.trim(),
-          address1: pickupForm.address1.trim(),
-          address2: pickupForm.address2.trim(),
+          houseOrFlat: pickupForm.houseOrFlat?.trim() || "",
+          buildingOrSociety: pickupForm.buildingOrSociety?.trim() || "",
+          streetOrRoad: pickupForm.streetOrRoad?.trim() || "",
+          areaOrLocality: pickupForm.areaOrLocality?.trim() || "",
+          address1: [
+            pickupForm.houseOrFlat?.trim(),
+            pickupForm.buildingOrSociety?.trim(),
+            pickupForm.streetOrRoad?.trim(),
+            pickupForm.areaOrLocality?.trim(),
+          ]
+            .filter(Boolean)
+            .join(", "),
+          address2: pickupForm.landmark.trim(),
           landmark: pickupForm.landmark.trim(),
           city: pickupForm.city.trim(),
           state: pickupForm.state.trim(),
@@ -764,7 +802,17 @@ function ProfileContent({ user }: { user: User }) {
               </div>
 
               <GooglePickupMapSelector
-                address1={pickupForm.address1}
+                address1={
+                  pickupForm.address1 ||
+                  [
+                    pickupForm.houseOrFlat,
+                    pickupForm.buildingOrSociety,
+                    pickupForm.streetOrRoad,
+                    pickupForm.areaOrLocality,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                }
                 city={pickupForm.city}
                 state={pickupForm.state}
                 pincode={pickupForm.pincode}
@@ -777,8 +825,19 @@ function ProfileContent({ user }: { user: User }) {
                   setPickupForm((current) =>
                     clearPickupValidationState({
                       ...current,
-                      address1: selection.address1 || current.address1,
-                      address2: selection.address2 || current.address2,
+                      houseOrFlat: current.houseOrFlat || selection.houseOrFlat || "",
+                      areaOrLocality: selection.areaOrLocality || current.areaOrLocality,
+                      streetOrRoad: selection.streetOrRoad || current.streetOrRoad,
+                      address1:
+                        [
+                          current.houseOrFlat || selection.houseOrFlat,
+                          current.buildingOrSociety,
+                          selection.streetOrRoad || current.streetOrRoad,
+                          selection.areaOrLocality || current.areaOrLocality,
+                        ]
+                          .filter(Boolean)
+                          .join(", "),
+                      address2: current.landmark,
                       city: selection.city || current.city,
                       state: selection.state || current.state,
                       pincode: selection.pincode || current.pincode,
@@ -805,27 +864,53 @@ function ProfileContent({ user }: { user: User }) {
               />
 
               <Field
-                label="Address Line 1"
-                value={pickupForm.address1}
-                onChange={(value) => setPickupField("address1", value)}
+                label="House / Flat / Building No."
+                value={pickupForm.houseOrFlat || ""}
+                onChange={(value) => setPickupField("houseOrFlat", value)}
                 required
                 data-testid="pickup-address1"
+                placeholder="H.No 10, Flat 302, Shop 12"
               />
 
               <Field
-                label="Address Line 2"
-                value={pickupForm.address2}
-                onChange={(value) => setPickupField("address2", value)}
-                helper="Optional apartment, floor, or building details"
+                label="Building / Apartment / Society"
+                value={pickupForm.buildingOrSociety || ""}
+                onChange={(value) => setPickupField("buildingOrSociety", value)}
+                helper="Optional society or apartment name"
                 data-testid="pickup-address2"
+                placeholder="Lake View Apartments"
+              />
+
+              <Field
+                label="Street / Road / Gali / Lane"
+                value={pickupForm.streetOrRoad || ""}
+                onChange={(value) => setPickupField("streetOrRoad", value)}
+                helper="Optional if house/flat, locality, and landmark are enough"
+                data-testid="pickup-street"
+                placeholder="Ana Sagar Link Road"
+              />
+
+              <Field
+                label="Area / Locality"
+                value={pickupForm.areaOrLocality || ""}
+                onChange={(value) => setPickupField("areaOrLocality", value)}
+                required
+                helper={
+                  pickupForm.houseOrFlat?.trim() === "" && pickupForm.address2?.trim()
+                    ? "Tip: Put house/flat/building details in Address Line 1 for better courier pickup."
+                    : undefined
+                }
+                data-testid="pickup-area"
+                placeholder="Anand Nagar"
               />
 
               <Field
                 label="Landmark"
                 value={pickupForm.landmark}
                 onChange={(value) => setPickupField("landmark", value)}
-                helper="Optional nearby landmark to help the courier find you"
+                helper="Required nearby landmark to help the courier find you"
                 data-testid="pickup-landmark"
+                placeholder="Near Anasagar Lake"
               />
 
               <div className="grid gap-4 sm:grid-cols-2">

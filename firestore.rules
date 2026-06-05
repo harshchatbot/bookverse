@@ -45,6 +45,10 @@ service cloud.firestore {
           'name',
           'phone',
           'email',
+          'houseOrFlat',
+          'buildingOrSociety',
+          'streetOrRoad',
+          'areaOrLocality',
           'address1',
           'address2',
           'city',
@@ -69,7 +73,14 @@ service cloud.firestore {
         && nonEmpty(value.name)
         && validIndianContactPhone(value.phone)
         && validPickupEmail(value.email)
-        && nonEmpty(value.address1)
+        && (
+          (
+            ('houseOrFlat' in value && nonEmpty(value.houseOrFlat))
+            && ('areaOrLocality' in value && nonEmpty(value.areaOrLocality))
+            && ('landmark' in value && nonEmpty(value.landmark))
+          )
+          || nonEmpty(value.address1)
+        )
         && nonEmpty(value.city)
         && nonEmpty(value.state)
         && validPincode(value.pincode)

@@ -14,6 +14,7 @@ JUNK_ADDRESS_HINTS = {
     "near bus stand",
     "ana sagar lake",
 }
+WEAK_TOKENS = {"test", "home", "near", "abc"}
 
 
 class PickupAddressValidationRequest(BaseModel):
@@ -21,6 +22,10 @@ class PickupAddressValidationRequest(BaseModel):
     name: str
     phone: str
     email: str
+    houseOrFlat: str
+    buildingOrSociety: str = ""
+    streetOrRoad: str = ""
+    areaOrLocality: str
     address1: str
     address2: str = ""
     landmark: str = ""
@@ -55,15 +60,12 @@ class PickupAddressValidationRequest(BaseModel):
             raise ValueError("Enter a valid 6-digit pincode.")
         return cleaned
 
-    @field_validator("address1")
+    @field_validator("houseOrFlat", "areaOrLocality", "landmark")
     @classmethod
-    def validate_address1(cls, value: str) -> str:
+    def validate_required_address_parts(cls, value: str) -> str:
         cleaned = value.strip()
-        if len(cleaned) < 15:
-            raise ValueError("Pickup address needs house/flat/building and street details.")
-        lowered = cleaned.lower()
-        if lowered in JUNK_ADDRESS_HINTS:
-            raise ValueError("Pickup address needs a real courier-ready street address.")
+        if not cleaned:
+            raise ValueError("This field is required.")
         return cleaned
 
     @field_validator("city", "state", "name", "email", "country")
@@ -119,16 +121,62 @@ def _verdict_summary(result: dict[str, Any]) -> tuple[list[str], str]:
     return reasons, "Pickup address could not be confirmed yet."
 
 
+def _combined_address_for_scoring(payload: PickupAddressValidationRequest) -> str:
+    return " ".join(
+        part.strip()
+        for part in [
+            payload.houseOrFlat,
+            payload.buildingOrSociety,
+            payload.streetOrRoad,
+            payload.areaOrLocality,
+            payload.landmark,
+            payload.address1,
+            payload.address2,
+        ]
+        if part and part.strip()
+    ).lower()
+
+
+def _is_vague_only(value: str) -> bool:
+    cleaned = value.strip().lower()
+    return cleaned in JUNK_ADDRESS_HINTS or cleaned in {"near bus stand", "near anasagar lake"}
+
+
+def _validate_structured_precheck(payload: PickupAddressValidationRequest) -> None:
+    house = payload.houseOrFlat.strip().lower()
+    locality = payload.areaOrLocality.strip().lower()
+    landmark = payload.landmark.strip().lower()
+    if house in WEAK_TOKENS or len(house) < 3:
+        raise ValueError("House / Flat / Building No. needs a real pickup detail.")
+    if _is_vague_only(locality):
+        raise ValueError("Area / Locality cannot be the only pickup detail.")
+    if _is_vague_only(landmark):
+        raise ValueError("Landmark needs to support a real pickup address, not replace it.")
+    combined = _combined_address_for_scoring(payload)
+    if payload.areaOrLocality.strip().lower() == combined.strip():
+        raise ValueError("Pickup address needs house or flat details, not only locality.")
+
+
 async def validate_pickup_address(payload: PickupAddressValidationRequest) -> dict[str, Any]:
     settings = get_settings()
     if not settings.google_maps_server_api_key:
         raise RuntimeError("Google Address Validation is not configured.")
 
+    _validate_structured_precheck(payload)
+
     google_payload = {
         "address": {
             "regionCode": "IN",
             "languageCode": "en",
-            "addressLines": [payload.address1, payload.address2, payload.landmark],
+            "addressLines": [
+                payload.houseOrFlat,
+                payload.buildingOrSociety,
+                payload.streetOrRoad,
+                payload.areaOrLocality,
+                payload.address1,
+                payload.address2,
+                payload.landmark,
+            ],
             "locality": payload.city,
             "administrativeArea": payload.state,
             "postalCode": payload.pincode,

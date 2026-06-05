@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
 
 type PickupSelection = {
-  address1?: string;
-  address2?: string;
+  houseOrFlat?: string;
+  streetOrRoad?: string;
+  areaOrLocality?: string;
   city?: string;
   state?: string;
   pincode?: string;
@@ -95,11 +96,13 @@ function extractPlaceSelection(place: any): PickupSelection | null {
   const streetNumber = find("street_number");
   const route = find("route");
   const sublocality = find("sublocality_level_1") || find("sublocality") || find("neighborhood");
-  const address1 = [streetNumber, route].filter(Boolean).join(" ").trim() || place?.name || "";
+  const streetOrRoad = route || "";
+  const houseOrFlat = streetNumber || "";
 
   return {
-    address1,
-    address2: "",
+    houseOrFlat,
+    streetOrRoad,
+    areaOrLocality: sublocality || "",
     city: find("locality") || find("postal_town") || find("administrative_area_level_2"),
     state: find("administrative_area_level_1"),
     pincode: find("postal_code"),

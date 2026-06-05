@@ -81,13 +81,23 @@ def _is_complete_pickup_address(value: Any) -> bool:
         phone.isdigit() and len(phone) == 10 and phone[0] in {"6", "7", "8", "9"}
     ) or (phone.startswith("+91") and phone[3:].isdigit() and len(phone) == 13)
     valid_email = "@" in email and "." in email.split("@")[-1]
+    house_or_flat = str(value.get("houseOrFlat", "")).strip()
+    area_or_locality = str(value.get("areaOrLocality", "")).strip()
+    landmark = str(value.get("landmark", "")).strip()
     return (
         bool(pickup_location_name)
         and isinstance(value.get("name"), str)
         and value["name"].strip()
         and valid_phone
         and valid_email
-        and len(address_line_1) >= 3
+        and (
+            (
+                len(house_or_flat) >= 3
+                and len(area_or_locality) >= 2
+                and len(landmark) >= 2
+            )
+            or len(address_line_1) >= 3
+        )
         and isinstance(value.get("city"), str)
         and value["city"].strip()
         and isinstance(value.get("state"), str)
@@ -112,6 +122,17 @@ def _is_google_validated_pickup_address(value: Any) -> bool:
         and formatted_address.strip()
         and isinstance(lat, (int, float))
         and isinstance(lon, (int, float))
+        and (
+            (
+                isinstance(value.get("houseOrFlat"), str)
+                and value.get("houseOrFlat", "").strip()
+                and isinstance(value.get("areaOrLocality"), str)
+                and value.get("areaOrLocality", "").strip()
+                and isinstance(value.get("landmark"), str)
+                and value.get("landmark", "").strip()
+            )
+            or isinstance(value.get("address1"), str)
+        )
     )
 
 

@@ -59,6 +59,10 @@ function isCompletePickupAddress(value: unknown): value is PickupAddressSnapshot
   const pickup = value as Record<string, unknown>;
   const phone = typeof pickup.phone === "string" ? pickup.phone.trim() : "";
   const email = typeof pickup.email === "string" ? pickup.email.trim() : "";
+  const houseOrFlat = typeof pickup.houseOrFlat === "string" ? pickup.houseOrFlat.trim() : "";
+  const areaOrLocality =
+    typeof pickup.areaOrLocality === "string" ? pickup.areaOrLocality.trim() : "";
+  const landmark = typeof pickup.landmark === "string" ? pickup.landmark.trim() : "";
   const addressLine1 =
     typeof pickup.address1 === "string"
       ? pickup.address1.trim()
@@ -72,7 +76,8 @@ function isCompletePickupAddress(value: unknown): value is PickupAddressSnapshot
     pickup.name.trim().length > 0 &&
     ((/^[6-9]\d{9}$/.test(phone) || /^\+91[6-9]\d{9}$/.test(phone))) &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-    addressLine1.length >= 3 &&
+    ((houseOrFlat.length >= 3 && areaOrLocality.length >= 2 && landmark.length >= 2) ||
+      addressLine1.length >= 3) &&
     typeof pickup.city === "string" &&
     pickup.city.trim().length > 0 &&
     typeof pickup.state === "string" &&
@@ -94,7 +99,16 @@ function isValidatedPickupAddress(value: unknown): value is PickupAddressSnapsho
     typeof pickup.lat === "number" &&
     Number.isFinite(pickup.lat) &&
     typeof pickup.lon === "number" &&
-    Number.isFinite(pickup.lon)
+    Number.isFinite(pickup.lon) &&
+    (
+      (typeof pickup.houseOrFlat === "string" &&
+        pickup.houseOrFlat.trim().length > 0 &&
+        typeof pickup.areaOrLocality === "string" &&
+        pickup.areaOrLocality.trim().length > 0 &&
+        typeof pickup.landmark === "string" &&
+        pickup.landmark.trim().length > 0) ||
+      (typeof pickup.address1 === "string" && pickup.address1.trim().length > 0)
+    )
   );
 }
 

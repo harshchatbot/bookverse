@@ -10,6 +10,10 @@ export interface PickupAddress {
   name: string;
   phone: string;
   email: string;
+  houseOrFlat?: string;
+  buildingOrSociety?: string;
+  streetOrRoad?: string;
+  areaOrLocality?: string;
   address1: string;
   address2: string;
   city: string;
@@ -53,6 +57,10 @@ const EMPTY_PICKUP: PickupAddress = {
   name: "",
   phone: "",
   email: "",
+  houseOrFlat: "",
+  buildingOrSociety: "",
+  streetOrRoad: "",
+  areaOrLocality: "",
   address1: "",
   address2: "",
   city: "",
@@ -88,9 +96,34 @@ function buildLegacyPickupAddress(input: {
     .join(", ");
 }
 
+export function buildPickupFormattedAddress(input: Partial<PickupAddress>): string {
+  return [
+    input.houseOrFlat?.trim(),
+    input.buildingOrSociety?.trim(),
+    input.streetOrRoad?.trim(),
+    input.areaOrLocality?.trim(),
+    input.landmark?.trim(),
+    input.city?.trim(),
+    input.state?.trim(),
+    (input.pincode ?? "").replace(/\D/g, "").slice(0, 6),
+    input.country?.trim() || "India",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined): PickupAddress {
-  const address1 = raw?.address1?.trim() || raw?.address?.trim() || "";
-  const address2 = raw?.address2?.trim() || "";
+  const houseOrFlat =
+    raw?.houseOrFlat?.trim() || raw?.address1?.split(",")[0]?.trim() || "";
+  const buildingOrSociety = raw?.buildingOrSociety?.trim() || "";
+  const streetOrRoad = raw?.streetOrRoad?.trim() || "";
+  const areaOrLocality = raw?.areaOrLocality?.trim() || "";
+  const address1 =
+    raw?.address1?.trim() ||
+    [houseOrFlat, buildingOrSociety, streetOrRoad, areaOrLocality].filter(Boolean).join(", ") ||
+    raw?.address?.trim() ||
+    "";
+  const address2 = raw?.address2?.trim() || raw?.landmark?.trim() || "";
   const landmark = raw?.landmark?.trim() || "";
   const pickupLocationName = raw?.pickupLocationName?.trim() || raw?.location?.trim() || "";
   return {
@@ -100,6 +133,10 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
     name: raw?.name?.trim() || "",
     phone: normalizePickupPhone(raw?.phone),
     email: raw?.email?.trim() || "",
+    houseOrFlat,
+    buildingOrSociety,
+    streetOrRoad,
+    areaOrLocality,
     address1,
     address2,
     city: raw?.city?.trim() || "",
@@ -107,13 +144,21 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
     pincode: (raw?.pincode ?? "").replace(/\D/g, "").slice(0, 6),
     country: raw?.country?.trim() || "India",
     landmark,
-    address:
-      raw?.address?.trim() ||
-      buildLegacyPickupAddress({
-        address1,
-        address2,
-        landmark,
-      }),
+    address: raw?.address?.trim() || buildPickupFormattedAddress({
+      houseOrFlat,
+      buildingOrSociety,
+      streetOrRoad,
+      areaOrLocality,
+      landmark,
+      city: raw?.city?.trim() || "",
+      state: raw?.state?.trim() || "",
+      pincode: (raw?.pincode ?? "").replace(/\D/g, "").slice(0, 6),
+      country: raw?.country?.trim() || "India",
+    }) || buildLegacyPickupAddress({
+      address1,
+      address2,
+      landmark,
+    }),
     location: pickupLocationName || null,
     placeId: raw?.placeId?.trim() || "",
     formattedAddress: raw?.formattedAddress?.trim() || "",
@@ -179,14 +224,29 @@ export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<
     name: normalized.name || "",
     phone: normalized.phone || "",
     email: normalized.email || "",
-    address1: normalized.address1 || "",
-    address2: normalized.address2 || "",
+    houseOrFlat: normalized.houseOrFlat || "",
+    buildingOrSociety: normalized.buildingOrSociety || "",
+    streetOrRoad: normalized.streetOrRoad || "",
+    areaOrLocality: normalized.areaOrLocality || "",
+    address1:
+      normalized.address1 ||
+      [normalized.houseOrFlat, normalized.buildingOrSociety, normalized.streetOrRoad, normalized.areaOrLocality]
+        .filter(Boolean)
+        .join(", "),
+    address2: normalized.address2 || normalized.landmark || "",
     city: normalized.city || "",
     state: normalized.state || "",
     pincode: normalized.pincode || "",
     country: normalized.country || "India",
     landmark: normalized.landmark || "",
-    address: normalized.address || "",
+    address:
+      normalized.address ||
+      buildPickupFormattedAddress(normalized) ||
+      buildLegacyPickupAddress({
+        address1: normalized.address1,
+        address2: normalized.address2,
+        landmark: normalized.landmark,
+      }),
     location: normalized.location ?? null,
     placeId: normalized.placeId?.trim() || "",
     formattedAddress: normalized.formattedAddress?.trim() || "",
@@ -238,7 +298,9 @@ export function hasCompletePickupAddress(p: PickupAddress | null | undefined): b
     normalized.name &&
     /^[6-9]\d{9}$/.test(normalized.phone) &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email) &&
-    normalized.address1 &&
+    normalized.houseOrFlat?.trim() &&
+    normalized.areaOrLocality?.trim() &&
+    normalized.landmark?.trim() &&
     normalized.city &&
     normalized.state &&
     /^\d{6}$/.test(normalized.pincode) &&
