@@ -316,7 +316,11 @@ function ProfileContent({ user }: { user: User }) {
       pickupErrors.address1 = "Please confirm the pickup pin on the map.";
     if (pickupForm.sellerConfirmed !== true)
       pickupErrors.name = "Please confirm the exact courier pickup location.";
-    if (pickupForm.validationLevel !== "google_validated" || pickupForm.isCourierReady !== true)
+    if (
+      (pickupForm.validationLevel !== "google_validated" &&
+        pickupForm.validationLevel !== "google_geo_confirmed") ||
+      pickupForm.isCourierReady !== true
+    )
       pickupErrors.address1 = "Validate the pickup address before saving.";
 
     if (Object.keys(pickupErrors).length > 0) {
@@ -411,7 +415,11 @@ function ProfileContent({ user }: { user: User }) {
       const response = await apiFetch<{
         ok: boolean;
         isCourierReady: boolean;
-        validationLevel: "google_validated" | "needs_more_detail" | "failed";
+        validationLevel:
+          | "google_validated"
+          | "google_geo_confirmed"
+          | "needs_more_detail"
+          | "failed";
         formattedAddress: string | null;
         lat: number | null;
         lon: number | null;
@@ -475,7 +483,9 @@ function ProfileContent({ user }: { user: User }) {
       }));
       setPickupValidationMessage(response.message);
       toast.success(
-        response.isCourierReady
+        response.validationLevel === "google_geo_confirmed"
+          ? "Map pin confirmed. We’ll use this seller-confirmed pickup location for courier collection."
+          : response.isCourierReady
           ? "Pickup address validated for courier pickup."
           : "Google needs a more exact pickup address before pickup can be enabled.",
       );
@@ -971,12 +981,15 @@ function ProfileContent({ user }: { user: User }) {
 
               <div className="rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm">
                 <p className="font-medium">
-                  {pickupForm.validationLevel === "google_validated"
+                  {pickupForm.validationLevel === "google_validated" ||
+                  pickupForm.validationLevel === "google_geo_confirmed"
                     ? "Google pickup validation complete"
                     : "Validate this pickup address before protected delivery can go live"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {pickupValidationMessage ||
+                  {pickupForm.validationLevel === "google_geo_confirmed"
+                    ? "Google could not fully verify the house number, but your map pin and pickup details look complete. We will use this seller-confirmed pickup location for courier collection."
+                    : pickupValidationMessage ||
                     pickupForm.googleValidation?.message ||
                     "We only validate when you click the button, not while you type."}
                 </p>

@@ -116,7 +116,7 @@ def _is_google_validated_pickup_address(value: Any) -> bool:
     formatted_address = value.get("formattedAddress")
     return (
         value.get("isCourierReady") is True
-        and value.get("validationLevel") == "google_validated"
+        and value.get("validationLevel") in {"google_validated", "google_geo_confirmed"}
         and value.get("sellerConfirmed") is True
         and isinstance(formatted_address, str)
         and formatted_address.strip()

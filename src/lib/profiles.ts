@@ -32,7 +32,12 @@ export interface PickupAddress {
   pinConfirmedAt?: string | null;
   googleValidatedAt?: string | null;
   isCourierReady?: boolean;
-  validationLevel?: "google_validated" | "needs_more_detail" | "failed" | null;
+  validationLevel?:
+    | "google_validated"
+    | "google_geo_confirmed"
+    | "needs_more_detail"
+    | "failed"
+    | null;
   googleValidation?: {
     addressComplete?: boolean;
     validationGranularity?: string | null;
@@ -182,6 +187,7 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
     isCourierReady: raw?.isCourierReady === true,
     validationLevel:
       raw?.validationLevel === "google_validated" ||
+      raw?.validationLevel === "google_geo_confirmed" ||
       raw?.validationLevel === "needs_more_detail" ||
       raw?.validationLevel === "failed"
         ? raw.validationLevel
@@ -307,7 +313,8 @@ export function hasCompletePickupAddress(p: PickupAddress | null | undefined): b
     normalized.formattedAddress?.trim() &&
     normalized.sellerConfirmed === true &&
     normalized.isCourierReady === true &&
-    normalized.validationLevel === "google_validated" &&
+    (normalized.validationLevel === "google_validated" ||
+      normalized.validationLevel === "google_geo_confirmed") &&
     typeof normalized.lat === "number" &&
     Number.isFinite(normalized.lat) &&
     typeof normalized.lon === "number" &&

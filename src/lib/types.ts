@@ -64,7 +64,7 @@ export interface PickupAddressSnapshot {
   pinConfirmedAt?: string | null;
   googleValidatedAt?: string | null;
   isCourierReady?: boolean;
-  validationLevel?: "google_validated" | "needs_more_detail" | "failed" | null;
+  validationLevel?: "google_validated" | "google_geo_confirmed" | "needs_more_detail" | "failed" | null;
   googleValidation?: {
     addressComplete?: boolean;
     validationGranularity?: string | null;

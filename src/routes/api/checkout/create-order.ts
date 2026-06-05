@@ -92,7 +92,8 @@ function isValidatedPickupAddress(value: unknown): value is PickupAddressSnapsho
   const pickup = value as PickupAddressSnapshot;
   return !!(
     pickup.isCourierReady === true &&
-    pickup.validationLevel === "google_validated" &&
+    (pickup.validationLevel === "google_validated" ||
+      pickup.validationLevel === "google_geo_confirmed") &&
     pickup.sellerConfirmed === true &&
     typeof pickup.formattedAddress === "string" &&
     pickup.formattedAddress.trim().length > 0 &&

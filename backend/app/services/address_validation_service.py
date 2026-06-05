@@ -15,6 +15,9 @@ JUNK_ADDRESS_HINTS = {
     "ana sagar lake",
 }
 WEAK_TOKENS = {"test", "home", "near", "abc"}
+GOOGLE_VALIDATED_LEVEL = "google_validated"
+GOOGLE_GEO_CONFIRMED_LEVEL = "google_geo_confirmed"
+NEEDS_MORE_DETAIL_LEVEL = "needs_more_detail"
 
 
 class PickupAddressValidationRequest(BaseModel):
@@ -145,16 +148,34 @@ def _is_vague_only(value: str) -> bool:
 def _validate_structured_precheck(payload: PickupAddressValidationRequest) -> None:
     house = payload.houseOrFlat.strip().lower()
     locality = payload.areaOrLocality.strip().lower()
-    landmark = payload.landmark.strip().lower()
     if house in WEAK_TOKENS or len(house) < 3:
         raise ValueError("House / Flat / Building No. needs a real pickup detail.")
     if _is_vague_only(locality):
         raise ValueError("Area / Locality cannot be the only pickup detail.")
-    if _is_vague_only(landmark):
-        raise ValueError("Landmark needs to support a real pickup address, not replace it.")
     combined = _combined_address_for_scoring(payload)
     if payload.areaOrLocality.strip().lower() == combined.strip():
         raise ValueError("Pickup address needs house or flat details, not only locality.")
+
+
+def _structured_address_score(payload: PickupAddressValidationRequest) -> int:
+    score = 0
+    if len(payload.houseOrFlat.strip()) >= 3 and payload.houseOrFlat.strip().lower() not in WEAK_TOKENS:
+        score += 30
+    if len(payload.areaOrLocality.strip()) >= 3 and not _is_vague_only(payload.areaOrLocality):
+        score += 20
+    if len(payload.landmark.strip()) >= 3 and not _is_vague_only(payload.landmark):
+        score += 15
+    if len(payload.buildingOrSociety.strip()) >= 3:
+        score += 10
+    if len(payload.streetOrRoad.strip()) >= 3:
+        score += 10
+    if len(payload.city.strip()) >= 2:
+        score += 5
+    if len(payload.state.strip()) >= 2:
+        score += 5
+    if len(payload.pincode.strip()) == 6:
+        score += 5
+    return score
 
 
 async def validate_pickup_address(payload: PickupAddressValidationRequest) -> dict[str, Any]:
@@ -222,16 +243,48 @@ async def validate_pickup_address(payload: PickupAddressValidationRequest) -> di
         else payload.lon
     )
 
-    is_courier_ready = bool(
+    is_google_validated = bool(
         address_complete
         and validation_granularity in {"PREMISE", "SUB_PREMISE", "PREMISE_PROXIMITY", "ROUTE"}
         and geocode_granularity in {"PREMISE", "SUB_PREMISE", "ROUTE"}
     )
+    structured_score = _structured_address_score(payload)
+    has_usable_geocode = bool(
+        normalized_place_id
+        and isinstance(resolved_lat, (int, float))
+        and isinstance(resolved_lon, (int, float))
+        and (formatted_address or payload.formattedAddress)
+    )
+    is_google_geo_confirmed = bool(
+        not is_google_validated
+        and has_usable_geocode
+        and structured_score >= 80
+        and payload.sellerConfirmed is True
+    )
+    is_courier_ready = is_google_validated or is_google_geo_confirmed
+    validation_level = (
+        GOOGLE_VALIDATED_LEVEL
+        if is_google_validated
+        else GOOGLE_GEO_CONFIRMED_LEVEL
+        if is_google_geo_confirmed
+        else NEEDS_MORE_DETAIL_LEVEL
+    )
+    if is_google_geo_confirmed:
+        reason_codes = [
+            *reason_codes,
+            "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+            "STRUCTURED_ADDRESS_COMPLETE",
+            "MAP_PIN_CONFIRMED",
+        ]
+        message = (
+            "Google could not fully verify the house number, but your map pin and pickup details "
+            "look complete. We will use this seller-confirmed pickup location for courier collection."
+        )
 
     return {
         "ok": True,
         "isCourierReady": is_courier_ready,
-        "validationLevel": "google_validated" if is_courier_ready else "needs_more_detail",
+        "validationLevel": validation_level,
         "formattedAddress": formatted_address or payload.formattedAddress or None,
         "lat": resolved_lat if isinstance(resolved_lat, (int, float)) else None,
         "lon": resolved_lon if isinstance(resolved_lon, (int, float)) else None,

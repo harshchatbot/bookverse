@@ -27,6 +27,7 @@ const Body = z.object({
 
 const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand", "ana sagar lake"]);
 const WEAK_TOKENS = new Set(["test", "home", "near", "abc"]);
+const GOOGLE_GEO_CONFIRMED = "google_geo_confirmed";
 
 export const Route = createFileRoute("/api/address/validate-pickup")({
   server: {
@@ -128,6 +129,24 @@ export const Route = createFileRoute("/api/address/validate-pickup")({
               validationGranularity ?? "",
             ) &&
             ["PREMISE", "SUB_PREMISE", "ROUTE"].includes(geocodeGranularity ?? "");
+          const structuredScore =
+            (parsed.data.houseOrFlat.trim().length >= 3 ? 30 : 0) +
+            (parsed.data.areaOrLocality.trim().length >= 3 ? 20 : 0) +
+            (parsed.data.landmark.trim().length >= 3 ? 15 : 0) +
+            (parsed.data.buildingOrSociety.trim().length >= 3 ? 10 : 0) +
+            (parsed.data.streetOrRoad.trim().length >= 3 ? 10 : 0) +
+            15;
+          const isGeoConfirmed =
+            !isCourierReady &&
+            !!(
+              ((typeof geocode.placeId === "string" && geocode.placeId) || parsed.data.placeId) &&
+              (typeof location.latitude === "number" || typeof parsed.data.lat === "number") &&
+              (typeof location.longitude === "number" || typeof parsed.data.lon === "number") &&
+              ((typeof address.formattedAddress === "string" && address.formattedAddress) ||
+                parsed.data.formattedAddress) &&
+              structuredScore >= 80
+            );
+          const finalReady = isCourierReady || isGeoConfirmed;
           const reasonCodes = [
             ...(Array.isArray(address.missingComponentTypes)
               ? address.missingComponentTypes
@@ -137,11 +156,22 @@ export const Route = createFileRoute("/api/address/validate-pickup")({
               : []),
             ...(Array.isArray(address.unresolvedTokens) ? address.unresolvedTokens : []),
           ].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+          if (isGeoConfirmed) {
+            reasonCodes.push(
+              "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+              "STRUCTURED_ADDRESS_COMPLETE",
+              "MAP_PIN_CONFIRMED",
+            );
+          }
 
           return jsonOk({
             ok: true,
-            isCourierReady,
-            validationLevel: isCourierReady ? "google_validated" : "needs_more_detail",
+            isCourierReady: finalReady,
+            validationLevel: isCourierReady
+              ? "google_validated"
+              : isGeoConfirmed
+                ? GOOGLE_GEO_CONFIRMED
+                : "needs_more_detail",
             formattedAddress:
               (typeof address.formattedAddress === "string" && address.formattedAddress) ||
               parsed.data.formattedAddress ||
@@ -157,7 +187,9 @@ export const Route = createFileRoute("/api/address/validate-pickup")({
             reasonCodes,
             message: isCourierReady
               ? "Pickup address is Google-validated and courier-ready."
-              : "Google needs a more exact pickup address before courier pickup can be enabled.",
+              : isGeoConfirmed
+                ? "Google could not fully verify the house number, but your map pin and pickup details look complete. We will use this seller-confirmed pickup location for courier collection."
+                : "Google needs a more exact pickup address before courier pickup can be enabled.",
             googleVerdict: {
               addressComplete,
               validationGranularity,

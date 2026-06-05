@@ -95,7 +95,7 @@ service cloud.firestore {
         && (!('isCourierReady' in value) || value.isCourierReady is bool)
         && (!('validationLevel' in value)
             || value.validationLevel == null
-            || value.validationLevel in ['google_validated', 'needs_more_detail', 'failed'])
+            || value.validationLevel in ['google_validated', 'google_geo_confirmed', 'needs_more_detail', 'failed'])
         && (!('googleValidation' in value) || (
           value.googleValidation is map
           && value.googleValidation.keys().hasOnly([

@@ -140,6 +140,28 @@ def test_pickup_address_completeness_accepts_courier_ready_shape() -> None:
             "validationLevel": "google_validated",
         }
     )
+    assert checkout_service._is_google_validated_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "email": "pickup@example.com",
+            "houseOrFlat": "H.No 10",
+            "areaOrLocality": "Anand Nagar",
+            "landmark": "Near Gate",
+            "address1": "H.No 10, Anand Nagar",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+            "formattedAddress": "H.No 10, Anand Nagar, Pune, Maharashtra 411001, India",
+            "lat": 18.5204,
+            "lon": 73.8567,
+            "sellerConfirmed": True,
+            "isCourierReady": True,
+            "validationLevel": "google_geo_confirmed",
+        }
+    )
 
 
 def test_pickup_address_completeness_rejects_missing_email() -> None:
@@ -173,5 +195,25 @@ def test_pickup_address_completeness_rejects_missing_email() -> None:
             "sellerConfirmed": True,
             "isCourierReady": True,
             "validationLevel": "google_validated",
+        }
+    )
+    assert not checkout_service._is_google_validated_pickup_address(
+        {
+            "pickupLocationName": "Home",
+            "name": "Seller Pickup",
+            "phone": "9999999999",
+            "email": "pickup@example.com",
+            "areaOrLocality": "Anand Nagar",
+            "landmark": "Near Gate",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "pincode": "411001",
+            "country": "India",
+            "formattedAddress": "Anand Nagar, Pune, Maharashtra 411001, India",
+            "lat": 18.5204,
+            "lon": 73.8567,
+            "sellerConfirmed": True,
+            "isCourierReady": True,
+            "validationLevel": "needs_more_detail",
         }
     )
