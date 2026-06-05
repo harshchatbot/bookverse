@@ -64,7 +64,8 @@ test("User registration and profile completion", async ({ page, sellerUser }) =>
   // Verify pickup address was saved in Firestore
   const pickupDoc = await getAdminDb().collection("profiles").doc(sellerUser.uid).get();
   expect(pickupDoc.exists).toBe(true);
+  expect(pickupDoc.get("homeAddress.label")).toBe("Home");
+  expect(pickupDoc.get("homeAddress.address1")).toBe(TEST_PICKUP_ADDRESS.address1);
+  expect(pickupDoc.get("homeAddress.pincode")).toBe(TEST_PICKUP_ADDRESS.pincode);
   expect(pickupDoc.get("pickupAddress.pickupLocationName")).toBe(TEST_PICKUP_ADDRESS.pickupLocationName);
-  expect(pickupDoc.get("pickupAddress.address1")).toBe(TEST_PICKUP_ADDRESS.address1);
-  expect(pickupDoc.get("pickupAddress.pincode")).toBe(TEST_PICKUP_ADDRESS.pincode);
 });

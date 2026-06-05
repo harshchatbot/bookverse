@@ -6,7 +6,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
 import { getMyListings, updateListingStatus } from "@/lib/listings";
-import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
+import { getProfile, hasCompleteHomeAddress } from "@/lib/profiles";
 import { categoryLabel } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
 import type { Listing } from "@/lib/types";
@@ -154,14 +154,14 @@ function MyListingsContent({ user }: { user: User }) {
 
           {protectedDeliveryEnabled &&
           !pickupProfileQuery.isLoading &&
-          !hasCompletePickupAddress(pickupProfileQuery.data?.pickupAddress) ? (
+          !hasCompleteHomeAddress(pickupProfileQuery.data?.homeAddress) ? (
             <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
               <p className="font-semibold text-amber-900 dark:text-amber-100">
-                Pickup address missing for protected delivery
+                Home Address missing for protected delivery
               </p>
               <p className="mt-1 text-amber-800 dark:text-amber-200">
                 Buyers can still contact you on WhatsApp, but home delivery checkout will stay
-                blocked until you add a courier pickup address in{" "}
+                blocked until you add a validated Home Address in{" "}
                 <Link to="/profile" className="font-semibold underline">
                   profile
                 </Link>

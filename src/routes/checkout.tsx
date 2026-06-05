@@ -13,6 +13,7 @@ import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getListingsByIds } from "@/lib/listings";
 import { normalizeListingIds, type CreatedProtectedDeliveryGroup } from "@/lib/protected-delivery";
 import { loadRazorpayCheckout } from "@/lib/razorpay-client";
+import { getProfile } from "@/lib/profiles";
 import {
   FREE_DELIVERY_REWARD_CODE,
   getRewardsSummary,
@@ -117,6 +118,11 @@ function CheckoutPage() {
     queryFn: getRewardsSummary,
     enabled: !!user && isProtectedDeliveryEnabled(),
   });
+  const homeAddressQuery = useQuery({
+    queryKey: ["private-home-address", user?.uid],
+    queryFn: () => getProfile(user!.uid),
+    enabled: !!user && isProtectedDeliveryEnabled(),
+  });
 
   useEffect(() => {
     if (!isProtectedDeliveryEnabled()) {
@@ -129,23 +135,44 @@ function CheckoutPage() {
 
   useEffect(() => {
     if (!user) return;
+    const profileHome = homeAddressQuery.data?.homeAddress;
     setAddress((prev) => ({
       ...prev,
-      name: prev.name || profile?.name || user.displayName || "",
-      phone: prev.phone || profile?.whatsappNumber || profile?.mobile || "",
-      email: prev.email || user.email || "",
-      areaOrLocality: prev.areaOrLocality || profile?.locality || "",
+      name: prev.name || profileHome?.name || profile?.name || user.displayName || "",
+      phone:
+        prev.phone ||
+        (profileHome?.phone ? `+91${profileHome.phone}` : "") ||
+        profile?.whatsappNumber ||
+        profile?.mobile ||
+        "",
+      email: prev.email || profileHome?.email || user.email || "",
+      houseOrFlat: prev.houseOrFlat || profileHome?.houseOrFlat || "",
+      buildingOrSociety: prev.buildingOrSociety || profileHome?.buildingOrSociety || "",
+      streetOrRoad: prev.streetOrRoad || profileHome?.streetOrRoad || "",
+      areaOrLocality:
+        prev.areaOrLocality || profileHome?.areaOrLocality || profile?.locality || "",
+      landmark: prev.landmark || profileHome?.landmark || "",
       address1:
         prev.address1 ||
+        profileHome?.address1 ||
         [prev.houseOrFlat, prev.buildingOrSociety, prev.streetOrRoad, prev.areaOrLocality || profile?.locality || ""]
           .filter(Boolean)
           .join(", "),
+      address2: prev.address2 || profileHome?.address2 || "",
       city: prev.city || profile?.city || "",
       state: prev.state || profile?.state || "",
       pincode: prev.pincode || profile?.pincode || "",
       country: "India",
+      formattedAddress: prev.formattedAddress || profileHome?.formattedAddress || "",
+      placeId: prev.placeId || profileHome?.placeId || "",
+      lat: prev.lat ?? profileHome?.lat,
+      lon: prev.lon ?? profileHome?.lon,
+      buyerConfirmed: prev.buyerConfirmed || profileHome?.userConfirmed || false,
+      isDeliveryReady: prev.isDeliveryReady || profileHome?.isAddressReady || false,
+      validationLevel: prev.validationLevel || profileHome?.validationLevel || null,
+      googleValidation: prev.googleValidation || profileHome?.googleValidation || null,
     }));
-  }, [profile, user]);
+  }, [homeAddressQuery.data?.homeAddress, profile, user]);
 
   const selectedListings = useMemo(
     () => selectedListingsQuery.data ?? [],
@@ -309,9 +336,12 @@ function CheckoutPage() {
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Could not prepare checkout.";
-      if (errorMessage.toLowerCase().includes("pickup address")) {
+      if (
+        errorMessage.toLowerCase().includes("pickup address") ||
+        errorMessage.toLowerCase().includes("home address")
+      ) {
         toast.error(
-          "Home delivery is unavailable for one or more items — the seller hasn't added a pickup address yet. You can contact them on WhatsApp instead.",
+          "Home delivery is unavailable for one or more items — the seller hasn't added a validated Home Address yet. You can contact them on WhatsApp instead.",
         );
       } else {
         toast.error(errorMessage);
@@ -606,191 +636,45 @@ function CheckoutPage() {
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-6">
-              <h2 className="font-display text-xl font-bold tracking-tight">Delivery address</h2>
+              <h2 className="font-display text-xl font-bold tracking-tight">Home Address</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                This address is used for courier delivery only. Your city and state still stay
-                visible publicly, not your full address.
+                Your profile location is only used for trust and nearby discovery. Your private
+                Home Address is used for both courier pickup when you sell and delivery when you
+                buy through Protected Delivery.
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Your profile location is only used for trust. Please validate a complete delivery
-                address for protected delivery.
-              </p>
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Field label="Full name">
-                  <input
-                    value={address.name}
-                    onChange={(event) => setAddressField("name", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Mobile number">
-                  <input
-                    value={address.phone}
-                    onChange={(event) => setAddressField("phone", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Email" className="sm:col-span-2">
-                  <input
-                    value={address.email}
-                    onChange={(event) => setAddressField("email", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="House / Flat / Building No." className="sm:col-span-2">
-                  <input
-                    value={address.houseOrFlat}
-                    onChange={(event) => setAddressField("houseOrFlat", event.target.value)}
-                    placeholder="H.No 10, Flat 302, Shop 12"
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Building / Apartment / Society">
-                  <input
-                    value={address.buildingOrSociety}
-                    onChange={(event) => setAddressField("buildingOrSociety", event.target.value)}
-                    placeholder="Lake View Apartments"
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Street / Road / Gali / Lane">
-                  <input
-                    value={address.streetOrRoad}
-                    onChange={(event) => setAddressField("streetOrRoad", event.target.value)}
-                    placeholder="Ana Sagar Link Road"
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Area / Locality">
-                  <input
-                    value={address.areaOrLocality}
-                    onChange={(event) => setAddressField("areaOrLocality", event.target.value)}
-                    placeholder="Anand Nagar"
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Landmark">
-                  <input
-                    value={address.landmark}
-                    onChange={(event) => setAddressField("landmark", event.target.value)}
-                    placeholder="Near Anasagar Lake"
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="City">
-                  <input
-                    value={address.city}
-                    onChange={(event) => setAddressField("city", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="State">
-                  <input
-                    value={address.state}
-                    onChange={(event) => setAddressField("state", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Pincode">
-                  <input
-                    value={address.pincode}
-                    onChange={(event) => setAddressField("pincode", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <Field label="Country">
-                  <input
-                    value={address.country}
-                    onChange={(event) => setAddressField("country", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <GoogleAddressMapSelector
-                    address1={buildDeliveryAddress1(address)}
-                    city={address.city}
-                    state={address.state}
-                    pincode={address.pincode}
-                    lat={address.lat}
-                    lon={address.lon}
-                    placeId={address.placeId}
-                    onSelection={(selection) =>
-                      setAddress((prev) =>
-                        clearDeliveryValidationState({
-                          ...prev,
-                          houseOrFlat: prev.houseOrFlat || selection.houseOrFlat || "",
-                          streetOrRoad: selection.streetOrRoad || prev.streetOrRoad || "",
-                          areaOrLocality: selection.areaOrLocality || prev.areaOrLocality || "",
-                          city: selection.city || prev.city || "",
-                          state: selection.state || prev.state || "",
-                          pincode: selection.pincode || prev.pincode || "",
-                          country: selection.country || prev.country || "India",
-                          placeId: selection.placeId || "",
-                          formattedAddress: selection.formattedAddress || "",
-                          lat: selection.lat,
-                          lon: selection.lon,
-                          address1: buildDeliveryAddress1({
-                            ...prev,
-                            houseOrFlat: prev.houseOrFlat || selection.houseOrFlat || "",
-                            streetOrRoad: selection.streetOrRoad || prev.streetOrRoad || "",
-                            areaOrLocality: selection.areaOrLocality || prev.areaOrLocality || "",
-                          } as CheckoutDeliveryAddress),
-                          address2: buildDeliveryAddress2(prev),
-                        }),
-                      )
-                    }
-                    onPinDragged={({ lat, lon }) =>
-                      setAddress((prev) =>
-                        clearDeliveryValidationState({
-                          ...prev,
-                          lat,
-                          lon,
-                        }),
-                      )
-                    }
-                  />
-                </div>
-                <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={address.buyerConfirmed === true}
-                    onChange={(event) => setBuyerConfirmed(event.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border"
-                  />
-                  <span>
-                    I confirm this is the exact delivery location where the courier should deliver
-                    this parcel.
-                  </span>
-                </label>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
-                {address.validationLevel === "google_validated" ? (
-                  <span>Delivery address is Google-validated and ready for courier delivery.</span>
-                ) : address.validationLevel === "google_geo_confirmed" ? (
-                  <span>
-                    Google could not fully verify the house number, but your map pin and delivery
-                    details look complete. We will use this buyer-confirmed delivery location for
-                    courier delivery.
-                  </span>
+              <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+                {address.isDeliveryReady &&
+                (address.validationLevel === "google_validated" ||
+                  address.validationLevel === "google_geo_confirmed") ? (
+                  <>
+                    <p className="text-sm font-semibold">Deliver to Home Address</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {address.formattedAddress || buildDeliveryAddress1(address)}
+                    </p>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      {address.validationLevel === "google_geo_confirmed"
+                        ? "Google could not fully verify the house number, but your map pin and Home Address details look complete."
+                        : "This Home Address is validated for protected delivery."}
+                    </p>
+                  </>
                 ) : (
-                  <span>
-                    Validate your complete delivery address on the map before we create protected
-                    delivery orders.
-                  </span>
+                  <>
+                    <p className="text-sm font-semibold">Home Address required</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Please validate your Home Address before using Protected Delivery.
+                    </p>
+                  </>
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={validateDeliveryAddress}
-                disabled={creatingOrders || processing}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-secondary disabled:opacity-60"
+              <Link
+                to="/profile"
+                hash="home-address"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-secondary"
               >
                 <ShieldCheck className="h-4 w-4" />
-                Validate delivery address
-              </button>
+                Update Home Address
+              </Link>
 
               <button
                 type="button"

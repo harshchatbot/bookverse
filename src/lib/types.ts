@@ -67,6 +67,7 @@ export interface CheckoutDeliveryAddress {
 }
 
 export interface PickupAddressSnapshot {
+  label?: string;
   pickupLocationName?: string;
   name: string;
   phone: string;
@@ -88,9 +89,11 @@ export interface PickupAddressSnapshot {
   formattedAddress?: string;
   lat?: number;
   lon?: number;
+  userConfirmed?: boolean;
   sellerConfirmed?: boolean;
   pinConfirmedAt?: string | null;
   googleValidatedAt?: string | null;
+  isAddressReady?: boolean;
   isCourierReady?: boolean;
   validationLevel?: AddressValidationLevel;
   googleValidation?: AddressGoogleValidationSummary | null;

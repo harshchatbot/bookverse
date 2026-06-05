@@ -69,7 +69,7 @@ async def run_fulfillment(order_id: str) -> dict[str, Any]:
     seller_uid = str(order.get("sellerUid", ""))
     seller_profile_snap = db.collection("profiles").document(seller_uid).get()
     seller_profile = seller_profile_snap.to_dict() or {}
-    pickup = seller_profile.get("pickupAddress")
+    pickup = seller_profile.get("homeAddress") or seller_profile.get("pickupAddress")
     items = order.get("items") if isinstance(order.get("items"), list) else []
     buyer = order.get("shippingAddress") if isinstance(order.get("shippingAddress"), dict) else None
     if not pickup or not items or not buyer:

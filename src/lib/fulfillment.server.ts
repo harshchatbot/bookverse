@@ -138,7 +138,9 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   }
 
   const sellerProfileSnap = await db.collection("profiles").doc(sellerUid).get();
-  const pickupCandidate = sellerProfileSnap.exists ? sellerProfileSnap.data()?.pickupAddress : null;
+  const pickupCandidate = sellerProfileSnap.exists
+    ? sellerProfileSnap.data()?.homeAddress ?? sellerProfileSnap.data()?.pickupAddress
+    : null;
   const pickup = isPickupAddressLike(pickupCandidate) ? pickupCandidate : null;
   if (!pickup) {
     return { ok: false, reachedStep: null, error: "Seller pickup address missing" };

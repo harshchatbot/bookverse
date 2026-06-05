@@ -28,7 +28,7 @@ import { citiesForState, OTHER_CITY, isValidIndianMobile } from "@/data/indiaLoc
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { indianMobileNational } from "@/lib/users";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
-import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
+import { getProfile, hasCompleteHomeAddress } from "@/lib/profiles";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -308,10 +308,10 @@ function SellForm({ user }: { user: User }) {
       try {
         const profile = await getProfile(user.uid);
         if (!cancelled) {
-          setPickupIncomplete(!hasCompletePickupAddress(profile?.pickupAddress));
+          setPickupIncomplete(!hasCompleteHomeAddress(profile?.homeAddress));
         }
       } catch (error) {
-        console.error("Could not check pickup address:", error);
+        console.error("Could not check Home Address:", error);
       }
     };
     checkPickupAddress();
@@ -793,10 +793,10 @@ function SellForm({ user }: { user: User }) {
               {protectedDeliveryEnabled && pickupIncomplete ? (
                 <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
                   <p className="font-semibold text-amber-900 dark:text-amber-100">
-                    Courier pickup address required for protected delivery
+                    Protected Delivery requires a validated Home Address
                   </p>
                   <p className="mt-1 text-amber-800 dark:text-amber-200">
-                    Add your courier pickup address in{" "}
+                    Add your Home Address in{" "}
                     <Link to="/profile" className="font-semibold underline">
                       profile
                     </Link>{" "}

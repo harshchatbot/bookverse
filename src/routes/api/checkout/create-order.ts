@@ -113,10 +113,10 @@ function isValidatedPickupAddress(value: unknown): value is PickupAddressSnapsho
   if (!isCompletePickupAddress(value)) return false;
   const pickup = value as PickupAddressSnapshot;
   return !!(
-    pickup.isCourierReady === true &&
+    (pickup.isCourierReady === true || (pickup as PickupAddressSnapshot & { isAddressReady?: boolean }).isAddressReady === true) &&
     (pickup.validationLevel === "google_validated" ||
       pickup.validationLevel === "google_geo_confirmed") &&
-    pickup.sellerConfirmed === true &&
+    (pickup.sellerConfirmed === true || (pickup as PickupAddressSnapshot & { userConfirmed?: boolean }).userConfirmed === true) &&
     typeof pickup.formattedAddress === "string" &&
     pickup.formattedAddress.trim().length > 0 &&
     typeof pickup.lat === "number" &&
@@ -302,12 +302,12 @@ export const Route = createFileRoute("/api/checkout/create-order")({
 
           const sellerProfileSnap = await db.collection("profiles").doc(sellerUid).get();
           const sellerProfile = sellerProfileSnap.exists ? sellerProfileSnap.data() : null;
-          const pickupAddress = sellerProfile?.pickupAddress;
+          const pickupAddress = sellerProfile?.homeAddress ?? sellerProfile?.pickupAddress;
 
           if (!isValidatedPickupAddress(pickupAddress)) {
             return jsonError(
               409,
-              "Seller pickup address is not validated yet. Seller must select address on map and validate it.",
+              "Seller Home Address is not validated yet. Seller must validate Home Address before protected delivery can be used.",
             );
           }
 

@@ -115,9 +115,9 @@ def _is_google_validated_pickup_address(value: Any) -> bool:
     lon = value.get("lon")
     formatted_address = value.get("formattedAddress")
     return (
-        value.get("isCourierReady") is True
+        (value.get("isCourierReady") is True or value.get("isAddressReady") is True)
         and value.get("validationLevel") in {"google_validated", "google_geo_confirmed"}
-        and value.get("sellerConfirmed") is True
+        and (value.get("sellerConfirmed") is True or value.get("userConfirmed") is True)
         and isinstance(formatted_address, str)
         and formatted_address.strip()
         and isinstance(lat, (int, float))
@@ -269,10 +269,10 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
 
         seller_profile_snap = db.collection("profiles").document(seller_uid).get()
         seller_profile = seller_profile_snap.to_dict() or {}
-        pickup_address = seller_profile.get("pickupAddress")
+        pickup_address = seller_profile.get("homeAddress") or seller_profile.get("pickupAddress")
         if not _is_google_validated_pickup_address(pickup_address):
             raise RuntimeError(
-                "Seller pickup address is not validated yet. Seller must select address on map and validate it."
+                "Seller Home Address is not validated yet. Seller must validate Home Address before protected delivery can be used."
             )
 
         items = []

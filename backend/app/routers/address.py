@@ -51,3 +51,27 @@ async def validate_delivery(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google Address Validation is unavailable right now.",
         ) from exc
+
+
+@router.post("/validate-home")
+async def validate_home(
+    payload: DeliveryAddressValidationRequest, current_user: dict = Depends(get_current_user)
+) -> dict:
+    del current_user
+    try:
+        result = await validate_delivery_address(payload)
+        return {
+            **result,
+            "isAddressReady": result.get("isDeliveryReady", False),
+        }
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Address Validation is unavailable right now.",
+        ) from exc

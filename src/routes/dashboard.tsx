@@ -32,7 +32,7 @@ import {
 } from "@/components/dashboard/DashboardKit";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { getUserDashboard } from "@/lib/dashboard";
-import { getProfile, hasCompletePickupAddress } from "@/lib/profiles";
+import { getProfile, hasCompleteHomeAddress } from "@/lib/profiles";
 import {
   FREE_DELIVERY_POINTS_COST,
   FREE_DELIVERY_REWARD_CODE,
@@ -106,7 +106,7 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
       if (!protectedDeliveryEnabled) return;
       try {
         const profile = await getProfile(uid);
-        if (!hasCompletePickupAddress(profile?.pickupAddress)) {
+        if (!hasCompleteHomeAddress(profile?.homeAddress)) {
           setPickupIncomplete(true);
         }
       } catch (error) {

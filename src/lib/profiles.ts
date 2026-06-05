@@ -5,8 +5,8 @@ import { auth, db, storage } from "@/integrations/firebase/client";
 
 const COLLECTION = "profiles";
 
-export interface PickupAddress {
-  pickupLocationName: string;
+export interface HomeAddress {
+  label: string;
   name: string;
   phone: string;
   email: string;
@@ -28,10 +28,10 @@ export interface PickupAddress {
   lat?: number;
   lon?: number;
   lng?: number;
-  sellerConfirmed?: boolean;
+  userConfirmed?: boolean;
   pinConfirmedAt?: string | null;
   googleValidatedAt?: string | null;
-  isCourierReady?: boolean;
+  isAddressReady?: boolean;
   validationLevel?:
     | "google_validated"
     | "google_geo_confirmed"
@@ -47,6 +47,12 @@ export interface PickupAddress {
   } | null;
 }
 
+export type PickupAddress = HomeAddress & {
+  pickupLocationName?: string;
+  sellerConfirmed?: boolean;
+  isCourierReady?: boolean;
+};
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -54,11 +60,12 @@ export interface UserProfile {
   bio: string;
   city: string;
   mobile: string;
+  homeAddress: HomeAddress | null;
   pickupAddress: PickupAddress | null;
 }
 
-const EMPTY_PICKUP: PickupAddress = {
-  pickupLocationName: "",
+const EMPTY_HOME_ADDRESS: HomeAddress = {
+  label: "Home",
   name: "",
   phone: "",
   email: "",
@@ -74,24 +81,24 @@ const EMPTY_PICKUP: PickupAddress = {
   country: "India",
   landmark: "",
   address: "",
-  location: null,
+  location: "Home",
   placeId: "",
   formattedAddress: "",
-  sellerConfirmed: false,
+  userConfirmed: false,
   pinConfirmedAt: null,
   googleValidatedAt: null,
-  isCourierReady: false,
+  isAddressReady: false,
   validationLevel: null,
   googleValidation: null,
 };
 
-function normalizePickupPhone(value: string | undefined): string {
+function normalizePhone(value: string | undefined): string {
   const digits = (value ?? "").replace(/\D/g, "");
   if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
   return digits.slice(-10);
 }
 
-function buildLegacyPickupAddress(input: {
+function buildLegacyAddress(input: {
   address1: string;
   address2: string;
   landmark: string;
@@ -101,7 +108,7 @@ function buildLegacyPickupAddress(input: {
     .join(", ");
 }
 
-export function buildPickupFormattedAddress(input: Partial<PickupAddress>): string {
+export function buildPickupFormattedAddress(input: Partial<HomeAddress>): string {
   return [
     input.houseOrFlat?.trim(),
     input.buildingOrSociety?.trim(),
@@ -117,9 +124,8 @@ export function buildPickupFormattedAddress(input: Partial<PickupAddress>): stri
     .join(", ");
 }
 
-function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined): PickupAddress {
-  const houseOrFlat =
-    raw?.houseOrFlat?.trim() || raw?.address1?.split(",")[0]?.trim() || "";
+function normalizeHomeAddress(raw: Partial<HomeAddress> | Partial<PickupAddress> | null | undefined): HomeAddress {
+  const houseOrFlat = raw?.houseOrFlat?.trim() || raw?.address1?.split(",")[0]?.trim() || "";
   const buildingOrSociety = raw?.buildingOrSociety?.trim() || "";
   const streetOrRoad = raw?.streetOrRoad?.trim() || "";
   const areaOrLocality = raw?.areaOrLocality?.trim() || "";
@@ -130,13 +136,20 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
     "";
   const address2 = raw?.address2?.trim() || raw?.landmark?.trim() || "";
   const landmark = raw?.landmark?.trim() || "";
-  const pickupLocationName = raw?.pickupLocationName?.trim() || raw?.location?.trim() || "";
+  const label =
+    (typeof (raw as { label?: unknown })?.label === "string" &&
+      ((raw as { label?: string }).label ?? "").trim()) ||
+    (typeof (raw as { pickupLocationName?: unknown })?.pickupLocationName === "string" &&
+      ((raw as { pickupLocationName?: string }).pickupLocationName ?? "").trim()) ||
+    raw?.location?.trim() ||
+    "Home";
+
   return {
-    ...EMPTY_PICKUP,
+    ...EMPTY_HOME_ADDRESS,
     ...raw,
-    pickupLocationName,
+    label,
     name: raw?.name?.trim() || "",
-    phone: normalizePickupPhone(raw?.phone),
+    phone: normalizePhone(raw?.phone),
     email: raw?.email?.trim() || "",
     houseOrFlat,
     buildingOrSociety,
@@ -149,22 +162,21 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
     pincode: (raw?.pincode ?? "").replace(/\D/g, "").slice(0, 6),
     country: raw?.country?.trim() || "India",
     landmark,
-    address: raw?.address?.trim() || buildPickupFormattedAddress({
-      houseOrFlat,
-      buildingOrSociety,
-      streetOrRoad,
-      areaOrLocality,
-      landmark,
-      city: raw?.city?.trim() || "",
-      state: raw?.state?.trim() || "",
-      pincode: (raw?.pincode ?? "").replace(/\D/g, "").slice(0, 6),
-      country: raw?.country?.trim() || "India",
-    }) || buildLegacyPickupAddress({
-      address1,
-      address2,
-      landmark,
-    }),
-    location: pickupLocationName || null,
+    address:
+      raw?.address?.trim() ||
+      buildPickupFormattedAddress({
+        houseOrFlat,
+        buildingOrSociety,
+        streetOrRoad,
+        areaOrLocality,
+        landmark,
+        city: raw?.city?.trim() || "",
+        state: raw?.state?.trim() || "",
+        pincode: (raw?.pincode ?? "").replace(/\D/g, "").slice(0, 6),
+        country: raw?.country?.trim() || "India",
+      }) ||
+      buildLegacyAddress({ address1, address2, landmark }),
+    location: label || "Home",
     placeId: raw?.placeId?.trim() || "",
     formattedAddress: raw?.formattedAddress?.trim() || "",
     lat: typeof raw?.lat === "number" ? raw.lat : undefined,
@@ -180,11 +192,15 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
         : typeof raw?.lon === "number"
           ? raw.lon
           : undefined,
-    sellerConfirmed: raw?.sellerConfirmed === true,
+    userConfirmed:
+      (raw as { userConfirmed?: boolean; sellerConfirmed?: boolean })?.userConfirmed === true ||
+      (raw as { userConfirmed?: boolean; sellerConfirmed?: boolean })?.sellerConfirmed === true,
     pinConfirmedAt: typeof raw?.pinConfirmedAt === "string" ? raw.pinConfirmedAt : null,
     googleValidatedAt:
       typeof raw?.googleValidatedAt === "string" ? raw.googleValidatedAt : null,
-    isCourierReady: raw?.isCourierReady === true,
+    isAddressReady:
+      (raw as { isAddressReady?: boolean; isCourierReady?: boolean })?.isAddressReady === true ||
+      (raw as { isAddressReady?: boolean; isCourierReady?: boolean })?.isCourierReady === true,
     validationLevel:
       raw?.validationLevel === "google_validated" ||
       raw?.validationLevel === "google_geo_confirmed" ||
@@ -223,10 +239,19 @@ function normalizePickupAddress(raw: Partial<PickupAddress> | null | undefined):
   };
 }
 
-export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<string, unknown> {
-  const normalized = normalizePickupAddress(input);
+function toLegacyPickupAddress(homeAddress: HomeAddress): PickupAddress {
+  return {
+    ...homeAddress,
+    pickupLocationName: homeAddress.label,
+    sellerConfirmed: homeAddress.userConfirmed,
+    isCourierReady: homeAddress.isAddressReady,
+  };
+}
+
+function sanitizeHomeAddressForFirestore(input: HomeAddress): Record<string, unknown> {
+  const normalized = normalizeHomeAddress(input);
   const payload: Record<string, unknown> = {
-    pickupLocationName: normalized.pickupLocationName || "",
+    label: normalized.label || "Home",
     name: normalized.name || "",
     phone: normalized.phone || "",
     email: normalized.email || "",
@@ -236,7 +261,12 @@ export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<
     areaOrLocality: normalized.areaOrLocality || "",
     address1:
       normalized.address1 ||
-      [normalized.houseOrFlat, normalized.buildingOrSociety, normalized.streetOrRoad, normalized.areaOrLocality]
+      [
+        normalized.houseOrFlat,
+        normalized.buildingOrSociety,
+        normalized.streetOrRoad,
+        normalized.areaOrLocality,
+      ]
         .filter(Boolean)
         .join(", "),
     address2: normalized.address2 || normalized.landmark || "",
@@ -248,18 +278,18 @@ export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<
     address:
       normalized.address ||
       buildPickupFormattedAddress(normalized) ||
-      buildLegacyPickupAddress({
+      buildLegacyAddress({
         address1: normalized.address1,
         address2: normalized.address2,
         landmark: normalized.landmark,
       }),
-    location: normalized.location ?? null,
+    location: normalized.label ?? "Home",
     placeId: normalized.placeId?.trim() || "",
     formattedAddress: normalized.formattedAddress?.trim() || "",
-    sellerConfirmed: normalized.sellerConfirmed === true,
+    userConfirmed: normalized.userConfirmed === true,
     pinConfirmedAt: normalized.pinConfirmedAt ?? null,
     googleValidatedAt: normalized.googleValidatedAt ?? null,
-    isCourierReady: normalized.isCourierReady === true,
+    isAddressReady: normalized.isAddressReady === true,
     validationLevel: normalized.validationLevel ?? null,
   };
 
@@ -296,11 +326,24 @@ export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<
   return payload;
 }
 
-export function hasCompletePickupAddress(p: PickupAddress | null | undefined): boolean {
-  if (!p) return false;
-  const normalized = normalizePickupAddress(p);
+export function sanitizePickupAddressForFirestore(input: PickupAddress): Record<string, unknown> {
+  return {
+    ...sanitizeHomeAddressForFirestore(input),
+    pickupLocationName: input.pickupLocationName?.trim() || input.label || "Home",
+    sellerConfirmed:
+      input.sellerConfirmed === true ||
+      input.userConfirmed === true,
+    isCourierReady:
+      input.isCourierReady === true ||
+      input.isAddressReady === true,
+  };
+}
+
+export function hasCompleteHomeAddress(address: HomeAddress | null | undefined): boolean {
+  if (!address) return false;
+  const normalized = normalizeHomeAddress(address);
   return !!(
-    normalized.pickupLocationName &&
+    normalized.label &&
     normalized.name &&
     /^[6-9]\d{9}$/.test(normalized.phone) &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email) &&
@@ -311,8 +354,8 @@ export function hasCompletePickupAddress(p: PickupAddress | null | undefined): b
     normalized.state &&
     /^\d{6}$/.test(normalized.pincode) &&
     normalized.formattedAddress?.trim() &&
-    normalized.sellerConfirmed === true &&
-    normalized.isCourierReady === true &&
+    normalized.userConfirmed === true &&
+    normalized.isAddressReady === true &&
     (normalized.validationLevel === "google_validated" ||
       normalized.validationLevel === "google_geo_confirmed") &&
     typeof normalized.lat === "number" &&
@@ -322,14 +365,18 @@ export function hasCompletePickupAddress(p: PickupAddress | null | undefined): b
   );
 }
 
+export function hasCompletePickupAddress(address: PickupAddress | null | undefined): boolean {
+  return hasCompleteHomeAddress(address);
+}
+
 export function clearPickupValidationState(
-  pickup: PickupAddress,
-  overrides: Partial<PickupAddress> = {},
-): PickupAddress {
+  address: HomeAddress,
+  overrides: Partial<HomeAddress> = {},
+): HomeAddress {
   return {
-    ...pickup,
+    ...address,
     ...overrides,
-    isCourierReady: false,
+    isAddressReady: false,
     validationLevel: null,
     googleValidatedAt: null,
     googleValidation: null,
@@ -340,7 +387,15 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
   try {
     const snap = await getDoc(doc(db, COLLECTION, uid));
     if (!snap.exists()) return null;
-    const d = snap.data() as Partial<UserProfile>;
+    const d = snap.data() as Partial<UserProfile> & {
+      homeAddress?: Partial<HomeAddress>;
+      pickupAddress?: Partial<PickupAddress>;
+    };
+    const homeAddress = d.homeAddress
+      ? normalizeHomeAddress(d.homeAddress)
+      : d.pickupAddress
+        ? normalizeHomeAddress(d.pickupAddress)
+        : null;
     return {
       uid,
       displayName: d.displayName ?? "",
@@ -348,7 +403,8 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
       bio: d.bio ?? "",
       city: d.city ?? "",
       mobile: d.mobile ?? "",
-      pickupAddress: d.pickupAddress ? normalizePickupAddress(d.pickupAddress) : null,
+      homeAddress,
+      pickupAddress: homeAddress ? toLegacyPickupAddress(homeAddress) : null,
     };
   } catch (error) {
     if (
@@ -378,12 +434,21 @@ export async function saveProfile(uid: string, input: Omit<UserProfile, "uid">):
   }
 }
 
-export async function savePickupAddress(uid: string, pickup: PickupAddress): Promise<void> {
+export async function saveHomeAddress(uid: string, homeAddress: HomeAddress): Promise<void> {
+  const normalized = normalizeHomeAddress(homeAddress);
   await setDoc(
     doc(db, COLLECTION, uid),
-    { pickupAddress: sanitizePickupAddressForFirestore(pickup), updatedAt: serverTimestamp() },
+    {
+      homeAddress: sanitizeHomeAddressForFirestore(normalized),
+      pickupAddress: sanitizePickupAddressForFirestore(toLegacyPickupAddress(normalized)),
+      updatedAt: serverTimestamp(),
+    },
     { merge: true },
   );
+}
+
+export async function savePickupAddress(uid: string, pickup: PickupAddress): Promise<void> {
+  await saveHomeAddress(uid, pickup);
 }
 
 export async function uploadAvatar(uid: string, file: File): Promise<string> {

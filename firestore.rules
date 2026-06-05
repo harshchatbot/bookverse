@@ -41,6 +41,7 @@ service cloud.firestore {
     function validPickupAddress(value) {
       return value is map
         && value.keys().hasOnly([
+          'label',
           'pickupLocationName',
           'name',
           'phone',
@@ -62,14 +63,16 @@ service cloud.firestore {
           'lon',
           'placeId',
           'formattedAddress',
+          'userConfirmed',
           'sellerConfirmed',
           'pinConfirmedAt',
           'googleValidatedAt',
           'googleValidation',
+          'isAddressReady',
           'isCourierReady',
           'validationLevel'
         ])
-        && nonEmpty(value.pickupLocationName)
+        && (('label' in value && nonEmpty(value.label)) || ('pickupLocationName' in value && nonEmpty(value.pickupLocationName)))
         && nonEmpty(value.name)
         && validIndianContactPhone(value.phone)
         && validPickupEmail(value.email)
@@ -89,9 +92,11 @@ service cloud.firestore {
         && (!('formattedAddress' in value) || value.formattedAddress is string)
         && (!('lat' in value) || value.lat is number)
         && (!('lon' in value) || value.lon is number)
+        && (!('userConfirmed' in value) || value.userConfirmed is bool)
         && (!('sellerConfirmed' in value) || value.sellerConfirmed is bool)
         && (!('pinConfirmedAt' in value) || value.pinConfirmedAt == null || value.pinConfirmedAt is string)
         && (!('googleValidatedAt' in value) || value.googleValidatedAt == null || value.googleValidatedAt is string)
+        && (!('isAddressReady' in value) || value.isAddressReady is bool)
         && (!('isCourierReady' in value) || value.isCourierReady is bool)
         && (!('validationLevel' in value)
             || value.validationLevel == null
@@ -264,9 +269,14 @@ service cloud.firestore {
                      'bio',
                      'city',
                      'mobile',
+                     'homeAddress',
                      'pickupAddress',
                      'updatedAt'
                    ])
+                   && (
+                     !('homeAddress' in request.resource.data)
+                     || validPickupAddress(request.resource.data.homeAddress)
+                   )
                    && (
                      !('pickupAddress' in request.resource.data)
                      || validPickupAddress(request.resource.data.pickupAddress)

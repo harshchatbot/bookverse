@@ -11,9 +11,10 @@ import {
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, MailCheck, Phone, ShieldCheck } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
-import { GooglePickupMapSelector } from "@/components/GooglePickupMapSelector";
+import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector";
 import { LocationSelect } from "@/components/LocationSelect";
 import { AppPageShell } from "@/components/PageShell";
+import { FullScreenLoader } from "@/components/Spinner";
 import { auth } from "@/integrations/firebase/client";
 import {
   getUserProfile,
@@ -28,9 +29,9 @@ import {
 import {
   clearPickupValidationState,
   getProfile,
-  savePickupAddress,
-  hasCompletePickupAddress,
-  type PickupAddress,
+  saveHomeAddress,
+  hasCompleteHomeAddress,
+  type HomeAddress,
 } from "@/lib/profiles";
 import { apiFetch } from "@/lib/api-client";
 import {
@@ -87,8 +88,8 @@ function ProfileContent({ user }: { user: User }) {
     locality: "",
     pincode: "",
   });
-  const [pickupForm, setPickupForm] = useState<PickupAddress>({
-    pickupLocationName: "",
+  const [pickupForm, setPickupForm] = useState<HomeAddress>({
+    label: "Home",
     name: "",
     phone: "",
     email: user.email || "",
@@ -107,14 +108,14 @@ function ProfileContent({ user }: { user: User }) {
     location: null,
     placeId: "",
     formattedAddress: "",
-    sellerConfirmed: false,
+    userConfirmed: false,
     pinConfirmedAt: null,
     googleValidatedAt: null,
-    isCourierReady: false,
+    isAddressReady: false,
     validationLevel: null,
     googleValidation: null,
   });
-  const [pickupSameAsProfile, setPickupSameAsProfile] = useState(false);
+  const [homeSameAsProfile, setHomeSameAsProfile] = useState(false);
   const [manualCity, setManualCity] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingPickup, setSavingPickup] = useState(false);
@@ -125,7 +126,7 @@ function ProfileContent({ user }: { user: User }) {
   const [verificationId, setVerificationId] = useState("");
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
-  const [pickupValidationMessage, setPickupValidationMessage] = useState("");
+  const [homeValidationMessage, setHomeValidationMessage] = useState("");
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["user-profile", user.uid],
@@ -152,11 +153,11 @@ function ProfileContent({ user }: { user: User }) {
     const loadPickupAddress = async () => {
       try {
         const fullProfile = await getProfile(user.uid);
-        if (fullProfile?.pickupAddress) {
+        if (fullProfile?.homeAddress) {
           setPickupForm({
-            ...fullProfile.pickupAddress,
-            email: fullProfile.pickupAddress.email || user.email || "",
-            country: fullProfile.pickupAddress.country || "India",
+            ...fullProfile.homeAddress,
+            email: fullProfile.homeAddress.email || user.email || "",
+            country: fullProfile.homeAddress.country || "India",
           });
         }
       } catch (error) {
@@ -189,9 +190,9 @@ function ProfileContent({ user }: { user: User }) {
   const completed = isProfileCompleted(profile);
   const emailVerified = user.emailVerified;
   const actualCity = form.city === OTHER_CITY ? manualCity.trim() : form.city.trim();
-  const homePickupDraft = useMemo<PickupAddress>(
+  const homePickupDraft = useMemo<HomeAddress>(
     () => ({
-      pickupLocationName: "Home",
+      label: "Home",
       name: form.name.trim() || user.displayName || "",
       phone: form.mobile.replace(/\D/g, "").slice(0, 10),
       email: user.email || "",
@@ -210,10 +211,10 @@ function ProfileContent({ user }: { user: User }) {
       location: "Home",
       placeId: "",
       formattedAddress: "",
-      sellerConfirmed: false,
+      userConfirmed: false,
       pinConfirmedAt: null,
       googleValidatedAt: null,
-      isCourierReady: false,
+      isAddressReady: false,
       validationLevel: null,
       googleValidation: null,
     }),
@@ -230,16 +231,16 @@ function ProfileContent({ user }: { user: User }) {
   );
 
   useEffect(() => {
-    if (!pickupSameAsProfile) return;
+    if (!homeSameAsProfile) return;
     setPickupForm((current) => clearPickupValidationState({ ...current, ...homePickupDraft }));
-  }, [homePickupDraft, pickupSameAsProfile]);
+  }, [homePickupDraft, homeSameAsProfile]);
 
-  const setPickupField = <K extends keyof PickupAddress>(field: K, value: PickupAddress[K]) => {
-    setPickupValidationMessage("");
+  const setPickupField = <K extends keyof HomeAddress>(field: K, value: HomeAddress[K]) => {
+    setHomeValidationMessage("");
     setPickupForm((current) => {
-      const next = { ...current, [field]: value } as PickupAddress;
-      const addressSensitiveFields: Array<keyof PickupAddress> = [
-        "pickupLocationName",
+      const next = { ...current, [field]: value } as HomeAddress;
+      const addressSensitiveFields: Array<keyof HomeAddress> = [
+        "label",
         "address1",
         "address2",
         "landmark",
@@ -250,7 +251,7 @@ function ProfileContent({ user }: { user: User }) {
         "lon",
         "placeId",
         "formattedAddress",
-        "sellerConfirmed",
+        "userConfirmed",
       ];
       return addressSensitiveFields.includes(field) ? clearPickupValidationState(next) : next;
     });
@@ -293,9 +294,7 @@ function ProfileContent({ user }: { user: User }) {
   };
 
   const savePickup = async () => {
-    const pickupErrors: Partial<Record<keyof PickupAddress, string>> = {};
-    if (!pickupForm.pickupLocationName?.trim())
-      pickupErrors.pickupLocationName = "Pickup location name is required";
+    const pickupErrors: Partial<Record<keyof HomeAddress, string>> = {};
     if (!pickupForm.name?.trim()) pickupErrors.name = "Name is required";
     if (!pickupForm.phone?.trim()) pickupErrors.phone = "Phone is required";
     if (!/^[6-9]\d{9}$/.test(pickupForm.phone?.replace(/\D/g, "") || ""))
@@ -314,14 +313,14 @@ function ProfileContent({ user }: { user: User }) {
       pickupErrors.address1 = "Please select the pickup location on the map.";
     if (typeof pickupForm.lon !== "number" || !Number.isFinite(pickupForm.lon))
       pickupErrors.address1 = "Please confirm the pickup pin on the map.";
-    if (pickupForm.sellerConfirmed !== true)
-      pickupErrors.name = "Please confirm the exact courier pickup location.";
+    if (pickupForm.userConfirmed !== true)
+      pickupErrors.name = "Please confirm the exact home address location.";
     if (
       (pickupForm.validationLevel !== "google_validated" &&
         pickupForm.validationLevel !== "google_geo_confirmed") ||
-      pickupForm.isCourierReady !== true
+      pickupForm.isAddressReady !== true
     )
-      pickupErrors.address1 = "Validate the pickup address before saving.";
+      pickupErrors.address1 = "Validate the Home Address before saving.";
 
     if (Object.keys(pickupErrors).length > 0) {
       toast.error(Object.values(pickupErrors)[0]);
@@ -330,9 +329,9 @@ function ProfileContent({ user }: { user: User }) {
 
     setSavingPickup(true);
     try {
-      await savePickupAddress(user.uid, {
+      await saveHomeAddress(user.uid, {
         ...pickupForm,
-        pickupLocationName: pickupForm.pickupLocationName.trim(),
+        label: "Home",
         name: pickupForm.name.trim(),
         phone: pickupForm.phone.replace(/\D/g, "").slice(0, 10),
         email: pickupForm.email.trim(),
@@ -355,22 +354,22 @@ function ProfileContent({ user }: { user: User }) {
         country: pickupForm.country.trim() || "India",
         landmark: pickupForm.landmark.trim(),
         address: "",
-        location: pickupForm.pickupLocationName.trim(),
+        location: "Home",
         placeId: pickupForm.placeId?.trim() || "",
         formattedAddress: pickupForm.formattedAddress?.trim() || "",
         lat: pickupForm.lat,
         lon: pickupForm.lon,
-        sellerConfirmed: pickupForm.sellerConfirmed === true,
+        userConfirmed: pickupForm.userConfirmed === true,
         pinConfirmedAt: pickupForm.pinConfirmedAt ?? new Date().toISOString(),
         googleValidatedAt: pickupForm.googleValidatedAt,
-        isCourierReady: pickupForm.isCourierReady === true,
+        isAddressReady: pickupForm.isAddressReady === true,
         validationLevel: pickupForm.validationLevel ?? null,
         googleValidation: pickupForm.googleValidation ?? null,
       });
       await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
-      toast.success("Pickup address saved.");
+      toast.success("Home Address saved.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save pickup address");
+      toast.error(error instanceof Error ? error.message : "Could not save Home Address");
     } finally {
       setSavingPickup(false);
     }
@@ -385,15 +384,15 @@ function ProfileContent({ user }: { user: User }) {
       !pickupForm.city.trim() ||
       !pickupForm.state.trim()
     ) {
-      toast.error("Enter the full pickup address before validating it.");
+      toast.error("Enter the full Home Address before validating it.");
       return;
     }
     if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
-      toast.error("Enter a valid pickup mobile number before validation.");
+      toast.error("Enter a valid mobile number before validation.");
       return;
     }
     if (!/^\d{6}$/.test(pickupForm.pincode)) {
-      toast.error("Enter a valid 6-digit pickup pincode before validation.");
+      toast.error("Enter a valid 6-digit pincode before validation.");
       return;
     }
     if (
@@ -402,11 +401,11 @@ function ProfileContent({ user }: { user: User }) {
       typeof pickupForm.lon !== "number" ||
       !Number.isFinite(pickupForm.lon)
     ) {
-      toast.error("Select the exact pickup spot on the map before validation.");
+      toast.error("Select the exact home location on the map before validation.");
       return;
     }
-    if (pickupForm.sellerConfirmed !== true) {
-      toast.error("Please confirm the courier pickup location before validation.");
+    if (pickupForm.userConfirmed !== true) {
+      toast.error("Please confirm the exact Home Address location before validation.");
       return;
     }
 
@@ -414,7 +413,7 @@ function ProfileContent({ user }: { user: User }) {
     try {
       const response = await apiFetch<{
         ok: boolean;
-        isCourierReady: boolean;
+        isAddressReady: boolean;
         validationLevel:
           | "google_validated"
           | "google_geo_confirmed"
@@ -431,10 +430,10 @@ function ProfileContent({ user }: { user: User }) {
           validationGranularity: string | null;
           geocodeGranularity: string | null;
         };
-      }>("/api/address/validate-pickup", {
+      }>("/api/address/validate-home", {
         method: "POST",
         body: JSON.stringify({
-          pickupLocationName: pickupForm.pickupLocationName.trim(),
+          label: "Home",
           name: pickupForm.name.trim(),
           phone: `+91${normalizedPhone}`,
           email: pickupForm.email.trim(),
@@ -460,7 +459,7 @@ function ProfileContent({ user }: { user: User }) {
           formattedAddress: pickupForm.formattedAddress?.trim() || "",
           lat: pickupForm.lat,
           lon: pickupForm.lon,
-          sellerConfirmed: pickupForm.sellerConfirmed === true,
+          userConfirmed: pickupForm.userConfirmed === true,
         }),
       });
 
@@ -470,7 +469,7 @@ function ProfileContent({ user }: { user: User }) {
         placeId: response.placeId || current.placeId || "",
         lat: typeof response.lat === "number" ? response.lat : current.lat,
         lon: typeof response.lon === "number" ? response.lon : current.lon,
-        isCourierReady: response.isCourierReady,
+        isAddressReady: response.isAddressReady,
         validationLevel: response.validationLevel,
         googleValidatedAt: response.ok ? new Date().toISOString() : null,
         googleValidation: {
@@ -481,18 +480,18 @@ function ProfileContent({ user }: { user: User }) {
           message: response.message,
         },
       }));
-      setPickupValidationMessage(response.message);
+      setHomeValidationMessage(response.message);
       toast.success(
         response.validationLevel === "google_geo_confirmed"
-          ? "Map pin confirmed. We’ll use this seller-confirmed pickup location for courier collection."
-          : response.isCourierReady
-          ? "Pickup address validated for courier pickup."
-          : "Google needs a more exact pickup address before pickup can be enabled.",
+          ? "Map pin confirmed. Your Home Address is ready for protected delivery."
+          : response.isAddressReady
+            ? "Home Address validated for protected delivery."
+            : "Google needs a more exact Home Address before protected delivery can be enabled.",
       );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Could not validate pickup address right now.";
-      setPickupValidationMessage(message);
+        error instanceof Error ? error.message : "Could not validate Home Address right now.";
+      setHomeValidationMessage(message);
       toast.error(message);
     } finally {
       setValidatingPickup(false);
@@ -577,6 +576,11 @@ function ProfileContent({ user }: { user: User }) {
 
   return (
     <AppPageShell>
+      <FullScreenLoader
+        open={validatingPickup}
+        title="Checking your Home Address…"
+        message="Confirming map pin, address details, and protected-delivery readiness."
+      />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div>
           <h1 className="font-display text-3xl font-bold">Complete your BookVerse profile</h1>
@@ -642,12 +646,11 @@ function ProfileContent({ user }: { user: User }) {
               </section>
             )}
 
-            <section className="space-y-4">
+            <section id="home-address" className="space-y-4">
               <div>
-                <h2 className="font-display text-xl font-bold">Basic Profile Details</h2>
+                <h2 className="font-display text-xl font-bold">Account & Public Location</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Your city and state help buyers/sellers discover nearby books. Your full location
-                  is private and is not shown publicly.
+                  Used for account, trust, and nearby discovery. Not used as courier address.
                 </p>
               </div>
               <Field
@@ -703,7 +706,7 @@ function ProfileContent({ user }: { user: User }) {
               />
 
               <div>
-                <label className="text-sm font-medium">Locality / Area / Landmark optional</label>
+                <label className="text-sm font-medium">Nearby Area optional</label>
                 <textarea
                   value={form.locality}
                   onChange={(event) =>
@@ -715,7 +718,7 @@ function ProfileContent({ user }: { user: User }) {
                   className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  We only show your city and state publicly. Your exact location is private.
+                  We only show your city and state publicly. Your Home Address stays private.
                 </p>
               </div>
             </section>
@@ -723,33 +726,33 @@ function ProfileContent({ user }: { user: User }) {
             <section className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-xl font-bold">Courier Pickup Address</h2>
+                  <h2 className="font-display text-xl font-bold">Home Address</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Courier pickup address required for protected delivery. This address is private
-                    and used only by courier partners to collect books you sell.
+                    This private address is used for both courier pickup when you sell and
+                    delivery when you buy through Protected Delivery.
                   </p>
                 </div>
                 <div
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    hasCompletePickupAddress(pickupForm)
+                    hasCompleteHomeAddress(pickupForm)
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                       : "bg-amber-500/10 text-amber-800 dark:text-amber-200"
                   }`}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {hasCompletePickupAddress(pickupForm)
-                    ? "Pickup address complete"
-                    : "Pickup address missing"}
+                  {hasCompleteHomeAddress(pickupForm)
+                    ? "Home Address validated for protected delivery"
+                    : "Home address not added"}
                 </div>
               </div>
 
               <label className="flex items-start gap-3 rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm">
                 <input
                   type="checkbox"
-                  checked={pickupSameAsProfile}
+                  checked={homeSameAsProfile}
                   onChange={(event) => {
                     const checked = event.target.checked;
-                    setPickupSameAsProfile(checked);
+                    setHomeSameAsProfile(checked);
                     if (checked) {
                       setPickupForm((current) =>
                         clearPickupValidationState({ ...current, ...homePickupDraft }),
@@ -759,23 +762,15 @@ function ProfileContent({ user }: { user: User }) {
                   className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <span>
-                  <span className="font-medium">Pickup address is same as my basic profile location</span>
+                  <span className="font-medium">Home Address is same as my basic profile location</span>
                   <span className="mt-1 block text-xs text-muted-foreground">
                     We&apos;ll prefill this form using your name, mobile, city, state, pincode,
-                    and locality. Please review the courier address before saving.
+                    and locality. Please review the full address before saving.
                   </span>
                 </span>
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label="Pickup Location Name"
-                  value={pickupForm.pickupLocationName}
-                  onChange={(value) => setPickupField("pickupLocationName", value)}
-                  required
-                  helper="Example: Home, Hostel Gate, Office, Shop"
-                  data-testid="pickup-location-name"
-                />
                 <Field
                   label="Contact Name"
                   value={pickupForm.name}
@@ -811,7 +806,7 @@ function ProfileContent({ user }: { user: User }) {
                 />
               </div>
 
-              <GooglePickupMapSelector
+              <GoogleAddressMapSelector
                 address1={
                   pickupForm.address1 ||
                   [
@@ -831,7 +826,7 @@ function ProfileContent({ user }: { user: User }) {
                 placeId={pickupForm.placeId}
                 disabled={savingPickup || validatingPickup}
                 onSelection={(selection) => {
-                  setPickupValidationMessage("");
+                  setHomeValidationMessage("");
                   setPickupForm((current) =>
                     clearPickupValidationState({
                       ...current,
@@ -861,7 +856,7 @@ function ProfileContent({ user }: { user: User }) {
                   );
                 }}
                 onPinDragged={({ lat: nextLat, lon: nextLon }) => {
-                  setPickupValidationMessage("");
+                  setHomeValidationMessage("");
                   setPickupForm((current) =>
                     clearPickupValidationState({
                       ...current,
@@ -963,18 +958,18 @@ function ProfileContent({ user }: { user: User }) {
               <label className="flex items-start gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm">
                 <input
                   type="checkbox"
-                  checked={pickupForm.sellerConfirmed === true}
-                  onChange={(event) => setPickupField("sellerConfirmed", event.target.checked)}
+                  checked={pickupForm.userConfirmed === true}
+                  onChange={(event) => setPickupField("userConfirmed", event.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   data-testid="pickup-confirm-checkbox"
                 />
                 <span>
                   <span className="font-medium">
-                    I confirm this is the exact pickup location where courier can collect parcels.
+                    I confirm this is the exact Home Address for both courier pickup and delivery.
                   </span>
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    Protected delivery requires a confirmed map pin and Google-validated pickup
-                    address.
+                    Protected delivery requires a confirmed map pin and Google-validated Home
+                    Address.
                   </span>
                 </span>
               </label>
@@ -983,13 +978,13 @@ function ProfileContent({ user }: { user: User }) {
                 <p className="font-medium">
                   {pickupForm.validationLevel === "google_validated" ||
                   pickupForm.validationLevel === "google_geo_confirmed"
-                    ? "Google pickup validation complete"
-                    : "Validate this pickup address before protected delivery can go live"}
+                    ? "Home Address validation complete"
+                    : "Validate this Home Address before protected delivery can go live"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {pickupForm.validationLevel === "google_geo_confirmed"
-                    ? "Google could not fully verify the house number, but your map pin and pickup details look complete. We will use this seller-confirmed pickup location for courier collection."
-                    : pickupValidationMessage ||
+                    ? "Google could not fully verify the house number, but your map pin and Home Address details look complete. We will use this user-confirmed address for protected delivery."
+                    : homeValidationMessage ||
                     pickupForm.googleValidation?.message ||
                     "We only validate when you click the button, not while you type."}
                 </p>
@@ -1005,7 +1000,7 @@ function ProfileContent({ user }: { user: User }) {
                     className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-secondary disabled:opacity-60"
                   >
                     {validatingPickup && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Validate pickup address
+                    Validate Home Address
                   </button>
                   <button
                     type="button"
@@ -1015,7 +1010,7 @@ function ProfileContent({ user }: { user: User }) {
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
                     {savingPickup && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Save pickup address
+                    Save Home Address
                   </button>
                 </div>
               </div>

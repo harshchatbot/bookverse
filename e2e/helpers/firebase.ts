@@ -210,58 +210,72 @@ export async function saveTestPickupAddress(
   address?: TestPickupAddressInput,
 ): Promise<void> {
   const db = getFirestore(initFirebase());
+  const homeAddress = {
+    label: "Home",
+    name: address?.name ?? "E2E Pickup",
+    phone: address?.phone ?? "9999999999",
+    email: address?.email ?? "pickup@test.local",
+    houseOrFlat: address?.houseOrFlat ?? "H.No 10",
+    buildingOrSociety: address?.buildingOrSociety ?? "Lake View Apartments",
+    streetOrRoad: address?.streetOrRoad ?? "Campus Road",
+    areaOrLocality: address?.areaOrLocality ?? "Anand Nagar",
+    address1:
+      address?.address1 ??
+      [
+        address?.houseOrFlat ?? "H.No 10",
+        address?.buildingOrSociety ?? "Lake View Apartments",
+        address?.streetOrRoad ?? "Campus Road",
+        address?.areaOrLocality ?? "Anand Nagar",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    address2: address?.address2 ?? "",
+    city: address?.city ?? "Pune",
+    state: address?.state ?? "Maharashtra",
+    pincode: address?.pincode ?? "411001",
+    country: address?.country ?? "India",
+    landmark: address?.landmark ?? "",
+    address:
+      address?.address ??
+      [
+        address?.houseOrFlat ?? "H.No 10",
+        address?.buildingOrSociety ?? "Lake View Apartments",
+        address?.streetOrRoad ?? "Campus Road",
+        address?.areaOrLocality ?? "Anand Nagar",
+        address?.landmark ?? "",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    location: "Home",
+    formattedAddress:
+      address?.formattedAddress ??
+      `${address?.address1 ?? "123 Test Street"}, ${address?.city ?? "Pune"}, ${address?.state ?? "Maharashtra"} ${address?.pincode ?? "411001"}, India`,
+    placeId: address?.placeId ?? "test-place-id",
+    lat: address?.lat ?? 18.5204,
+    lon: address?.lon ?? 73.8567,
+    userConfirmed: true,
+    pinConfirmedAt: new Date().toISOString(),
+    googleValidatedAt: new Date().toISOString(),
+    isAddressReady: true,
+    validationLevel: address?.validationLevel ?? "google_validated",
+    googleValidation: {
+      addressComplete: true,
+      validationGranularity: "PREMISE",
+      geocodeGranularity: "PREMISE",
+      reasonCodes: [],
+      message: "Home Address is Google-validated and ready for protected delivery.",
+    },
+  };
   await db
     .collection("profiles")
     .doc(uid)
     .update({
+      homeAddress,
       pickupAddress: {
+        ...homeAddress,
         pickupLocationName: address?.pickupLocationName ?? "Home",
-        name: address?.name ?? "E2E Pickup",
-        phone: address?.phone ?? "9999999999",
-        email: address?.email ?? "pickup@test.local",
-        houseOrFlat: address?.houseOrFlat ?? "H.No 10",
-        buildingOrSociety: address?.buildingOrSociety ?? "Lake View Apartments",
-        streetOrRoad: address?.streetOrRoad ?? "Campus Road",
-        areaOrLocality: address?.areaOrLocality ?? "Anand Nagar",
-        address1:
-          address?.address1 ??
-          [
-            address?.houseOrFlat ?? "H.No 10",
-            address?.buildingOrSociety ?? "Lake View Apartments",
-            address?.streetOrRoad ?? "Campus Road",
-            address?.areaOrLocality ?? "Anand Nagar",
-          ]
-            .filter(Boolean)
-            .join(", "),
-        address2: address?.address2 ?? "",
-        city: address?.city ?? "Pune",
-        state: address?.state ?? "Maharashtra",
-        pincode: address?.pincode ?? "411001",
-        country: address?.country ?? "India",
-        landmark: address?.landmark ?? "",
-        address:
-          address?.address ??
-          [
-            address?.houseOrFlat ?? "H.No 10",
-            address?.buildingOrSociety ?? "Lake View Apartments",
-            address?.streetOrRoad ?? "Campus Road",
-            address?.areaOrLocality ?? "Anand Nagar",
-            address?.landmark ?? "",
-          ]
-            .filter(Boolean)
-            .join(", "),
-        location: address?.pickupLocationName ?? "Home",
-        formattedAddress:
-          address?.formattedAddress ??
-          `${address?.address1 ?? "123 Test Street"}, ${address?.city ?? "Pune"}, ${address?.state ?? "Maharashtra"} ${address?.pincode ?? "411001"}, India`,
-        placeId: address?.placeId ?? "test-place-id",
-        lat: address?.lat ?? 18.5204,
-        lon: address?.lon ?? 73.8567,
         sellerConfirmed: address?.sellerConfirmed ?? true,
-        pinConfirmedAt: new Date().toISOString(),
-        googleValidatedAt: new Date().toISOString(),
         isCourierReady: address?.isCourierReady ?? true,
-        validationLevel: address?.validationLevel ?? "google_validated",
         googleValidation: {
           addressComplete: true,
           validationGranularity: "PREMISE",

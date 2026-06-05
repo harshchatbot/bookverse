@@ -65,8 +65,7 @@ export class ProfilePage {
   }
 
   async fillPickupAddress(data: PickupAddressData) {
-    await this.page.getByRole("heading", { name: /Courier Pickup Address/i }).waitFor();
-    await this.page.getByTestId("pickup-location-name").fill(data.pickupLocationName);
+    await this.page.getByRole("heading", { name: /Home Address/i }).waitFor();
     await this.page.getByTestId("pickup-contact-name").fill(data.name);
     await this.page.getByTestId("pickup-phone").fill(data.phone);
     await this.page.getByTestId("pickup-email").fill(data.email);
@@ -85,9 +84,9 @@ export class ProfilePage {
   }
 
   async hasCompleteBadge(): Promise<boolean> {
-    await this.page.getByRole("heading", { name: /Courier Pickup Address/i }).scrollIntoViewIfNeeded();
+    await this.page.getByRole("heading", { name: /Home Address/i }).scrollIntoViewIfNeeded();
     return this.page
-      .getByText(/Pickup address complete/i)
+      .getByText(/Home Address validated for protected delivery/i)
       .isVisible({ timeout: 3_000 })
       .catch(() => false);
   }
