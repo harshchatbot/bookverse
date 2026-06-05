@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
 
-type PickupSelection = {
+export type GoogleAddressSelection = {
   houseOrFlat?: string;
+  buildingOrSociety?: string;
   streetOrRoad?: string;
   areaOrLocality?: string;
   city?: string;
@@ -15,7 +16,7 @@ type PickupSelection = {
   lon?: number;
 };
 
-type Props = {
+export type GooglePickupMapSelectorProps = {
   address1: string;
   city: string;
   state: string;
@@ -24,7 +25,7 @@ type Props = {
   lon?: number;
   placeId?: string;
   disabled?: boolean;
-  onSelection: (selection: PickupSelection) => void;
+  onSelection: (selection: GoogleAddressSelection) => void;
   onPinDragged: (coords: { lat: number; lon: number }) => void;
 };
 
@@ -77,7 +78,7 @@ function loadMapsScript() {
   return mapsScriptPromise;
 }
 
-function extractPlaceSelection(place: any): PickupSelection | null {
+function extractPlaceSelection(place: any): GoogleAddressSelection | null {
   const geometry = place?.geometry?.location;
   const lat = geometry?.lat?.();
   const lon = geometry?.lng?.();
@@ -126,7 +127,7 @@ export function GooglePickupMapSelector({
   disabled,
   onSelection,
   onPinDragged,
-}: Props) {
+}: GooglePickupMapSelectorProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);

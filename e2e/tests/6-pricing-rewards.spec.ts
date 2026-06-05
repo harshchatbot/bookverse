@@ -267,9 +267,47 @@ test("protected delivery checkout groups same-seller books with one delivery fee
       }),
     });
   });
+  await page.route(/\/(?:api\/)?address\/validate-delivery$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        isDeliveryReady: true,
+        validationLevel: "google_geo_confirmed",
+        formattedAddress:
+          "Flat 302, Hostel Block A, Campus Road, North Campus, Delhi 110001, India",
+        lat: 28.7041,
+        lon: 77.1025,
+        placeId: "delivery-place-id",
+        reasonCodes: [
+          "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+          "STRUCTURED_ADDRESS_COMPLETE",
+          "MAP_PIN_CONFIRMED",
+        ],
+        message:
+          "Google could not fully verify the house number, but your map pin and delivery details look complete. We will use this buyer-confirmed delivery location for courier delivery.",
+        googleVerdict: {
+          addressComplete: false,
+          validationGranularity: "OTHER",
+          geocodeGranularity: "OTHER",
+        },
+      }),
+    });
+  });
 
   await page.goto(`/checkout?ids=${listingIdOne},${listingIdTwo}`);
   await page.waitForLoadState("domcontentloaded");
+  await page.getByLabel("House / Flat / Building No.").fill("Flat 302");
+  await page.getByLabel("Building / Apartment / Society").fill("Hostel Block A");
+  await page.getByLabel("Street / Road / Gali / Lane").fill("Campus Road");
+  await page.getByLabel("Area / Locality").fill("North Campus");
+  await page.getByLabel("Landmark").fill("Near Main Gate");
+  await page.getByLabel("City").fill("Delhi");
+  await page.getByLabel("State").fill("Delhi");
+  await page.getByLabel("Pincode").fill("110001");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: /validate delivery address/i }).click();
   await page.getByRole("button", { name: /confirm & calculate delivery/i }).click();
 
   await expect(page.getByText("Same Seller Book One")).toBeVisible();
@@ -378,9 +416,47 @@ test("protected delivery checkout splits different sellers into separate groups"
         }),
       });
     });
+    await page.route(/\/(?:api\/)?address\/validate-delivery$/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          isDeliveryReady: true,
+          validationLevel: "google_geo_confirmed",
+          formattedAddress:
+            "Flat 302, Hostel Block A, Campus Road, North Campus, Delhi 110001, India",
+          lat: 28.7041,
+          lon: 77.1025,
+          placeId: "delivery-place-id",
+          reasonCodes: [
+            "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+            "STRUCTURED_ADDRESS_COMPLETE",
+            "MAP_PIN_CONFIRMED",
+          ],
+          message:
+            "Google could not fully verify the house number, but your map pin and delivery details look complete. We will use this buyer-confirmed delivery location for courier delivery.",
+          googleVerdict: {
+            addressComplete: false,
+            validationGranularity: "OTHER",
+            geocodeGranularity: "OTHER",
+          },
+        }),
+      });
+    });
 
     await page.goto(`/checkout?ids=${listingIdOne},${listingIdTwo}`);
     await page.waitForLoadState("domcontentloaded");
+    await page.getByLabel("House / Flat / Building No.").fill("Flat 302");
+    await page.getByLabel("Building / Apartment / Society").fill("Hostel Block A");
+    await page.getByLabel("Street / Road / Gali / Lane").fill("Campus Road");
+    await page.getByLabel("Area / Locality").fill("North Campus");
+    await page.getByLabel("Landmark").fill("Near Main Gate");
+    await page.getByLabel("City").fill("Delhi");
+    await page.getByLabel("State").fill("Delhi");
+    await page.getByLabel("Pincode").fill("110001");
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: /validate delivery address/i }).click();
     await page.getByRole("button", { name: /confirm & calculate delivery/i }).click();
 
     await expect(page.getByText("Seller One", { exact: true })).toBeVisible();

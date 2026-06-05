@@ -69,6 +69,19 @@ def test_validate_pickup_requires_auth() -> None:
     assert response.status_code == 401
 
 
+def _valid_delivery_payload() -> dict:
+    payload = _valid_payload()
+    payload.pop("pickupLocationName", None)
+    payload.pop("sellerConfirmed", None)
+    payload["buyerConfirmed"] = True
+    return payload
+
+
+def test_validate_delivery_requires_auth() -> None:
+    response = client.post("/address/validate-delivery", json=_valid_delivery_payload())
+    assert response.status_code == 401
+
+
 def test_validate_pickup_rejects_locality_only_before_google_call(monkeypatch) -> None:
     app.dependency_overrides[address_router.get_current_user] = _fake_user
 
@@ -315,6 +328,67 @@ def test_validate_pickup_google_other_missing_house_number_stays_needs_more_deta
     app.dependency_overrides.clear()
 
 
+def test_validate_delivery_google_other_but_strong_structured_address(monkeypatch) -> None:
+    app.dependency_overrides[address_router.get_current_user] = _fake_user
+
+    async def _fake_validate(_: object) -> dict:
+        return {
+            "ok": True,
+            "isDeliveryReady": True,
+            "validationLevel": "google_geo_confirmed",
+            "formattedAddress": "Validated delivery address",
+            "lat": 26.4499,
+            "lon": 74.6399,
+            "placeId": "delivery-place-id",
+            "reasonCodes": [
+                "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+                "STRUCTURED_ADDRESS_COMPLETE",
+                "MAP_PIN_CONFIRMED",
+            ],
+            "message": "Google could not fully verify the house number, but your map pin and delivery details look complete. We will use this buyer-confirmed delivery location for courier delivery.",
+            "googleVerdict": {
+                "addressComplete": False,
+                "validationGranularity": "OTHER",
+                "geocodeGranularity": "OTHER",
+            },
+        }
+
+    monkeypatch.setattr(address_router, "validate_delivery_address", _fake_validate)
+    response = client.post(
+        "/address/validate-delivery",
+        headers={"Authorization": "Bearer test"},
+        json=_valid_delivery_payload(),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["validationLevel"] == "google_geo_confirmed"
+    assert body["isDeliveryReady"] is True
+    app.dependency_overrides.clear()
+
+
+def test_validate_delivery_rejects_missing_house_number(monkeypatch) -> None:
+    app.dependency_overrides[address_router.get_current_user] = _fake_user
+    called = False
+
+    async def _fake_validate(_: object) -> dict:
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(address_router, "validate_delivery_address", _fake_validate)
+    payload = _valid_delivery_payload()
+    payload["houseOrFlat"] = ""
+    payload["address1"] = "Anand Nagar"
+    response = client.post(
+        "/address/validate-delivery",
+        headers={"Authorization": "Bearer test"},
+        json=payload,
+    )
+    assert response.status_code == 422
+    assert called is False
+    app.dependency_overrides.clear()
+
+
 def test_service_returns_google_geo_confirmed_for_strong_structured_address(monkeypatch) -> None:
     payload = address_validation_service.PickupAddressValidationRequest(**_valid_payload())
 
@@ -356,5 +430,6 @@ def test_service_returns_needs_more_detail_for_other_granularity_when_structured
     weak["address1"] = "Anand Nagar"
     with pytest.raises(ValueError):
         address_validation_service._validate_structured_precheck(
-            address_validation_service.PickupAddressValidationRequest(**weak)
+            address_validation_service.PickupAddressValidationRequest(**weak),
+            mode="pickup",
         )

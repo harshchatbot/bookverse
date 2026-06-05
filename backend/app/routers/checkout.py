@@ -17,13 +17,24 @@ class BuyerDeliveryAddress(BaseModel):
     name: str
     phone: str
     email: str
+    houseOrFlat: str
+    buildingOrSociety: str = ""
+    streetOrRoad: str = ""
+    areaOrLocality: str
+    landmark: str
     address1: str = Field(validation_alias="address1")
     address2: str = ""
     city: str
     state: str
     pincode: str
     country: str = "India"
-    landmark: str | None = None
+    formattedAddress: str = ""
+    placeId: str = ""
+    lat: float | None = None
+    lon: float | None = None
+    buyerConfirmed: bool = False
+    isDeliveryReady: bool = False
+    validationLevel: str | None = None
 
     @field_validator("pincode")
     @classmethod

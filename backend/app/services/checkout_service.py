@@ -136,6 +136,63 @@ def _is_google_validated_pickup_address(value: Any) -> bool:
     )
 
 
+def _is_complete_delivery_address(value: Any) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    phone = str(value.get("phone", "")).strip()
+    email = str(value.get("email", "")).strip()
+    house_or_flat = str(value.get("houseOrFlat", "")).strip()
+    area_or_locality = str(value.get("areaOrLocality", "")).strip()
+    landmark = str(value.get("landmark", "")).strip()
+    return (
+        isinstance(value.get("name"), str)
+        and value["name"].strip()
+        and (
+            (phone.startswith("+91") and phone[3:].isdigit() and len(phone) == 13)
+            or (phone.isdigit() and len(phone) == 10 and phone[0] in {"6", "7", "8", "9"})
+        )
+        and "@" in email
+        and "." in email.split("@")[-1]
+        and house_or_flat
+        and area_or_locality
+        and landmark
+        and isinstance(value.get("city"), str)
+        and value["city"].strip()
+        and isinstance(value.get("state"), str)
+        and value["state"].strip()
+        and isinstance(value.get("pincode"), str)
+        and value["pincode"].isdigit()
+        and len(value["pincode"]) == 6
+        and isinstance(value.get("country"), str)
+        and value["country"].strip()
+    )
+
+
+def _is_google_validated_delivery_address(value: Any) -> bool:
+    if not _is_complete_delivery_address(value) or not isinstance(value, Mapping):
+        return False
+    lat = value.get("lat")
+    lon = value.get("lon")
+    formatted_address = value.get("formattedAddress")
+    return (
+        value.get("isDeliveryReady") is True
+        and value.get("validationLevel") in {"google_validated", "google_geo_confirmed"}
+        and value.get("buyerConfirmed") is True
+        and isinstance(value.get("placeId"), str)
+        and value.get("placeId", "").strip()
+        and isinstance(formatted_address, str)
+        and formatted_address.strip()
+        and isinstance(lat, (int, float))
+        and isinstance(lon, (int, float))
+        and isinstance(value.get("houseOrFlat"), str)
+        and value.get("houseOrFlat", "").strip()
+        and isinstance(value.get("areaOrLocality"), str)
+        and value.get("areaOrLocality", "").strip()
+        and isinstance(value.get("landmark"), str)
+        and value.get("landmark", "").strip()
+    )
+
+
 def _order_summary(order: Mapping[str, Any]) -> str:
     items = order.get("items") if isinstance(order.get("items"), list) else []
     if not items:
@@ -199,6 +256,10 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
 
     prepared_groups: list[dict[str, Any]] = []
     address = payload["buyerDeliveryAddress"]
+    if not _is_google_validated_delivery_address(address):
+        raise RuntimeError(
+            "Buyer delivery address is not validated yet. Please select address on map and validate it."
+        )
 
     for seller_uid, seller_listings in grouped_by_seller.items():
         if len(seller_listings) > PROTECTED_DELIVERY_MAX_ITEMS_PER_SELLER:

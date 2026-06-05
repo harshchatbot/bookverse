@@ -26,16 +26,44 @@ export interface Listing {
 
 export type FulfillmentMode = "protected_delivery";
 
+export type AddressValidationLevel =
+  | "google_validated"
+  | "google_geo_confirmed"
+  | "needs_more_detail"
+  | "failed"
+  | null;
+
+export interface AddressGoogleValidationSummary {
+  addressComplete?: boolean;
+  validationGranularity?: string | null;
+  geocodeGranularity?: string | null;
+  reasonCodes?: string[];
+  message?: string;
+}
+
 export interface CheckoutDeliveryAddress {
   name: string;
   phone: string;
   email: string;
+  houseOrFlat: string;
+  buildingOrSociety: string;
+  streetOrRoad: string;
+  areaOrLocality: string;
+  landmark: string;
   address1: string;
   address2: string;
   city: string;
   state: string;
   pincode: string;
   country: string;
+  formattedAddress?: string;
+  placeId?: string;
+  lat?: number;
+  lon?: number;
+  buyerConfirmed?: boolean;
+  isDeliveryReady?: boolean;
+  validationLevel?: AddressValidationLevel;
+  googleValidation?: AddressGoogleValidationSummary | null;
 }
 
 export interface PickupAddressSnapshot {
@@ -64,14 +92,8 @@ export interface PickupAddressSnapshot {
   pinConfirmedAt?: string | null;
   googleValidatedAt?: string | null;
   isCourierReady?: boolean;
-  validationLevel?: "google_validated" | "google_geo_confirmed" | "needs_more_detail" | "failed" | null;
-  googleValidation?: {
-    addressComplete?: boolean;
-    validationGranularity?: string | null;
-    geocodeGranularity?: string | null;
-    reasonCodes?: string[];
-    message?: string;
-  } | null;
+  validationLevel?: AddressValidationLevel;
+  googleValidation?: AddressGoogleValidationSummary | null;
 }
 
 export interface OrderItemSnapshot {

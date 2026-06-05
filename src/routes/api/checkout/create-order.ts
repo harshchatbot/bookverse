@@ -23,14 +23,36 @@ import type { Listing, OrderItemSnapshot, PickupAddressSnapshot } from "@/lib/ty
 
 const AddressSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  phone: z.string().regex(/^[0-9+\-\s()]{10,20}$/),
+  phone: z.string().regex(/^\+91[6-9]\d{9}$/),
   email: z.string().trim().email().max(255),
+  houseOrFlat: z.string().trim().min(1).max(120),
+  buildingOrSociety: z.string().trim().max(120).default(""),
+  streetOrRoad: z.string().trim().max(120).default(""),
+  areaOrLocality: z.string().trim().min(1).max(120),
+  landmark: z.string().trim().min(1).max(120),
   address1: z.string().trim().min(3).max(200),
   address2: z.string().trim().max(200).default(""),
   city: z.string().trim().min(1).max(60),
   state: z.string().trim().min(1).max(60),
   pincode: z.string().regex(/^\d{6}$/),
   country: z.string().default("India"),
+  formattedAddress: z.string().trim().min(1).max(300),
+  placeId: z.string().trim().min(1).max(255),
+  lat: z.number().finite(),
+  lon: z.number().finite(),
+  buyerConfirmed: z.literal(true),
+  isDeliveryReady: z.literal(true),
+  validationLevel: z.enum(["google_validated", "google_geo_confirmed"]),
+  googleValidation: z
+    .object({
+      addressComplete: z.boolean().optional(),
+      validationGranularity: z.string().nullable().optional(),
+      geocodeGranularity: z.string().nullable().optional(),
+      reasonCodes: z.array(z.string()).optional(),
+      message: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 const Body = z.object({
@@ -113,6 +135,41 @@ function isValidatedPickupAddress(value: unknown): value is PickupAddressSnapsho
   );
 }
 
+function isValidatedDeliveryAddress(value: unknown): value is z.infer<typeof AddressSchema> {
+  if (!value || typeof value !== "object") return false;
+  const delivery = value as z.infer<typeof AddressSchema>;
+  return !!(
+    typeof delivery.name === "string" &&
+    delivery.name.trim() &&
+    /^\+91[6-9]\d{9}$/.test(delivery.phone) &&
+    typeof delivery.email === "string" &&
+    delivery.email.includes("@") &&
+    typeof delivery.houseOrFlat === "string" &&
+    delivery.houseOrFlat.trim() &&
+    typeof delivery.areaOrLocality === "string" &&
+    delivery.areaOrLocality.trim() &&
+    typeof delivery.landmark === "string" &&
+    delivery.landmark.trim() &&
+    typeof delivery.city === "string" &&
+    delivery.city.trim() &&
+    typeof delivery.state === "string" &&
+    delivery.state.trim() &&
+    /^\d{6}$/.test(delivery.pincode) &&
+    typeof delivery.formattedAddress === "string" &&
+    delivery.formattedAddress.trim() &&
+    typeof delivery.placeId === "string" &&
+    delivery.placeId.trim() &&
+    typeof delivery.lat === "number" &&
+    Number.isFinite(delivery.lat) &&
+    typeof delivery.lon === "number" &&
+    Number.isFinite(delivery.lon) &&
+    delivery.buyerConfirmed === true &&
+    delivery.isDeliveryReady === true &&
+    (delivery.validationLevel === "google_validated" ||
+      delivery.validationLevel === "google_geo_confirmed")
+  );
+}
+
 type PreparedSellerGroup = {
   sellerUid: string;
   sellerEmail: string;
@@ -153,6 +210,12 @@ export const Route = createFileRoute("/api/checkout/create-order")({
         const listingIds = normalizeListingIds(parsed.data.listingIds);
         if (listingIds.length !== parsed.data.listingIds.length) {
           return jsonError(400, "Duplicate listing IDs are not allowed.");
+        }
+        if (!isValidatedDeliveryAddress(parsed.data.buyerDeliveryAddress)) {
+          return jsonError(
+            409,
+            "Buyer delivery address is not validated yet. Please select address on map and validate it.",
+          );
         }
         const couponSelections = parsed.data.couponSelections ?? [];
         const seenCouponIds = new Set<string>();

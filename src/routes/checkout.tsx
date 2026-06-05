@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { ArrowLeft, CreditCard, Loader2, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector";
 import { AppPageShell } from "@/components/PageShell";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
 import { apiFetch } from "@/lib/api-client";
@@ -20,6 +21,7 @@ import {
 import type { CheckoutDeliveryAddress, Listing } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
+import type { AddressValidationLevel } from "@/lib/types";
 
 const searchSchema = z.object({
   ids: fallback(z.string(), "").default(""),
@@ -41,6 +43,32 @@ type RazorpaySuccessResponse = {
   razorpay_signature: string;
 };
 
+function buildDeliveryAddress1(address: CheckoutDeliveryAddress) {
+  return [
+    address.houseOrFlat.trim(),
+    address.buildingOrSociety.trim(),
+    address.streetOrRoad.trim(),
+    address.areaOrLocality.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function buildDeliveryAddress2(address: CheckoutDeliveryAddress) {
+  return address.landmark.trim();
+}
+
+function clearDeliveryValidationState(address: CheckoutDeliveryAddress): CheckoutDeliveryAddress {
+  return {
+    ...address,
+    placeId: "",
+    formattedAddress: "",
+    isDeliveryReady: false,
+    validationLevel: null,
+    googleValidation: null,
+  };
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -51,12 +79,23 @@ function CheckoutPage() {
     name: "",
     phone: "",
     email: "",
+    houseOrFlat: "",
+    buildingOrSociety: "",
+    streetOrRoad: "",
+    areaOrLocality: "",
+    landmark: "",
     address1: "",
     address2: "",
     city: "",
     state: "",
     pincode: "",
     country: "India",
+    formattedAddress: "",
+    placeId: "",
+    buyerConfirmed: false,
+    isDeliveryReady: false,
+    validationLevel: null,
+    googleValidation: null,
   });
   const [creatingOrders, setCreatingOrders] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -95,7 +134,12 @@ function CheckoutPage() {
       name: prev.name || profile?.name || user.displayName || "",
       phone: prev.phone || profile?.whatsappNumber || profile?.mobile || "",
       email: prev.email || user.email || "",
-      address1: prev.address1 || profile?.locality || "",
+      areaOrLocality: prev.areaOrLocality || profile?.locality || "",
+      address1:
+        prev.address1 ||
+        [prev.houseOrFlat, prev.buildingOrSociety, prev.streetOrRoad, prev.areaOrLocality || profile?.locality || ""]
+          .filter(Boolean)
+          .join(", "),
       city: prev.city || profile?.city || "",
       state: prev.state || profile?.state || "",
       pincode: prev.pincode || profile?.pincode || "",
@@ -124,7 +168,88 @@ function CheckoutPage() {
   }, [selectedListings]);
 
   const setAddressField = (field: keyof CheckoutDeliveryAddress, value: string) => {
-    setAddress((prev) => ({ ...prev, [field]: value }));
+    setAddress((prev) => {
+      const next = { ...prev, [field]: value } as CheckoutDeliveryAddress;
+      next.address1 = buildDeliveryAddress1(next);
+      next.address2 = buildDeliveryAddress2(next);
+      if (
+        [
+          "houseOrFlat",
+          "buildingOrSociety",
+          "streetOrRoad",
+          "areaOrLocality",
+          "landmark",
+          "city",
+          "state",
+          "pincode",
+        ].includes(field)
+      ) {
+        return clearDeliveryValidationState(next);
+      }
+      return next;
+    });
+  };
+
+  const setBuyerConfirmed = (value: boolean) => {
+    setAddress((prev) => clearDeliveryValidationState({ ...prev, buyerConfirmed: value }));
+  };
+
+  const validateDeliveryAddress = async () => {
+    if (!user) return;
+    setLoaderMessage("Validating your delivery address…");
+    setLoaderProgress(35);
+    try {
+      const response = await apiFetch<{
+        ok: boolean;
+        isDeliveryReady: boolean;
+        validationLevel: AddressValidationLevel;
+        formattedAddress: string | null;
+        lat: number | null;
+        lon: number | null;
+        placeId: string | null;
+        reasonCodes: string[];
+        message: string;
+        googleVerdict: {
+          addressComplete?: boolean;
+          validationGranularity?: string | null;
+          geocodeGranularity?: string | null;
+        };
+      }>("/api/address/validate-delivery", {
+        method: "POST",
+        body: JSON.stringify({
+          ...address,
+          address1: buildDeliveryAddress1(address),
+          address2: buildDeliveryAddress2(address),
+        }),
+      });
+
+      setAddress((prev) => ({
+        ...prev,
+        address1: buildDeliveryAddress1(prev),
+        address2: buildDeliveryAddress2(prev),
+        formattedAddress: response.formattedAddress ?? prev.formattedAddress ?? "",
+        placeId: response.placeId ?? prev.placeId ?? "",
+        lat: typeof response.lat === "number" ? response.lat : prev.lat,
+        lon: typeof response.lon === "number" ? response.lon : prev.lon,
+        isDeliveryReady: response.isDeliveryReady,
+        validationLevel: response.validationLevel,
+        googleValidation: {
+          ...response.googleVerdict,
+          reasonCodes: response.reasonCodes,
+          message: response.message,
+        },
+      }));
+      if (response.isDeliveryReady) {
+        toast.success(response.message);
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not validate delivery address.");
+    } finally {
+      setLoaderProgress(undefined);
+      setLoaderMessage("Preparing your home delivery…");
+    }
   };
 
   const createGroupedOrders = async () => {
@@ -132,6 +257,15 @@ function CheckoutPage() {
     if (!ensureAccess("contact")) return;
     if (listingIds.length === 0) {
       toast.error("Select at least one book to continue.");
+      return;
+    }
+    if (
+      address.isDeliveryReady !== true ||
+      (address.validationLevel !== "google_validated" &&
+        address.validationLevel !== "google_geo_confirmed") ||
+      address.buyerConfirmed !== true
+    ) {
+      toast.error("Please validate your delivery address on the map before continuing.");
       return;
     }
 
@@ -146,7 +280,11 @@ function CheckoutPage() {
           method: "POST",
           body: JSON.stringify({
             listingIds,
-            buyerDeliveryAddress: address,
+            buyerDeliveryAddress: {
+              ...address,
+              address1: buildDeliveryAddress1(address),
+              address2: buildDeliveryAddress2(address),
+            },
             selectedFulfillmentMode: "protected_delivery",
             couponSelections: Object.entries(couponSelections).map(([sellerUid, couponId]) => ({
               sellerUid,
@@ -473,6 +611,10 @@ function CheckoutPage() {
                 This address is used for courier delivery only. Your city and state still stay
                 visible publicly, not your full address.
               </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Your profile location is only used for trust. Please validate a complete delivery
+                address for protected delivery.
+              </p>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Field label="Full name">
@@ -496,17 +638,43 @@ function CheckoutPage() {
                     className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
                   />
                 </Field>
-                <Field label="Address line 1" className="sm:col-span-2">
+                <Field label="House / Flat / Building No." className="sm:col-span-2">
                   <input
-                    value={address.address1}
-                    onChange={(event) => setAddressField("address1", event.target.value)}
+                    value={address.houseOrFlat}
+                    onChange={(event) => setAddressField("houseOrFlat", event.target.value)}
+                    placeholder="H.No 10, Flat 302, Shop 12"
                     className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
                   />
                 </Field>
-                <Field label="Address line 2 (optional)" className="sm:col-span-2">
+                <Field label="Building / Apartment / Society">
                   <input
-                    value={address.address2}
-                    onChange={(event) => setAddressField("address2", event.target.value)}
+                    value={address.buildingOrSociety}
+                    onChange={(event) => setAddressField("buildingOrSociety", event.target.value)}
+                    placeholder="Lake View Apartments"
+                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+                  />
+                </Field>
+                <Field label="Street / Road / Gali / Lane">
+                  <input
+                    value={address.streetOrRoad}
+                    onChange={(event) => setAddressField("streetOrRoad", event.target.value)}
+                    placeholder="Ana Sagar Link Road"
+                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+                  />
+                </Field>
+                <Field label="Area / Locality">
+                  <input
+                    value={address.areaOrLocality}
+                    onChange={(event) => setAddressField("areaOrLocality", event.target.value)}
+                    placeholder="Anand Nagar"
+                    className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+                  />
+                </Field>
+                <Field label="Landmark">
+                  <input
+                    value={address.landmark}
+                    onChange={(event) => setAddressField("landmark", event.target.value)}
+                    placeholder="Near Anasagar Lake"
                     className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
                   />
                 </Field>
@@ -538,7 +706,91 @@ function CheckoutPage() {
                     className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
                   />
                 </Field>
+                <div className="sm:col-span-2">
+                  <GoogleAddressMapSelector
+                    address1={buildDeliveryAddress1(address)}
+                    city={address.city}
+                    state={address.state}
+                    pincode={address.pincode}
+                    lat={address.lat}
+                    lon={address.lon}
+                    placeId={address.placeId}
+                    onSelection={(selection) =>
+                      setAddress((prev) =>
+                        clearDeliveryValidationState({
+                          ...prev,
+                          houseOrFlat: prev.houseOrFlat || selection.houseOrFlat || "",
+                          streetOrRoad: selection.streetOrRoad || prev.streetOrRoad || "",
+                          areaOrLocality: selection.areaOrLocality || prev.areaOrLocality || "",
+                          city: selection.city || prev.city || "",
+                          state: selection.state || prev.state || "",
+                          pincode: selection.pincode || prev.pincode || "",
+                          country: selection.country || prev.country || "India",
+                          placeId: selection.placeId || "",
+                          formattedAddress: selection.formattedAddress || "",
+                          lat: selection.lat,
+                          lon: selection.lon,
+                          address1: buildDeliveryAddress1({
+                            ...prev,
+                            houseOrFlat: prev.houseOrFlat || selection.houseOrFlat || "",
+                            streetOrRoad: selection.streetOrRoad || prev.streetOrRoad || "",
+                            areaOrLocality: selection.areaOrLocality || prev.areaOrLocality || "",
+                          } as CheckoutDeliveryAddress),
+                          address2: buildDeliveryAddress2(prev),
+                        }),
+                      )
+                    }
+                    onPinDragged={({ lat, lon }) =>
+                      setAddress((prev) =>
+                        clearDeliveryValidationState({
+                          ...prev,
+                          lat,
+                          lon,
+                        }),
+                      )
+                    }
+                  />
+                </div>
+                <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={address.buyerConfirmed === true}
+                    onChange={(event) => setBuyerConfirmed(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    I confirm this is the exact delivery location where the courier should deliver
+                    this parcel.
+                  </span>
+                </label>
               </div>
+
+              <div className="mt-4 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
+                {address.validationLevel === "google_validated" ? (
+                  <span>Delivery address is Google-validated and ready for courier delivery.</span>
+                ) : address.validationLevel === "google_geo_confirmed" ? (
+                  <span>
+                    Google could not fully verify the house number, but your map pin and delivery
+                    details look complete. We will use this buyer-confirmed delivery location for
+                    courier delivery.
+                  </span>
+                ) : (
+                  <span>
+                    Validate your complete delivery address on the map before we create protected
+                    delivery orders.
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={validateDeliveryAddress}
+                disabled={creatingOrders || processing}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-secondary disabled:opacity-60"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Validate delivery address
+              </button>
 
               <button
                 type="button"

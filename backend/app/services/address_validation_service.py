@@ -97,7 +97,61 @@ class PickupAddressValidationRequest(BaseModel):
         return value
 
 
-def _verdict_summary(result: dict[str, Any]) -> tuple[list[str], str]:
+class DeliveryAddressValidationRequest(BaseModel):
+    name: str
+    phone: str
+    email: str
+    houseOrFlat: str
+    buildingOrSociety: str = ""
+    streetOrRoad: str = ""
+    areaOrLocality: str
+    address1: str
+    address2: str = ""
+    landmark: str = ""
+    city: str
+    state: str
+    pincode: str
+    country: str = "India"
+    placeId: str = ""
+    formattedAddress: str = ""
+    lat: float
+    lon: float
+    buyerConfirmed: bool
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return PickupAddressValidationRequest.validate_phone(value)
+
+    @field_validator("pincode")
+    @classmethod
+    def validate_pincode(cls, value: str) -> str:
+        return PickupAddressValidationRequest.validate_pincode(value)
+
+    @field_validator("houseOrFlat", "areaOrLocality", "landmark")
+    @classmethod
+    def validate_required_address_parts(cls, value: str) -> str:
+        return PickupAddressValidationRequest.validate_required_address_parts(value)
+
+    @field_validator("city", "state", "name", "email", "country")
+    @classmethod
+    def validate_non_empty(cls, value: str) -> str:
+        return PickupAddressValidationRequest.validate_non_empty(value)
+
+    @field_validator("lat", "lon")
+    @classmethod
+    def validate_finite_coords(cls, value: float) -> float:
+        return PickupAddressValidationRequest.validate_finite_coords(value)
+
+    @field_validator("buyerConfirmed")
+    @classmethod
+    def validate_confirmation(cls, value: bool) -> bool:
+        if value is not True:
+            raise ValueError("Buyer confirmation is required.")
+        return value
+
+
+def _verdict_summary(result: dict[str, Any], *, mode: str) -> tuple[list[str], str]:
     verdict = result.get("verdict") if isinstance(result.get("verdict"), dict) else {}
     address = result.get("address") if isinstance(result.get("address"), dict) else {}
     missing = (
@@ -118,13 +172,25 @@ def _verdict_summary(result: dict[str, Any]) -> tuple[list[str], str]:
     reasons = [str(item) for item in [*missing, *unconfirmed, *unresolved] if str(item).strip()]
 
     if verdict.get("addressComplete") is True:
-        return reasons, "Pickup address is Google-validated and courier-ready."
+        return reasons, (
+            "Pickup address is Google-validated and courier-ready."
+            if mode == "pickup"
+            else "Delivery address is Google-validated and ready for courier delivery."
+        )
     if reasons:
-        return reasons, "Google needs a more exact pickup address before courier pickup can be enabled."
-    return reasons, "Pickup address could not be confirmed yet."
+        return reasons, (
+            "Google needs a more exact pickup address before courier pickup can be enabled."
+            if mode == "pickup"
+            else "Google needs a more exact delivery address before protected delivery can continue."
+        )
+    return reasons, (
+        "Pickup address could not be confirmed yet."
+        if mode == "pickup"
+        else "Delivery address could not be confirmed yet."
+    )
 
 
-def _combined_address_for_scoring(payload: PickupAddressValidationRequest) -> str:
+def _combined_address_for_scoring(payload: Any) -> str:
     return " ".join(
         part.strip()
         for part in [
@@ -145,19 +211,31 @@ def _is_vague_only(value: str) -> bool:
     return cleaned in JUNK_ADDRESS_HINTS or cleaned in {"near bus stand", "near anasagar lake"}
 
 
-def _validate_structured_precheck(payload: PickupAddressValidationRequest) -> None:
+def _validate_structured_precheck(payload: Any, *, mode: str) -> None:
     house = payload.houseOrFlat.strip().lower()
     locality = payload.areaOrLocality.strip().lower()
     if house in WEAK_TOKENS or len(house) < 3:
-        raise ValueError("House / Flat / Building No. needs a real pickup detail.")
+        raise ValueError(
+            "House / Flat / Building No. needs a real pickup detail."
+            if mode == "pickup"
+            else "House / Flat / Building No. needs a real delivery detail."
+        )
     if _is_vague_only(locality):
-        raise ValueError("Area / Locality cannot be the only pickup detail.")
+        raise ValueError(
+            "Area / Locality cannot be the only pickup detail."
+            if mode == "pickup"
+            else "Area / Locality cannot be the only delivery detail."
+        )
     combined = _combined_address_for_scoring(payload)
     if payload.areaOrLocality.strip().lower() == combined.strip():
-        raise ValueError("Pickup address needs house or flat details, not only locality.")
+        raise ValueError(
+            "Pickup address needs house or flat details, not only locality."
+            if mode == "pickup"
+            else "Delivery address needs house or flat details, not only locality."
+        )
 
 
-def _structured_address_score(payload: PickupAddressValidationRequest) -> int:
+def _structured_address_score(payload: Any) -> int:
     score = 0
     if len(payload.houseOrFlat.strip()) >= 3 and payload.houseOrFlat.strip().lower() not in WEAK_TOKENS:
         score += 30
@@ -178,12 +256,18 @@ def _structured_address_score(payload: PickupAddressValidationRequest) -> int:
     return score
 
 
-async def validate_pickup_address(payload: PickupAddressValidationRequest) -> dict[str, Any]:
+async def _validate_address(
+    payload: Any,
+    *,
+    mode: str,
+    ready_key: str,
+    confirmed_attr: str,
+) -> dict[str, Any]:
     settings = get_settings()
     if not settings.google_maps_server_api_key:
         raise RuntimeError("Google Address Validation is not configured.")
 
-    _validate_structured_precheck(payload)
+    _validate_structured_precheck(payload, mode=mode)
 
     google_payload = {
         "address": {
@@ -217,7 +301,7 @@ async def validate_pickup_address(payload: PickupAddressValidationRequest) -> di
     verdict = result.get("verdict") if isinstance(result.get("verdict"), dict) else {}
     geocode = result.get("geocode") if isinstance(result.get("geocode"), dict) else {}
     location = geocode.get("location") if isinstance(geocode.get("location"), dict) else {}
-    reason_codes, message = _verdict_summary(result)
+    reason_codes, message = _verdict_summary(result, mode=mode)
 
     address_complete = verdict.get("addressComplete") is True
     validation_granularity = verdict.get("validationGranularity")
@@ -259,7 +343,7 @@ async def validate_pickup_address(payload: PickupAddressValidationRequest) -> di
         not is_google_validated
         and has_usable_geocode
         and structured_score >= 80
-        and payload.sellerConfirmed is True
+        and getattr(payload, confirmed_attr) is True
     )
     is_courier_ready = is_google_validated or is_google_geo_confirmed
     validation_level = (
@@ -279,11 +363,14 @@ async def validate_pickup_address(payload: PickupAddressValidationRequest) -> di
         message = (
             "Google could not fully verify the house number, but your map pin and pickup details "
             "look complete. We will use this seller-confirmed pickup location for courier collection."
+            if mode == "pickup"
+            else "Google could not fully verify the house number, but your map pin and delivery details "
+            "look complete. We will use this buyer-confirmed delivery location for courier delivery."
         )
 
     return {
         "ok": True,
-        "isCourierReady": is_courier_ready,
+        ready_key: is_courier_ready,
         "validationLevel": validation_level,
         "formattedAddress": formatted_address or payload.formattedAddress or None,
         "lat": resolved_lat if isinstance(resolved_lat, (int, float)) else None,
@@ -299,3 +386,21 @@ async def validate_pickup_address(payload: PickupAddressValidationRequest) -> di
             "geocodeGranularity": geocode_granularity if isinstance(geocode_granularity, str) else None,
         },
     }
+
+
+async def validate_pickup_address(payload: PickupAddressValidationRequest) -> dict[str, Any]:
+    return await _validate_address(
+        payload,
+        mode="pickup",
+        ready_key="isCourierReady",
+        confirmed_attr="sellerConfirmed",
+    )
+
+
+async def validate_delivery_address(payload: DeliveryAddressValidationRequest) -> dict[str, Any]:
+    return await _validate_address(
+        payload,
+        mode="delivery",
+        ready_key="isDeliveryReady",
+        confirmed_attr="buyerConfirmed",
+    )
