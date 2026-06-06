@@ -1,24 +1,28 @@
+"use client";
+
 import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { MarketingPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
+import { appPaths, useAppRouter } from "@/lib/navigation";
 
 const V1_MESSAGE = "Orders and shipping are coming later. BookVerse V1 is WhatsApp-based.";
 
 export function V1Redirect({
   title = "Redirecting to browse",
   message = V1_MESSAGE,
+  target = appPaths.browse,
 }: {
   title?: string;
   message?: string;
+  target?: string;
 }) {
-  const navigate = useNavigate();
+  const router = useAppRouter();
 
   useEffect(() => {
     toast(message);
-    void navigate({ to: "/browse", replace: true });
-  }, [message, navigate]);
+    router.replace(target);
+  }, [message, router, target]);
 
   return (
     <MarketingPageShell>

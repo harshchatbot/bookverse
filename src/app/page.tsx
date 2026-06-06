@@ -1,36 +1,39 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { HomePageClient } from "./_components/HomePageClient";
 
-export default function HomePage() {
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-16">
-        <div className="max-w-2xl rounded-3xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Phase 1 migration shell
-          </p>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight">
-            BookVerse Next.js shell is running
-          </h1>
-          <p className="mt-4 text-base text-muted-foreground">
-            This is the App Router foundation for the Next.js migration. The existing TanStack
-            application stays in place while we move pages and APIs in later phases.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              Login placeholder
-            </Link>
-            <Link
-              href="/browse"
-              className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-foreground"
-            >
-              Browse placeholder
-            </Link>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+export const metadata: Metadata = {
+  title: "BookVerse — Buy & Sell Used Educational Books Online in India",
+  description:
+    "Buy and sell used books online in India at up to 70% off. Second-hand engineering, medical, JEE, NEET, GATE, UPSC, MBA, CA, programming, Salesforce, SAP, IT certification books and reference books.",
+  keywords: [
+    "used books",
+    "second hand books",
+    "buy used books online",
+    "sell old books",
+    "used engineering books",
+    "used medical books",
+    "NEET books",
+    "JEE books",
+    "GATE books",
+    "UPSC books",
+    "MBA books",
+    "CA books",
+  ],
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "BookVerse — Buy & Sell Used Educational Books in India",
+    description:
+      "India's marketplace for used educational books. Engineering, medical, competitive exams, programming and certification books at a fraction of the price.",
+    type: "website",
+    siteName: "BookVerse",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BookVerse — Used Educational Books Marketplace",
+    description: "Buy and sell used educational books across India. No commission.",
+  },
+};
+
+export default function Page() {
+  return <HomePageClient />;
 }

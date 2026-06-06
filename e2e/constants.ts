@@ -20,28 +20,40 @@ export const TEST_PROFILE = {
   locality: 'Test Area',
 };
 
-export const TEST_PICKUP_ADDRESS = {
+export const VALIDATED_HOME_ADDRESS = {
+  label: 'Home',
   pickupLocationName: 'Home',
-  name: 'E2E Test Pickup',
-  phone: '9999999999',
-  email: 'pickup@test.local',
+  name: 'E2E Buyer',
+  phone: '+917976111087',
+  email: 'e2e-buyer@example.com',
   houseOrFlat: 'H.No 10',
-  buildingOrSociety: 'Lake View Apartments',
-  streetOrRoad: 'Campus Road',
+  buildingOrSociety: 'Madhuban Vihar Colony',
+  streetOrRoad: 'Christian Ganj',
   areaOrLocality: 'Anand Nagar',
-  address1: 'H.No 10, Lake View Apartments, Campus Road, Anand Nagar',
-  address2: 'Near Main Gate',
-  city: 'Pune',
-  state: 'Maharashtra',
-  pincode: '411001',
+  address1: 'H.No 10, Madhuban Vihar Colony, Christian Ganj, Anand Nagar',
+  address2: 'Near Ana Sagar Lake',
+  city: 'Ajmer',
+  state: 'Rajasthan',
+  pincode: '305001',
   country: 'India',
-  landmark: 'Opposite test landmark',
-  address: 'H.No 10, Lake View Apartments, Campus Road, Anand Nagar, Opposite test landmark',
-  formattedAddress: '123 Test Street, Near Main Gate, Opposite test landmark, Pune, Maharashtra 411001, India',
+  landmark: 'Near Ana Sagar Lake',
+  address:
+    'H.No 10, Madhuban Vihar Colony, Christian Ganj, Anand Nagar, Near Ana Sagar Lake',
+  formattedAddress:
+    'H.No 10, Madhuban Vihar Colony, Christian Ganj, Anand Nagar, Ajmer, Rajasthan 305001, India',
   placeId: 'test-place-id',
-  lat: 18.5204,
-  lon: 73.8567,
+  lat: 26.4825896,
+  lon: 74.6334555,
+  userConfirmed: true,
+  isAddressReady: true,
   sellerConfirmed: true,
   isCourierReady: true,
-  validationLevel: 'google_validated',
+  validationLevel: 'google_geo_confirmed',
+  googleValidation: {
+    addressComplete: false,
+    validationGranularity: 'OTHER',
+    geocodeGranularity: 'OTHER',
+  },
 };
+
+export const TEST_PICKUP_ADDRESS = VALIDATED_HOME_ADDRESS;

@@ -1,14 +1,16 @@
-import { useNavigate } from "@tanstack/react-router";
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile, isProfileCompleted } from "@/lib/users";
+import { appPaths, useAppRouter } from "@/lib/navigation";
 
 export type MarketplaceAction = "sell" | "contact" | "offer" | "wishlist";
 
 export function useMarketplaceAccess() {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const router = useAppRouter();
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.uid ?? "anon"],
     queryFn: () => getUserProfile(user!.uid),
@@ -34,19 +36,19 @@ export function useMarketplaceAccess() {
 
     if (reason === "auth") {
       toast.error("Please sign in to continue.");
-      navigate({ to: "/login" });
+      router.push(appPaths.login);
       return false;
     }
 
     if (reason === "email") {
       toast.error("Please verify your email to continue.");
-      navigate({ to: "/profile" });
+      router.push(appPaths.profile);
       return false;
     }
 
     if (reason === "phone") {
       toast.error("Please verify your mobile number to continue.");
-      navigate({ to: "/profile" });
+      router.push(appPaths.profile);
       return false;
     }
 
@@ -59,7 +61,7 @@ export function useMarketplaceAccess() {
             ? "make an offer"
             : "save books";
     toast.error(`Complete your profile before you ${label}.`);
-    navigate({ to: "/profile" });
+    router.push(appPaths.profile);
     return false;
   };
 

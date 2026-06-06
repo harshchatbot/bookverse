@@ -14,7 +14,11 @@ export class LoginPage {
     await this.page.getByRole("button", { name: "Login" }).last().click();
 
     // Admin redirects to /admin, normal users to /dashboard or /profile
-    await this.page.waitForURL(/\/(dashboard|profile|admin)/, { timeout: 15_000 });
+    await this.page.waitForURL(/\/(dashboard|profile|admin)/, {
+      timeout: 15_000,
+      waitUntil: "domcontentloaded",
+    });
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   async signUpWithEmail(email: string, password: string) {
@@ -38,7 +42,10 @@ export class LoginPage {
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      await this.page.waitForURL(/\/(dashboard|profile|admin)/, { timeout: 5_000 });
+      await this.page.waitForURL(/\/(dashboard|profile|admin)/, {
+        timeout: 5_000,
+        waitUntil: "domcontentloaded",
+      });
       return true;
     } catch {
       return false;

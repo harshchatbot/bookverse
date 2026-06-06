@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
+import { getGoogleMapsBrowserKey } from "@/lib/env";
 
 export type GoogleAddressSelection = {
   houseOrFlat?: string;
@@ -35,10 +36,7 @@ declare global {
   }
 }
 
-const browserKey =
-  typeof import.meta !== "undefined" && import.meta.env
-    ? (import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY as string | undefined)
-    : undefined;
+const browserKey = getGoogleMapsBrowserKey();
 
 let mapsScriptPromise: Promise<void> | null = null;
 
@@ -264,7 +262,7 @@ export function GooglePickupMapSelector({
       )}
       {!browserKey && (
         <p className="text-sm text-amber-700 dark:text-amber-300">
-          Add <code>VITE_GOOGLE_MAPS_BROWSER_KEY</code> to use map-based pickup validation.
+          Add <code>NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY</code> to use map-based pickup validation.
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}

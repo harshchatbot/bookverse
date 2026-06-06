@@ -18,7 +18,7 @@ import {
   setTestUserPhoneVerified,
   simulateRazorpayWebhook,
 } from "../helpers/firebase";
-import { TEST_LISTING, TEST_PICKUP_ADDRESS, TEST_PROFILE } from "../constants";
+import { TEST_LISTING, TEST_PICKUP_ADDRESS, TEST_PROFILE, VALIDATED_HOME_ADDRESS } from "../constants";
 
 async function seedProtectedDeliveryOrder(input: {
   buyerUid: string;
@@ -77,12 +77,12 @@ async function seedProtectedDeliveryOrder(input: {
       originalPrice: null,
     },
     pickupAddress: {
-      name: TEST_PICKUP_ADDRESS.name,
-      phone: TEST_PICKUP_ADDRESS.phone,
-      address: TEST_PICKUP_ADDRESS.address,
-      city: TEST_PICKUP_ADDRESS.city,
-      state: TEST_PICKUP_ADDRESS.state,
-      pincode: TEST_PICKUP_ADDRESS.pincode,
+      name: VALIDATED_HOME_ADDRESS.name,
+      phone: VALIDATED_HOME_ADDRESS.phone,
+      address: VALIDATED_HOME_ADDRESS.address,
+      city: VALIDATED_HOME_ADDRESS.city,
+      state: VALIDATED_HOME_ADDRESS.state,
+      pincode: VALIDATED_HOME_ADDRESS.pincode,
       location: "Primary",
     },
     shippingAddress: {
@@ -146,7 +146,8 @@ test("seller payout preview updates in single and bulk modes", async ({ page, se
   await page.goto("/sell");
   await page.waitForLoadState("domcontentloaded");
 
-  await page.getByLabel("Selling price (₹)").fill("500");
+  await page.getByTestId("selling-price-input").fill("500");
+  await page.getByTestId("selling-price-input").blur();
   await expect(page.getByTestId("seller-payout-preview-single")).toContainText(
     "Estimated payout to you: ₹500",
   );
@@ -165,7 +166,8 @@ test("seller payout preview updates in single and bulk modes", async ({ page, se
 });
 
 test.skip(
-  process.env.VITE_ENABLE_PROTECTED_DELIVERY !== "true",
+  process.env.NEXT_PUBLIC_ENABLE_PROTECTED_DELIVERY !== "true" &&
+    process.env.VITE_ENABLE_PROTECTED_DELIVERY !== "true",
   "Protected delivery feature flag is off",
 );
 
@@ -411,7 +413,7 @@ test("dashboard shows rewards, badges, referral code, and available coupon", asy
 
   await loginPage.goto();
   await loginPage.loginWithEmail(buyerUser.email, buyerUser.password);
-  await page.goto("/dashboard");
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("domcontentloaded");
 
   await expect(page.getByText("Rewards and sharing")).toBeVisible();

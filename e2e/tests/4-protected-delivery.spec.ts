@@ -14,7 +14,8 @@ import {
 } from "../helpers/firebase";
 
 test.skip(
-  process.env.VITE_ENABLE_PROTECTED_DELIVERY !== "true",
+  process.env.NEXT_PUBLIC_ENABLE_PROTECTED_DELIVERY !== "true" &&
+    process.env.VITE_ENABLE_PROTECTED_DELIVERY !== "true",
   "Protected delivery feature flag is off",
 );
 

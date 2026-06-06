@@ -37,7 +37,7 @@ test("Notification system end-to-end", async ({ page, sellerUser, buyerUser, adm
   await page.waitForURL(/\/(dashboard|profile|admin)/, { timeout: 15_000 });
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
-  await page.goto("/dashboard");
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(1000);
 
@@ -127,7 +127,7 @@ test("Notification system end-to-end", async ({ page, sellerUser, buyerUser, adm
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(1500);
-  await page.goto("/dashboard");
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(1000);
 

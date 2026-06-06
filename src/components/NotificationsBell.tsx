@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Bell, Check, CheckCheck } from "lucide-react";
@@ -12,6 +13,7 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "@/lib/notifications";
+import { Link } from "@/lib/navigation";
 
 function formatBadgeCount(count: number) {
   if (count > 99) return "99+";
@@ -208,7 +210,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
                         }`}
                       >
                         <Link
-                          to={n.link}
+                          href={n.link}
                           onClick={() => {
                             if (!n.read) markOne.mutate(n.id);
                             setOpen(false);
@@ -260,7 +262,7 @@ export function NotificationsBell({ mode = "user" }: { mode?: "user" | "admin" }
                 )}
               </div>
               <Link
-                to="/notifications"
+                href="/notifications"
                 onClick={() => setOpen(false)}
                 className="block border-t border-border px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
