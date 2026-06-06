@@ -38,6 +38,7 @@ interface TestProfileInput {
 }
 
 interface TestPickupAddressInput {
+  label?: string;
   pickupLocationName?: string;
   name?: string;
   phone?: string;
@@ -58,9 +59,18 @@ interface TestPickupAddressInput {
   placeId?: string;
   lat?: number;
   lon?: number;
+  userConfirmed?: boolean;
+  isAddressReady?: boolean;
   sellerConfirmed?: boolean;
   isCourierReady?: boolean;
   validationLevel?: string;
+  googleValidation?: {
+    addressComplete?: boolean;
+    validationGranularity?: string;
+    geocodeGranularity?: string;
+    reasonCodes?: string[];
+    message?: string;
+  };
 }
 
 const TEST_USER_PREFIX = "e2e_test_";
@@ -210,61 +220,68 @@ export async function saveTestPickupAddress(
   address?: TestPickupAddressInput,
 ): Promise<void> {
   const db = getFirestore(initFirebase());
+  const googleValidation = {
+    addressComplete: address?.googleValidation?.addressComplete ?? false,
+    validationGranularity: address?.googleValidation?.validationGranularity ?? "OTHER",
+    geocodeGranularity: address?.googleValidation?.geocodeGranularity ?? "OTHER",
+    reasonCodes: address?.googleValidation?.reasonCodes ?? [
+      "GOOGLE_ADDRESS_INCOMPLETE_BUT_PIN_CONFIRMED",
+      "STRUCTURED_ADDRESS_COMPLETE",
+      "MAP_PIN_CONFIRMED",
+    ],
+    message:
+      address?.googleValidation?.message ??
+      "Home Address is map-confirmed and ready for protected delivery.",
+  };
   const homeAddress = {
-    label: "Home",
+    label: address?.label ?? "Home",
     name: address?.name ?? "E2E Pickup",
-    phone: address?.phone ?? "9999999999",
+    phone: address?.phone ?? "+917976111087",
     email: address?.email ?? "pickup@test.local",
     houseOrFlat: address?.houseOrFlat ?? "H.No 10",
-    buildingOrSociety: address?.buildingOrSociety ?? "Lake View Apartments",
-    streetOrRoad: address?.streetOrRoad ?? "Campus Road",
+    buildingOrSociety: address?.buildingOrSociety ?? "Madhuban Vihar Colony",
+    streetOrRoad: address?.streetOrRoad ?? "Christian Ganj",
     areaOrLocality: address?.areaOrLocality ?? "Anand Nagar",
     address1:
       address?.address1 ??
       [
         address?.houseOrFlat ?? "H.No 10",
-        address?.buildingOrSociety ?? "Lake View Apartments",
-        address?.streetOrRoad ?? "Campus Road",
+        address?.buildingOrSociety ?? "Madhuban Vihar Colony",
+        address?.streetOrRoad ?? "Christian Ganj",
         address?.areaOrLocality ?? "Anand Nagar",
       ]
         .filter(Boolean)
         .join(", "),
-    address2: address?.address2 ?? "",
-    city: address?.city ?? "Pune",
-    state: address?.state ?? "Maharashtra",
-    pincode: address?.pincode ?? "411001",
+    address2: address?.address2 ?? "Near Ana Sagar Lake",
+    city: address?.city ?? "Ajmer",
+    state: address?.state ?? "Rajasthan",
+    pincode: address?.pincode ?? "305001",
     country: address?.country ?? "India",
-    landmark: address?.landmark ?? "",
+    landmark: address?.landmark ?? "Near Ana Sagar Lake",
     address:
       address?.address ??
       [
         address?.houseOrFlat ?? "H.No 10",
-        address?.buildingOrSociety ?? "Lake View Apartments",
-        address?.streetOrRoad ?? "Campus Road",
+        address?.buildingOrSociety ?? "Madhuban Vihar Colony",
+        address?.streetOrRoad ?? "Christian Ganj",
         address?.areaOrLocality ?? "Anand Nagar",
-        address?.landmark ?? "",
+        address?.landmark ?? "Near Ana Sagar Lake",
       ]
         .filter(Boolean)
         .join(", "),
     location: "Home",
     formattedAddress:
       address?.formattedAddress ??
-      `${address?.address1 ?? "123 Test Street"}, ${address?.city ?? "Pune"}, ${address?.state ?? "Maharashtra"} ${address?.pincode ?? "411001"}, India`,
+      "H.No 10, Madhuban Vihar Colony, Christian Ganj, Anand Nagar, Ajmer, Rajasthan 305001, India",
     placeId: address?.placeId ?? "test-place-id",
-    lat: address?.lat ?? 18.5204,
-    lon: address?.lon ?? 73.8567,
-    userConfirmed: true,
+    lat: address?.lat ?? 26.4825896,
+    lon: address?.lon ?? 74.6334555,
+    userConfirmed: address?.userConfirmed ?? true,
     pinConfirmedAt: new Date().toISOString(),
     googleValidatedAt: new Date().toISOString(),
-    isAddressReady: true,
-    validationLevel: address?.validationLevel ?? "google_validated",
-    googleValidation: {
-      addressComplete: true,
-      validationGranularity: "PREMISE",
-      geocodeGranularity: "PREMISE",
-      reasonCodes: [],
-      message: "Home Address is Google-validated and ready for protected delivery.",
-    },
+    isAddressReady: address?.isAddressReady ?? true,
+    validationLevel: address?.validationLevel ?? "google_geo_confirmed",
+    googleValidation,
   };
   await db
     .collection("profiles")
@@ -276,13 +293,7 @@ export async function saveTestPickupAddress(
         pickupLocationName: address?.pickupLocationName ?? "Home",
         sellerConfirmed: address?.sellerConfirmed ?? true,
         isCourierReady: address?.isCourierReady ?? true,
-        googleValidation: {
-          addressComplete: true,
-          validationGranularity: "PREMISE",
-          geocodeGranularity: "PREMISE",
-          reasonCodes: [],
-          message: "Pickup address is Google-validated and courier-ready.",
-        },
+        googleValidation,
       },
     });
 }

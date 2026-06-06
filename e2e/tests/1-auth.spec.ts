@@ -29,13 +29,13 @@ test("User registration and profile completion", async ({ page, sellerUser }) =>
   // Navigate away and back to force app to re-read Firestore state
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
-  await page.goto("/dashboard");
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(2000);
 
   // If still redirected to profile, wait and retry once
   if (page.url().includes("/profile")) {
-    await page.goto("/dashboard");
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(2000);
   }
@@ -52,7 +52,7 @@ test("User registration and profile completion", async ({ page, sellerUser }) =>
   await profilePage.save();
 
   // Dashboard should now be accessible
-  await page.goto("/dashboard");
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(1000);
   // Just verify we reached dashboard, not profile

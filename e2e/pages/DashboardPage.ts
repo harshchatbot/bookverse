@@ -4,8 +4,7 @@ export class DashboardPage {
   constructor(private page: Page) {}
 
   async goto() {
-    await this.page.goto("/dashboard");
-    await this.page.waitForLoadState("domcontentloaded");
+    await this.page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   }
 
   async getOffersReceived(): Promise<number> {

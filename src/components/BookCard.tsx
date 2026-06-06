@@ -1,17 +1,16 @@
-import { Link } from "@tanstack/react-router";
 import { MapPin, Eye, Share2, Store, Package } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { categoryLabel, conditionLabel } from "@/lib/constants";
 import { SaveButton } from "@/components/SaveButton";
 import { WhatsAppIconLink } from "@/components/WhatsAppButton";
+import { Link } from "@/lib/navigation";
 
 export function BookCard({ listing }: { listing: Listing }) {
   const cover = listing.images?.[0];
   const isShipping = listing.deliveryType === "shipping";
   return (
     <Link
-      to="/book/$id"
-      params={{ id: listing.id }}
+      href={`/book/${listing.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-elegant"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary">

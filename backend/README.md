@@ -23,11 +23,11 @@ curl -H "Authorization: Bearer <firebase-id-token>" http://localhost:8000/auth/m
 
 ## Frontend opt-in for migrated endpoints
 
-When you want the existing TanStack frontend to call FastAPI for migrated endpoints, add this to the frontend env:
+When you want the frontend to call FastAPI for migrated endpoints, add this to the frontend env:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8000
-VITE_GOOGLE_MAPS_BROWSER_KEY=
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=
 ```
 
 The browser key is only for Google Maps JavaScript + Places Autocomplete. Keep Address Validation on the backend only:

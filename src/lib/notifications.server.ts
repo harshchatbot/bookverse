@@ -51,7 +51,7 @@ export async function notifyAdminOfNewListing(input: {
 
     if (!adminUid) {
       // Try to look up admin from email
-      const adminEmail = process.env.VITE_ADMIN_EMAIL;
+      const adminEmail = process.env.ADMIN_EMAIL;
       if (!adminEmail) {
         console.warn("[notifications.server] No admin UID or email configured");
         return;

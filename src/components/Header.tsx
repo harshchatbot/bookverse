@@ -1,4 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+"use client";
+
 import { useState, type ReactNode } from "react";
 import {
   Bell,
@@ -14,6 +15,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
+import { Link, useAppPathname } from "@/lib/navigation";
 
 const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
@@ -24,7 +26,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
   const access = useMarketplaceAccess();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const path = useAppPathname();
 
   const profileNeedsEmail = !!user && !user.emailVerified;
   const profileNeedsPhone = !!user && !access.phoneVerified;
@@ -44,7 +46,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
     <header className="glass-panel sticky top-0 z-40 border-x-0 border-t-0">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
-          to={user ? (isAdmin ? "/admin" : profileIncomplete ? "/profile" : "/dashboard") : "/"}
+          href={user ? (isAdmin ? "/admin" : profileIncomplete ? "/profile" : "/dashboard") : "/"}
           className="flex items-center gap-2 font-display text-lg font-bold"
           aria-label="BookVerse home"
         >
@@ -68,7 +70,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
             return (
               <Link
                 key={link.to}
-                to={link.to}
+                href={link.to}
                 className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   active
                     ? "bg-secondary text-foreground"
@@ -84,7 +86,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
         <div className="hidden items-center gap-2 md:flex">
           {!user ? (
             <Link
-              to="/login"
+              href="/login"
               className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold transition-colors hover:bg-secondary"
             >
               Login / Sign up
@@ -251,7 +253,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
             {navLinks.map((link) => (
               <Link
                 key={link.to}
-                to={link.to}
+                href={link.to}
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary"
               >
@@ -260,7 +262,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
             ))}
             {!user ? (
               <Link
-                to="/login"
+                href="/login"
                 onClick={() => setOpen(false)}
                 className="rounded-xl border border-border px-3 py-2.5 text-sm font-semibold"
               >
@@ -294,7 +296,7 @@ function HeaderMenuLink({
 }) {
   return (
     <Link
-      to={to}
+      href={to}
       onClick={onSelect}
       className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
     >

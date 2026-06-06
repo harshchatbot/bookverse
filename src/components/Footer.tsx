@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@/lib/navigation";
 const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export function Footer() {
@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <Link
-              to="/"
+              href="/"
               className="flex items-center gap-2 font-display text-lg font-bold"
               aria-label="BookVerse home"
             >
@@ -34,17 +34,17 @@ export function Footer() {
             <h4 className="text-sm font-semibold">Explore</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link to="/browse" className="hover:text-foreground">
+                <Link href="/browse" className="hover:text-foreground">
                   Browse books
                 </Link>
               </li>
               <li>
-                <Link to="/sell" className="hover:text-foreground">
+                <Link href="/sell" className="hover:text-foreground">
                   Sell a book
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-foreground">
+                <Link href="/about" className="hover:text-foreground">
                   About
                 </Link>
               </li>
@@ -54,17 +54,17 @@ export function Footer() {
             <h4 className="text-sm font-semibold">Legal</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link to="/terms" className="hover:text-foreground">
+                <Link href="/terms" className="hover:text-foreground">
                   Terms
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-foreground">
+                <Link href="/privacy" className="hover:text-foreground">
                   Privacy
                 </Link>
               </li>
               <li>
-                <Link to="/refunds" className="hover:text-foreground">
+                <Link href="/refunds" className="hover:text-foreground">
                   Refunds & Returns
                 </Link>
               </li>

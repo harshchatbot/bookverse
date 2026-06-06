@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -11,10 +13,10 @@ import {
   type User,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useNavigate } from "@tanstack/react-router";
 import { auth, googleProvider, ADMIN_EMAILS, db } from "@/integrations/firebase/client";
 import { ensureUserProfile } from "@/lib/users";
 import { toast } from "sonner";
+import { appPaths, useAppRouter } from "@/lib/navigation";
 
 interface AuthContextValue {
   user: User | null;
@@ -32,7 +34,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useAppRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -108,9 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(false);
       queryClient.clear();
       toast.success("Signed out.");
-      await navigate({ to: "/login", replace: true });
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-        window.location.assign("/login");
+      router.replace(appPaths.login);
+      if (typeof window !== "undefined" && window.location.pathname !== appPaths.login) {
+        window.location.assign(appPaths.login);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not sign out.");

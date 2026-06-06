@@ -4,15 +4,16 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "next dev -p 8080",
     "dev:old": "vite dev",
-    "build": "vite build",
-    "build:old": "vite build",
+    "build": "next build",
+    "build:old": "vite build && node scripts/patch-nf3.mjs",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
-    "next:dev": "next dev",
+    "start": "next start -p 8080",
+    "preview:old": "vite preview",
+    "next:dev": "next dev -p 8080",
     "next:build": "next build",
-    "next:start": "next start",
+    "next:start": "next start -p 8080",
     "api:dev": "cd backend && uvicorn app.main:app --reload --port 8000",
     "api:test": "cd backend && pytest",
     "lint": "eslint .",
@@ -113,6 +114,5 @@
   },
   "engines": {
     "node": "20.x"
-  },
-  "postbuild": "node scripts/patch-nf3.mjs"
+  }
 }

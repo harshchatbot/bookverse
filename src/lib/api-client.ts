@@ -1,17 +1,13 @@
 // Tiny client helper that attaches the Firebase ID token automatically.
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { getPublicApiBaseUrl } from "@/lib/env";
 import { auth } from "@/integrations/firebase/client";
 
-const viteEnv =
-  typeof import.meta !== "undefined" && import.meta.env
-    ? (import.meta.env as Record<string, string | undefined>)
-    : undefined;
-const apiBaseUrl = viteEnv?.VITE_API_BASE_URL?.trim().replace(/\/$/, "");
+const apiBaseUrl = getPublicApiBaseUrl();
 const migratedApiPaths = new Set([
   "/api/dashboard/order-metrics",
   "/api/rewards/summary",
   "/api/checkout/create-order",
-  "/api/checkout/verify",
   "/api/address/validate-pickup",
   "/api/address/validate-delivery",
   "/api/address/validate-home",
@@ -27,9 +23,6 @@ function resolveApiUrl(path: string) {
     }
     if (path === "/api/checkout/create-order") {
       return `${apiBaseUrl}/checkout/create-order`;
-    }
-    if (path === "/api/checkout/verify") {
-      return `${apiBaseUrl}/checkout/verify`;
     }
     if (path === "/api/address/validate-pickup") {
       return `${apiBaseUrl}/address/validate-pickup`;

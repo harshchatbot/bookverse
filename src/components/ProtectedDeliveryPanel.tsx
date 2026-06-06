@@ -1,12 +1,14 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Loader2, ShieldCheck, Truck } from "lucide-react";
 import { toast } from "sonner";
 import type { Listing } from "@/lib/types";
 import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getSellerApprovedListings } from "@/lib/listings";
 import { normalizeListingIds } from "@/lib/protected-delivery";
+import { appPaths, buildUrl, useAppRouter } from "@/lib/navigation";
 
 export function ProtectedDeliveryPanel({
   listing,
@@ -15,7 +17,7 @@ export function ProtectedDeliveryPanel({
   listing: Listing;
   isOwner: boolean;
 }) {
-  const navigate = useNavigate();
+  const router = useAppRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([listing.id]);
 
   const enabled =
@@ -60,10 +62,7 @@ export function ProtectedDeliveryPanel({
       return;
     }
 
-    navigate({
-      to: "/checkout",
-      search: { ids: selectedIds.join(",") },
-    });
+    router.push(buildUrl(appPaths.checkout, { ids: selectedIds.join(",") }));
   };
 
   return (
