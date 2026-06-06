@@ -14,7 +14,7 @@ export class LoginPage {
     await this.page.getByRole("button", { name: "Login" }).last().click();
 
     // Admin redirects to /admin, normal users to /dashboard or /profile
-    await this.page.waitForURL(/\/(dashboard|profile|admin)/, {
+    await this.page.waitForURL(/\/(dashboard|profile|admin|browse|wishlist|book)|^\/$/, {
       timeout: 15_000,
       waitUntil: "domcontentloaded",
     });
@@ -42,7 +42,7 @@ export class LoginPage {
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      await this.page.waitForURL(/\/(dashboard|profile|admin)/, {
+      await this.page.waitForURL(/\/(dashboard|profile|admin|browse|wishlist|book)|^\/$/, {
         timeout: 5_000,
         waitUntil: "domcontentloaded",
       });

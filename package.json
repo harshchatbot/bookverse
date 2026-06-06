@@ -21,6 +21,7 @@
     "cleanup:books-pii": "node scripts/cleanup-books-pii.mjs",
     "cleanup:listings-pii": "node scripts/cleanup-listings-pii.mjs",
     "test:e2e": "playwright test",
+    "test:qa": "playwright test --config playwright.qa.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
