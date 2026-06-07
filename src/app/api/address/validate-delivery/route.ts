@@ -27,12 +27,12 @@ const Body = z.object({
   buyerConfirmed: z.literal(true),
 });
 
-const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand", "ana sagar lake"]);
+const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand"]);
 const WEAK_TOKENS = new Set(["test", "home", "near", "abc"]);
 
 function structuredScore(data: z.infer<typeof Body>) {
   return (
-    (data.houseOrFlat.trim().length >= 3 ? 30 : 0) +
+    (data.houseOrFlat.trim().length >= 1 ? 30 : 0) +
     (data.areaOrLocality.trim().length >= 3 ? 20 : 0) +
     (data.landmark.trim().length >= 3 ? 15 : 0) +
     (data.buildingOrSociety.trim().length >= 3 ? 10 : 0) +

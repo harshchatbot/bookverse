@@ -28,7 +28,7 @@ const Body = z.object({
   sellerConfirmed: z.literal(true),
 });
 
-const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand", "ana sagar lake"]);
+const JUNK_ADDRESS_HINTS = new Set(["test", "home", "near bus stand"]);
 const WEAK_TOKENS = new Set(["test", "home", "near", "abc"]);
 const GOOGLE_GEO_CONFIRMED = "google_geo_confirmed";
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       ) &&
       ["PREMISE", "SUB_PREMISE", "ROUTE"].includes(geocodeGranularity ?? "");
     const structuredScore =
-      (parsed.data.houseOrFlat.trim().length >= 3 ? 30 : 0) +
+      (parsed.data.houseOrFlat.trim().length >= 1 ? 30 : 0) +
       (parsed.data.areaOrLocality.trim().length >= 3 ? 20 : 0) +
       (parsed.data.landmark.trim().length >= 3 ? 15 : 0) +
       (parsed.data.buildingOrSociety.trim().length >= 3 ? 10 : 0) +
@@ -186,8 +186,9 @@ export async function POST(request: NextRequest) {
           (typeof address.formattedAddress === "string" && address.formattedAddress) ||
           parsed.data.formattedAddress ||
           null,
-        lat: typeof location.latitude === "number" ? location.latitude : parsed.data.lat ?? null,
-        lon: typeof location.longitude === "number" ? location.longitude : parsed.data.lon ?? null,
+        lat: typeof location.latitude === "number" ? location.latitude : (parsed.data.lat ?? null),
+        lon:
+          typeof location.longitude === "number" ? location.longitude : (parsed.data.lon ?? null),
         placeId:
           (typeof geocode.placeId === "string" && geocode.placeId) || parsed.data.placeId || null,
         reasonCodes,
