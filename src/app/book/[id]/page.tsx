@@ -36,6 +36,7 @@ import {
   Eye,
   Store,
   Package,
+  X,
 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ export default function BookDetailPage() {
   const id = params.id;
   const { user, isAdmin } = useAuth();
   const [activeImg, setActiveImg] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const { data: listing, isLoading } = useQuery({
     queryKey: ["listing", id],
@@ -147,13 +149,19 @@ export default function BookDetailPage() {
           <div>
             <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary">
               {listing.images[activeImg] ? (
-                <img
-                  src={listing.images[activeImg]}
-                  alt={listing.title}
-                  decoding="async"
-                  fetchPriority="high"
-                  className="h-full w-full object-cover"
-                />
+                <button
+                  onClick={() => setLightboxOpen(true)}
+                  className="h-full w-full cursor-zoom-in"
+                  aria-label="View full image"
+                >
+                  <img
+                    src={listing.images[activeImg]}
+                    alt={listing.title}
+                    decoding="async"
+                    fetchPriority="high"
+                    className="h-full w-full object-cover"
+                  />
+                </button>
               ) : (
                 <div className="grid h-full w-full place-items-center text-muted-foreground">
                   No image
@@ -204,6 +212,55 @@ export default function BookDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Lightbox */}
+          {lightboxOpen && listing.images.length > 0 && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              {listing.images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImg((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+                  }}
+                  className="absolute left-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Previous"
+                >
+                  ‹
+                </button>
+              )}
+              <img
+                src={listing.images[activeImg]}
+                alt={listing.title}
+                className="max-h-[90vh] max-w-[90vw] object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+              {listing.images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImg((prev) => (prev + 1) % listing.images.length);
+                  }}
+                  className="absolute right-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Next"
+                >
+                  ›
+                </button>
+              )}
+              <div className="absolute bottom-4 text-xs text-white/60">
+                {activeImg + 1} / {listing.images.length}
+              </div>
+            </div>
+          )}
 
           {/* Details */}
           <div>

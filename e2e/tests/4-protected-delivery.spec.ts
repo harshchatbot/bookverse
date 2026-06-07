@@ -11,7 +11,12 @@ import {
   simulateRazorpayWebhook,
   simulateShiprocketWebhook,
   getAdminDb,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test.skip(
   process.env.NEXT_PUBLIC_ENABLE_PROTECTED_DELIVERY !== "true" &&

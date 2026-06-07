@@ -8,7 +8,12 @@ import {
   setTestUserPhoneVerified,
   getAdminDb,
   saveTestPickupAddress,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("User registration and profile completion", async ({ page, sellerUser }) => {
   const loginPage = new LoginPage(page);

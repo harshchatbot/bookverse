@@ -10,7 +10,12 @@ import {
   createTestUser,
   verifyTestUserEmail,
   deleteTestUser,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Address validation shows error then accepts valid address", async ({ page, buyerUser }) => {
   // ── Setup ─────────────────────────────────────────────────────────────

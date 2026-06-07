@@ -17,7 +17,12 @@ import {
   verifyTestUserEmail,
   deleteTestUser,
   getAdminDb,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Checkout UI: book page → checkout → Razorpay modal opens", async ({ page, buyerUser }) => {
   // ── Setup ─────────────────────────────────────────────────────────────

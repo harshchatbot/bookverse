@@ -11,7 +11,12 @@ import {
   setTestUserPhoneVerified,
   getAdminDb,
   approveTestListing,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Notification system end-to-end", async ({ page, sellerUser, buyerUser, adminUser }) => {
   const loginPage = new LoginPage(page);

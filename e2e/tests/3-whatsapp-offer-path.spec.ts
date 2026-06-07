@@ -10,7 +10,12 @@ import {
   approveTestListing,
   setTestUserPhoneVerified,
   getAdminDb,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Buyer makes offer → Seller accepts → WhatsApp path → Mark as sold", async ({
   page,

@@ -10,7 +10,12 @@ import {
   createTestUser,
   verifyTestUserEmail,
   deleteTestUser,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Buyer can add a book to wishlist and remove it", async ({ page, buyerUser }) => {
   const seller = await createTestUser("wishlist_seller");

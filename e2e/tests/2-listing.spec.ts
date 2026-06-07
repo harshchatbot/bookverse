@@ -7,7 +7,12 @@ import {
   approveTestListing,
   createTestListing,
   setTestUserPhoneVerified,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 
 test("Seller creates listing, admin approves it", async ({ page, sellerUser }) => {
   const loginPage = new LoginPage(page);

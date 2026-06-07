@@ -17,7 +17,12 @@ import {
   seedUserRewards,
   setTestUserPhoneVerified,
   simulateRazorpayWebhook,
+  cleanupTestData,
 } from "../helpers/firebase";
+
+test.afterAll(async () => {
+  await cleanupTestData();
+});
 import { TEST_LISTING, TEST_PICKUP_ADDRESS, TEST_PROFILE, VALIDATED_HOME_ADDRESS } from "../constants";
 
 async function seedProtectedDeliveryOrder(input: {
