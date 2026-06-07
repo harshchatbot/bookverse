@@ -354,3 +354,108 @@ export async function markCouponUsedForOrder(input: {
     { merge: true },
   );
 }
+
+export async function applyReferral(input: { newUserUid: string; referralCode: string }) {
+  const { db } = await adminKit();
+  const now = nowIso();
+  const code = input.referralCode.trim().toUpperCase();
+
+  // Find referrer by referral code
+  const referrerSnap = await db
+    .collection("user_rewards")
+    .where("referralCode", "==", code)
+    .limit(1)
+    .get();
+
+  if (referrerSnap.empty) {
+    throw new Error("Invalid referral code");
+  }
+
+  const referrerDoc = referrerSnap.docs[0]!;
+  const referrerUid = referrerDoc.id;
+
+  // Cannot use own referral code
+  if (referrerUid === input.newUserUid) {
+    throw new Error("You cannot use your own referral code");
+  }
+
+  // Check if this user already used a referral code
+  const alreadyUsed = await db
+    .collection("reward_events")
+    .where("userUid", "==", input.newUserUid)
+    .where("type", "==", "referral_signup")
+    .limit(1)
+    .get();
+
+  if (!alreadyUsed.empty) {
+    throw new Error("Referral code already applied to this account");
+  }
+
+  // Award 10 points to new user
+  const newUserRef = db.collection("user_rewards").doc(input.newUserUid);
+  const newUserSnap = await newUserRef.get();
+  const newUserCurrent = serializeRewards(
+    input.newUserUid,
+    newUserSnap.exists ? (newUserSnap.data() as Record<string, unknown>) : undefined,
+  );
+  const newUserAvailable = newUserCurrent.availablePoints + 10;
+  const newUserLifetime = newUserCurrent.lifetimePoints + 10;
+
+  await newUserRef.set(
+    {
+      userUid: input.newUserUid,
+      availablePoints: newUserAvailable,
+      lifetimePoints: newUserLifetime,
+      badges: getRewardBadges(newUserLifetime),
+      referralCode: newUserCurrent.referralCode || buildReferralCode(input.newUserUid),
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  await db.collection("reward_events").add({
+    userUid: input.newUserUid,
+    type: "referral_signup",
+    points: 10,
+    status: "approved",
+    createdAt: now,
+    metadata: { referralCode: code, referrerUid },
+  });
+
+  // Award 20 points to referrer
+  const referrerRef = db.collection("user_rewards").doc(referrerUid);
+  const referrerCurrent = serializeRewards(
+    referrerUid,
+    referrerDoc.data() as Record<string, unknown>,
+  );
+  const referrerAvailable = referrerCurrent.availablePoints + 20;
+  const referrerLifetime = referrerCurrent.lifetimePoints + 20;
+
+  await referrerRef.set(
+    {
+      userUid: referrerUid,
+      availablePoints: referrerAvailable,
+      lifetimePoints: referrerLifetime,
+      badges: getRewardBadges(referrerLifetime),
+      referralCode: referrerCurrent.referralCode || buildReferralCode(referrerUid),
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  await db.collection("reward_events").add({
+    userUid: referrerUid,
+    type: "referral_reward",
+    points: 20,
+    status: "approved",
+    createdAt: now,
+    metadata: { referralCode: code, newUserUid: input.newUserUid },
+  });
+
+  return {
+    ok: true,
+    newUserPoints: 10,
+    referrerPoints: 20,
+    message: "Referral applied successfully",
+  };
+}

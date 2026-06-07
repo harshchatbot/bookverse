@@ -153,6 +153,99 @@ def get_coupons_by_ids(uid: str, coupon_ids: list[str]) -> list[dict[str, Any]]:
     return [coupon for coupon in coupons if coupon["userUid"] == uid]
 
 
+def apply_referral(*, new_user_uid: str, referral_code: str) -> dict:
+    """
+    Process a referral:
+    1. Find referrer by referralCode
+    2. Validate: code exists, not own code, not already used by this user
+    3. Award 10 points to new user
+    4. Award 20 points to referrer
+    5. Record referral events
+    """
+    db = get_firestore()
+    now = datetime.utcnow().isoformat()
+
+    # Find referrer by referral code
+    referrer_docs = list(
+        db.collection("user_rewards")
+        .where(filter=FieldFilter("referralCode", "==", referral_code))
+        .limit(1)
+        .stream()
+    )
+    if not referrer_docs:
+        raise ValueError("Invalid referral code")
+
+    referrer_uid = referrer_docs[0].id
+
+    # Cannot use own referral code
+    if referrer_uid == new_user_uid:
+        raise ValueError("You cannot use your own referral code")
+
+    # Check if this user already used a referral code
+    already_used = list(
+        db.collection("reward_events")
+        .where(filter=FieldFilter("userUid", "==", new_user_uid))
+        .where(filter=FieldFilter("type", "==", "referral_signup"))
+        .limit(1)
+        .stream()
+    )
+    if already_used:
+        raise ValueError("Referral code already applied to this account")
+
+    # Award 10 points to new user
+    new_user_ref = db.collection("user_rewards").document(new_user_uid)
+    new_user_doc = new_user_ref.get()
+    new_user_data = (new_user_doc.to_dict() or {}) if new_user_doc.exists else {}
+    new_user_available = _to_number(new_user_data.get("availablePoints")) + 10
+    new_user_lifetime = _to_number(new_user_data.get("lifetimePoints")) + 10
+    new_user_ref.set(
+        {
+            "availablePoints": new_user_available,
+            "lifetimePoints": new_user_lifetime,
+            "updatedAt": now,
+        },
+        merge=True,
+    )
+    db.collection("reward_events").add({
+        "userUid": new_user_uid,
+        "type": "referral_signup",
+        "points": 10,
+        "status": "approved",
+        "metadata": {"referralCode": referral_code, "referrerUid": referrer_uid},
+        "createdAt": now,
+    })
+
+    # Award 20 points to referrer
+    referrer_ref = db.collection("user_rewards").document(referrer_uid)
+    referrer_doc2 = referrer_ref.get()
+    referrer_data = (referrer_doc2.to_dict() or {}) if referrer_doc2.exists else {}
+    referrer_available = _to_number(referrer_data.get("availablePoints")) + 20
+    referrer_lifetime = _to_number(referrer_data.get("lifetimePoints")) + 20
+    referrer_ref.set(
+        {
+            "availablePoints": referrer_available,
+            "lifetimePoints": referrer_lifetime,
+            "updatedAt": now,
+        },
+        merge=True,
+    )
+    db.collection("reward_events").add({
+        "userUid": referrer_uid,
+        "type": "referral_reward",
+        "points": 20,
+        "status": "approved",
+        "metadata": {"referralCode": referral_code, "newUserUid": new_user_uid},
+        "createdAt": now,
+    })
+
+    return {
+        "ok": True,
+        "newUserPoints": 10,
+        "referrerPoints": 20,
+        "message": "Referral applied successfully",
+    }
+
+
 def mark_coupon_used_for_order(*, coupon_id: str | None, uid: str, order_id: str) -> None:
     if not coupon_id:
         return

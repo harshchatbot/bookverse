@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LoginPageClient } from "../_components/LoginPageClient";
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginPageClient />;
+  return (
+    <Suspense>
+      <LoginPageClient />
+    </Suspense>
+  );
 }

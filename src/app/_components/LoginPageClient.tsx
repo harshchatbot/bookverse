@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MarketingPageShell } from "@/components/PageShell";
@@ -9,6 +10,7 @@ import { Spinner } from "@/components/Spinner";
 import { Illustration } from "@/components/Illustration";
 import { getUserProfile, isProfileCompleted } from "@/lib/users";
 import { Link, appPaths, useAppRouter } from "@/lib/navigation";
+import { apiFetch } from "@/lib/api-client";
 
 const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
@@ -26,9 +28,11 @@ export function LoginPageClient() {
     sendVerificationEmail,
   } = useAuth();
   const router = useAppRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [busy, setBusy] = useState(false);
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.uid ?? "anon"],
@@ -50,6 +54,20 @@ export function LoginPageClient() {
     router.replace(complete ? appPaths.dashboard : appPaths.profile);
   }, [loading, user, isAdmin, profileQuery.isLoading, profileQuery.data, router]);
 
+  // Read ?ref= from URL and store in localStorage
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref && ref.trim()) {
+      localStorage.setItem("bv_referral_code", ref.trim().toUpperCase());
+    }
+  }, [searchParams]);
+
+  // Prefill referral code from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("bv_referral_code");
+    if (stored) setReferralCode(stored);
+  }, []);
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy) return;
@@ -62,6 +80,18 @@ export function LoginPageClient() {
       } else if (mode === "signup") {
         await signUpWithEmail(email, password);
         toast.success("Verification email sent. Please check your inbox.");
+        // Apply referral code if provided
+        if (referralCode.trim()) {
+          try {
+            await apiFetch("/api/rewards/referral", {
+              method: "POST",
+              body: JSON.stringify({ referralCode: referralCode.trim() }),
+            });
+            localStorage.removeItem("bv_referral_code");
+          } catch {
+            // Non-fatal — referral can be retried
+          }
+        }
       } else {
         await signInWithEmail(email, password);
         toast.success("Welcome back.");
@@ -157,6 +187,24 @@ export function LoginPageClient() {
                     minLength={6}
                     required
                   />
+                )}
+                {mode === "signup" && (
+                  <label className="block">
+                    <span className="text-sm font-medium">
+                      Referral Code{" "}
+                      <span className="text-xs text-muted-foreground">(optional)</span>
+                    </span>
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) =>
+                        setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+                      }
+                      placeholder="e.g. BOOKAB12"
+                      maxLength={12}
+                      className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </label>
                 )}
                 <button
                   type="submit"

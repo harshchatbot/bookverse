@@ -240,6 +240,33 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
 
         <div className="flex items-center gap-2 md:hidden">
           {user && !isAdmin && !profileIncomplete && <NotificationsBell />}
+          {user && (
+            <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2 py-1 text-xs font-semibold transition-shadow hover:shadow-card"
+            >
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  width={24}
+                  height={24}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className="h-6 w-6 rounded-full"
+                />
+              ) : (
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {user.displayName?.[0] ?? user.email?.[0] ?? "U"}
+                </span>
+              )}
+              <span className="max-w-[80px] truncate">
+                {user.displayName?.split(" ")[0] ?? user.email?.split("@")[0] ?? ""}
+              </span>
+            </Link>
+          )}
           <button
             onClick={() => setOpen((value) => !value)}
             className="grid h-10 w-10 place-items-center rounded-full border border-border"
