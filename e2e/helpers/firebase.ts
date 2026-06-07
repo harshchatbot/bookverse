@@ -461,7 +461,12 @@ export async function cleanupTestData(): Promise<void> {
     await doc.ref.delete();
   }
 
-  // Delete test profiles
+  // Also delete listings by E2E seller name or description
+  const e2eTitleSnap = await db.collection("listings").where("sellerName", "==", "E2E Seller").get();
+  for (const doc of e2eTitleSnap.docs) { await doc.ref.delete(); }
+  const e2eDescSnap = await db.collection("listings").where("description", "==", "E2E automated test listing \u2014 safe to delete").get();
+  for (const doc of e2eDescSnap.docs) { await doc.ref.delete(); }
+    // Delete test profiles
   const profilesSnap = await db
     .collection("profiles")
     .where("uid", ">=", TEST_USER_PREFIX)
