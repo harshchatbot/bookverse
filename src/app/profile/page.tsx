@@ -161,10 +161,12 @@ function ProfileContent({ user }: { user: User }) {
   }, []);
 
   const normalizedMobile = normalizeIndianMobile(pickupForm.phone);
+  const phoneLinkedInFirebase = user.providerData.some((p) => p.providerId === "phone");
   const phoneVerified =
-    !!profile?.phoneVerified &&
+    (!!profile?.phoneVerified &&
     !!normalizedMobile &&
-    normalizeIndianMobile(profile.mobile) === normalizedMobile;
+    normalizeIndianMobile(profile.mobile) === normalizedMobile) ||
+    phoneLinkedInFirebase;
   const emailVerified = user.emailVerified;
   const completed = isProfileCompleted(profile) && hasCompleteHomeAddress(pickupForm);
 
@@ -478,7 +480,17 @@ function ProfileContent({ user }: { user: User }) {
       setVerificationId("");
       toast.success("Your mobile number is verified.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Invalid OTP. Please try again.");
+      const code = (error as { code?: string }).code;
+      if (code === "auth/provider-already-linked") {
+        await setUserPhoneVerified(user, true);
+        await user.getIdToken(true);
+        await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+        setOtp("");
+        setVerificationId("");
+        toast.success("Your mobile number is verified.");
+      } else {
+        toast.error(error instanceof Error ? error.message : "Invalid OTP. Please try again.");
+      }
     } finally {
       setOtpVerifying(false);
     }
