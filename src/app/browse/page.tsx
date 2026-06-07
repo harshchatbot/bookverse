@@ -26,6 +26,7 @@ const searchSchema = z.object({
   min: fallback(z.number(), 0).default(0),
   max: fallback(z.number(), 0).default(0),
   condition: fallback(z.string(), "").default(""),
+  delivery: fallback(z.enum(["", "local", "shipping"]), "").default(""),
   sort: fallback(z.enum(["newest", "price_asc", "price_desc"]), "newest").default("newest"),
 });
 
@@ -117,6 +118,7 @@ function BrowsePageContent() {
         min: Number(searchParams.get("min") ?? 0),
         max: Number(searchParams.get("max") ?? 0),
         condition: searchParams.get("condition") ?? "",
+        delivery: searchParams.get("delivery") ?? "",
         sort: searchParams.get("sort") ?? "newest",
       }),
     [searchParams],
@@ -144,9 +146,11 @@ function BrowsePageContent() {
       if (params.q && !`${l.title} ${l.author}`.toLowerCase().includes(params.q.toLowerCase()))
         return false;
       if (params.city && !l.city.toLowerCase().includes(params.city.toLowerCase())) return false;
+      if (params.delivery === "shipping" && l.deliveryType !== "shipping") return false;
+      if (params.delivery === "local" && l.deliveryType === "shipping") return false;
       return true;
     });
-  }, [listings, params.q, params.city]);
+  }, [listings, params.q, params.city, params.delivery]);
 
   // Guard to prevent duplicate fetches from rapid sentinel triggers / double clicks.
   const fetchingRef = useRef(false);
@@ -200,6 +204,7 @@ function BrowsePageContent() {
         min: 0,
         max: 0,
         condition: "",
+        delivery: "",
         sort: params.sort,
       }),
     );
@@ -209,6 +214,7 @@ function BrowsePageContent() {
     (params.category ? 1 : 0) +
     (params.city ? 1 : 0) +
     (params.condition ? 1 : 0) +
+    (params.delivery ? 1 : 0) +
     (params.min ? 1 : 0) +
     (params.max ? 1 : 0);
 
@@ -308,6 +314,42 @@ function BrowsePageContent() {
         </div>
       </div>
 
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Delivery
+        </label>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => update({ delivery: "" })}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              !params.delivery ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"
+            }`}
+          >
+            Any
+          </button>
+          <button
+            onClick={() => update({ delivery: "local" })}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              params.delivery === "local"
+                ? "bg-foreground text-background"
+                : "bg-secondary hover:bg-accent"
+            }`}
+          >
+            Local pickup
+          </button>
+          <button
+            onClick={() => update({ delivery: "shipping" })}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              params.delivery === "shipping"
+                ? "bg-foreground text-background"
+                : "bg-secondary hover:bg-accent"
+            }`}
+          >
+            Nationwide shipping
+          </button>
+        </div>
+      </div>
+
       {activeFilters > 0 && (
         <button
           onClick={clearAll}
@@ -339,7 +381,7 @@ function BrowsePageContent() {
                   value={params.q}
                   onChange={(e) => update({ q: e.target.value })}
                   placeholder="Search by title or author…"
-                  className="w-full rounded-full border border-border bg-background py-3.5 pl-11 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-full border border-border bg-background py-3.5 pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="relative">
@@ -380,7 +422,7 @@ function BrowsePageContent() {
 
           <section>
             {mounted && isPending ? (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                   <BookCardSkeleton key={i} />
                 ))}
@@ -403,7 +445,7 @@ function BrowsePageContent() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filtered.map((l, i) => (
                     <div
                       key={l.id}
@@ -421,7 +463,7 @@ function BrowsePageContent() {
                 {/* Load more / sentinel */}
                 <div ref={sentinelRef} className="mt-8 flex flex-col items-center gap-4">
                   {isFetchingNextPage && (
-                    <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {Array.from({ length: 3 }).map((_, i) => (
                         <BookCardSkeleton key={`more-${i}`} />
                       ))}

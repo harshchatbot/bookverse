@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { PageSpinner } from "@/components/Spinner";
 import type { User } from "firebase/auth";
 
 /**
@@ -44,7 +45,7 @@ export function AuthGate({ children, fallback = null, loading, requireAdmin }: A
 
   // Pre-hydration: must match SSR (which has no user). Always render fallback.
   if (!hydrated) return <>{fallback}</>;
-  if (authLoading) return <>{loading ?? fallback}</>;
+  if (authLoading) return <>{loading ?? <PageSpinner label="Loading…" />}</>;
   if (!user) return <>{fallback}</>;
   if (requireAdmin && !isAdmin) return <>{fallback}</>;
 

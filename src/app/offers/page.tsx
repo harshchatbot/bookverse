@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@/lib/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, HandCoins, Loader2, Mail, MessageCircle, Pencil, X } from "lucide-react";
+import { Check, HandCoins, Loader2, Mail, MessageCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
@@ -77,9 +77,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-        active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-      }`}
+      className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+        }`}
     >
       {children}
     </button>
@@ -105,7 +104,6 @@ function ReceivedOffers() {
 
   if (isLoading) return <LoadingRows />;
 
-  // Hide offers the buyer withdrew — nothing for the seller to act on.
   const offers = (data ?? []).filter((o) => o.status !== "cancelled");
 
   if (offers.length === 0) {
@@ -239,12 +237,12 @@ function ReceivedOfferRow({ offer }: { offer: Offer }) {
 
   const mailto = offer.buyerEmail
     ? `mailto:${offer.buyerEmail}?subject=${encodeURIComponent(
-        `Your offer on "${offer.listingTitle}"`,
-      )}&body=${encodeURIComponent(
-        `Hi ${offer.buyerName},\n\nThanks for your offer of ₹${offer.amount.toLocaleString(
-          "en-IN",
-        )} on "${offer.listingTitle}".\n\n`,
-      )}`
+      `Your offer on "${offer.listingTitle}"`,
+    )}&body=${encodeURIComponent(
+      `Hi ${offer.buyerName},\n\nThanks for your offer of ₹${offer.amount.toLocaleString(
+        "en-IN",
+      )} on "${offer.listingTitle}".\n\n`,
+    )}`
     : null;
 
   const isPending = offer.status === "pending";
@@ -385,32 +383,24 @@ function SentOfferRow({ offer }: { offer: Offer }) {
           View book
         </Link>
         {isPending && (
-          <>
-            <Link
-              href={`/book/${offer.listingId}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                if (cancelMutation.isPending) return;
-                if (confirm("Withdraw your offer? This can't be undone.")) {
-                  cancelMutation.mutate();
-                }
-              }}
-              disabled={cancelMutation.isPending}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-60"
-            >
-              {cancelMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <X className="h-3.5 w-3.5" />
-              )}
-              Withdraw
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => {
+              if (cancelMutation.isPending) return;
+              if (confirm("Withdraw your offer? This can't be undone.")) {
+                cancelMutation.mutate();
+              }
+            }}
+            disabled={cancelMutation.isPending}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-60"
+          >
+            {cancelMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <X className="h-3.5 w-3.5" />
+            )}
+            Withdraw
+          </button>
         )}
       </div>
     </li>

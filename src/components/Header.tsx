@@ -238,13 +238,16 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
           )}
         </div>
 
-        <button
-          onClick={() => setOpen((value) => !value)}
-          className="grid h-10 w-10 place-items-center rounded-full border border-border md:hidden"
-          aria-label="Menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {user && !isAdmin && !profileIncomplete && <NotificationsBell />}
+          <button
+            onClick={() => setOpen((value) => !value)}
+            className="grid h-10 w-10 place-items-center rounded-full border border-border"
+            aria-label="Menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -343,7 +346,6 @@ function getNavLinks({
     { to: "/my-listings", label: "My Listings" },
     { to: "/wishlist", label: "Wishlist" },
     { to: "/offers", label: "Offers" },
-    { to: "/notifications", label: "Notifications" },
     { to: "/profile", label: "Profile" },
   ];
 }
