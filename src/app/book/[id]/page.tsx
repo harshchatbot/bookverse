@@ -369,24 +369,7 @@ export default function BookDetailPage() {
               <div className="mt-6 space-y-2">
                 <WhatsAppButton listing={listing} className="w-full" />
                 <MakeOfferButton listing={listing} className="w-full" />
-                {isProtectedDeliveryEnabled() &&
-                  listing.deliveryType === "shipping" &&
-                  user &&
-                  !isOwn && (
-                    <>
-                      <Link
-                        href={buildUrl("/checkout", { ids: listing.id })}
-                        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-                        data-testid="buy-protected-delivery-btn"
-                      >
-                        <Package className="h-4 w-4" />
-                        Buy with Home Delivery
-                      </Link>
-                      <p className="text-center text-xs text-muted-foreground">
-                        Secure payment · Delivered to your door · 72h return window
-                      </p>
-                    </>
-                  )}
+
                 <p className="mt-2 text-center text-xs text-muted-foreground">
                   BookVerse V1 is peer-to-peer. Contact the seller on WhatsApp or make an offer to
                   arrange details directly.
