@@ -229,6 +229,23 @@ export async function updateListingStatus(id: string, status: ListingStatus) {
   await updateDoc(doc(db, COLLECTION, id), { status, updatedAt: serverTimestamp() });
 }
 
+export interface ListingEditInput {
+  sellingPrice: number;
+  description: string;
+  condition: string;
+  deliveryType: string;
+}
+
+export async function updateListing(id: string, input: ListingEditInput): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), {
+    sellingPrice: input.sellingPrice,
+    description: input.description,
+    condition: input.condition,
+    deliveryType: input.deliveryType,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function incrementListingViews(id: string) {
   try {
     await updateDoc(doc(db, COLLECTION, id), { views: increment(1) });

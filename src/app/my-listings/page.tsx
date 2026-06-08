@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { Link } from "@/lib/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, Share2 } from "lucide-react";
+import { BookOpen, Eye, Loader2, Pencil, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
-import { getMyListings, updateListingStatus } from "@/lib/listings";
+import {
+  getMyListings,
+  updateListingStatus,
+  updateListing,
+  type ListingEditInput,
+} from "@/lib/listings";
 import { getProfile, hasCompleteHomeAddress } from "@/lib/profiles";
-import { categoryLabel } from "@/lib/constants";
+import { categoryLabel, CONDITIONS, DELIVERY_TYPES } from "@/lib/constants";
 import type { ListingStatus } from "@/lib/constants";
 import type { Listing } from "@/lib/types";
 import type { User } from "firebase/auth";
@@ -23,10 +29,15 @@ const statusStyle: Record<ListingStatus, string> = {
 };
 
 const statusLabel: Record<ListingStatus, string> = {
-  pending: "Pending admin approval",
+  pending: "Pending approval",
   approved: "Live",
   rejected: "Rejected",
   sold: "Sold",
+};
+
+const deliveryLabel: Record<string, string> = {
+  local: "Local",
+  shipping: "Home Delivery",
 };
 
 export default function MyListingsPage() {
@@ -58,42 +69,19 @@ export default function MyListingsPage() {
   );
 }
 
-function StatCounts({ listings }: { listings: Listing[] }) {
-  const counts = {
-    total: listings.length,
-    pending: listings.filter((l) => l.status === "pending").length,
-    approved: listings.filter((l) => l.status === "approved").length,
-    rejected: listings.filter((l) => l.status === "rejected").length,
-    sold: listings.filter((l) => l.status === "sold").length,
-  };
-
-  const cards: { label: string; value: number; className: string }[] = [
-    { label: "Total", value: counts.total, className: "border-border bg-card" },
-    { label: "Pending", value: counts.pending, className: "border-gold/40 bg-gold/10" },
-    { label: "Approved", value: counts.approved, className: "border-success/40 bg-success/10" },
-    {
-      label: "Rejected",
-      value: counts.rejected,
-      className: "border-destructive/30 bg-destructive/10",
-    },
-    { label: "Sold", value: counts.sold, className: "border-border bg-secondary/60" },
-  ];
-
-  return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {cards.map((c) => (
-        <div key={c.label} className={`rounded-2xl border p-4 ${c.className}`}>
-          <div className="font-display text-2xl font-bold">{c.value}</div>
-          <div className="mt-0.5 text-xs font-medium text-muted-foreground">{c.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function MyListingsContent({ user }: { user: User }) {
   const qc = useQueryClient();
   const protectedDeliveryEnabled = isProtectedDeliveryEnabled();
+
+  // Edit modal state
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
+  const [editForm, setEditForm] = useState<ListingEditInput>({
+    sellingPrice: 0,
+    description: "",
+    condition: "good",
+    deliveryType: "local",
+  });
+  const [saving, setSaving] = useState(false);
 
   const pickupProfileQuery = useQuery({
     queryKey: ["pickup-profile", user.uid],
@@ -133,6 +121,44 @@ function MyListingsContent({ user }: { user: User }) {
     }
   };
 
+  const openEdit = (l: Listing) => {
+    setEditForm({
+      sellingPrice: l.sellingPrice,
+      description: l.description ?? "",
+      condition: l.condition,
+      deliveryType: l.deliveryType,
+    });
+    setEditingListing(l);
+  };
+
+  const closeEdit = () => {
+    if (saving) return;
+    setEditingListing(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingListing) return;
+    setSaving(true);
+    try {
+      await updateListing(editingListing.id, editForm);
+      toast.success("Listing updated");
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      setEditingListing(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Compact stat line
+  const counts = {
+    total: listings.length,
+    approved: listings.filter((l) => l.status === "approved").length,
+    pending: listings.filter((l) => l.status === "pending").length,
+    sold: listings.filter((l) => l.status === "sold").length,
+  };
+
   return (
     <AppPageShell>
       <main className="flex-1">
@@ -168,9 +194,13 @@ function MyListingsContent({ user }: { user: User }) {
             </div>
           ) : null}
 
-          {!isLoading && listings.length > 0 && <StatCounts listings={listings} />}
+          {!isLoading && listings.length > 0 && (
+            <p className="mt-5 text-sm text-muted-foreground">
+              {counts.total} total &middot; {counts.approved} live &middot; {counts.pending} pending &middot; {counts.sold} sold
+            </p>
+          )}
 
-          <div className="mt-8 space-y-3">
+          <div className="mt-6 space-y-3">
             {isError ? (
               <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm">
                 <p className="font-semibold text-destructive">Could not load your listings</p>
@@ -192,15 +222,15 @@ function MyListingsContent({ user }: { user: User }) {
                 <div key={i} className="h-24 animate-pulse rounded-2xl bg-secondary" />
               ))
             ) : listings.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-12 text-center">
-                <p className="font-semibold">No listings found</p>
+              <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-14 text-center">
+                <BookOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
+                <p className="font-semibold">No listings yet</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  If you just submitted a book, refresh once. Your pending listings should appear
-                  here before admin approval.
+                  List your first book — it only takes a minute.
                 </p>
                 <Link
                   href="/sell"
-                  className="mt-4 inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+                  className="mt-5 inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
                 >
                   Sell a book
                 </Link>
@@ -211,11 +241,8 @@ function MyListingsContent({ user }: { user: User }) {
                   key={l.id}
                   className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center"
                 >
-                  <Link
-                    href={`/book/${l.id}`}
-                    className="flex flex-1 items-center gap-4"
-                  >
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-secondary">
+                  <Link href={`/book/${l.id}`} className="flex flex-1 items-center gap-4">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
                       {l.images[0] && (
                         <img
                           loading="lazy"
@@ -228,37 +255,43 @@ function MyListingsContent({ user }: { user: User }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold">{l.title}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         {categoryLabel(l.category)} · ₹{l.sellingPrice.toLocaleString("en-IN")} ·{" "}
                         {l.city}
                       </div>
-                      {(l.views ?? 0) > 0 || (l.shares ?? 0) > 0 ? (
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                          {(l.views ?? 0) > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Eye className="h-3 w-3" /> {(l.views ?? 0).toLocaleString("en-IN")}
-                            </span>
-                          )}
-                          {(l.shares ?? 0) > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Share2 className="h-3 w-3" />{" "}
-                              {(l.shares ?? 0).toLocaleString("en-IN")}
-                            </span>
-                          )}
-                        </div>
-                      ) : null}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {l.deliveryType && (
+                          <span className="rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            {deliveryLabel[l.deliveryType] ?? l.deliveryType}
+                          </span>
+                        )}
+                        {(l.views ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Eye className="h-3 w-3" /> {(l.views ?? 0).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                        {(l.shares ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Share2 className="h-3 w-3" />{" "}
+                            {(l.shares ?? 0).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[l.status]}`}
                     >
                       {statusLabel[l.status]}
                     </span>
-                    {l.status === "pending" && (
-                      <span className="text-xs text-muted-foreground">
-                        Visible only to you until admin approval
-                      </span>
+                    {(l.status === "approved" || l.status === "pending") && (
+                      <button
+                        onClick={() => openEdit(l)}
+                        className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </button>
                     )}
                     {l.status === "approved" && (
                       <button
@@ -282,6 +315,111 @@ function MyListingsContent({ user }: { user: User }) {
             )}
           </div>
         </div>
+
+        {/* Quick edit modal */}
+        {editingListing && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeEdit();
+            }}
+          >
+            <div className="w-full max-w-md rounded-t-3xl border border-border bg-background p-6 shadow-2xl sm:rounded-3xl">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="font-display text-lg font-bold">Edit listing</h2>
+                <button
+                  onClick={closeEdit}
+                  disabled={saving}
+                  className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-secondary disabled:opacity-40"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="mb-4 truncate text-sm font-medium text-muted-foreground">
+                {editingListing.title}
+              </p>
+
+              <div className="space-y-4">
+                {/* Price */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Selling price (₹)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editForm.sellingPrice}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, sellingPrice: Number(e.target.value) }))
+                    }
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none ring-primary focus:ring-2"
+                  />
+                </div>
+
+                {/* Condition */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Condition</label>
+                  <select
+                    value={editForm.condition}
+                    onChange={(e) => setEditForm((f) => ({ ...f, condition: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none ring-primary focus:ring-2"
+                  >
+                    {CONDITIONS.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Delivery type */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Delivery type</label>
+                  <select
+                    value={editForm.deliveryType}
+                    onChange={(e) => setEditForm((f) => ({ ...f, deliveryType: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none ring-primary focus:ring-2"
+                  >
+                    {DELIVERY_TYPES.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Description</label>
+                  <textarea
+                    rows={3}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                    className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none ring-primary focus:ring-2"
+                    placeholder="Describe the book's condition, any highlights, etc."
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={closeEdit}
+                  disabled={saving}
+                  className="flex-1 rounded-full border border-border py-2.5 text-sm font-semibold hover:bg-secondary disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground py-2.5 text-sm font-semibold text-background disabled:opacity-60"
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {saving ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </AppPageShell>
   );
