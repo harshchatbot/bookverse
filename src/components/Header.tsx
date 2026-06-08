@@ -367,11 +367,7 @@ function getNavLinks({
   }
 
   return [
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/browse", label: "Browse" },
     { to: "/sell", label: "Sell Book" },
-    { to: "/my-listings", label: "My Listings" },
-    { to: "/wishlist", label: "Wishlist" },
     { to: "/offers", label: "Offers" },
     { to: "/profile", label: "Profile" },
   ];

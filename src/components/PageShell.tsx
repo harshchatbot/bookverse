@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Header, type HeaderMode } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 
 function Shell({
   children,
@@ -31,7 +32,8 @@ export function MarketingPageShell({ children }: { children: ReactNode }) {
 export function AppPageShell({ children }: { children: ReactNode }) {
   return (
     <Shell mode="app" showFooter={false}>
-      {children}
+      <div className="pb-16 md:pb-0">{children}</div>
+      <BottomNav />
     </Shell>
   );
 }
