@@ -5,7 +5,7 @@ import { SaveButton } from "@/components/SaveButton";
 import { WhatsAppIconLink } from "@/components/WhatsAppButton";
 import { Link } from "@/lib/navigation";
 
-export function BookCard({ listing }: { listing: Listing }) {
+export function BookCard({ listing, isOwn = false }: { listing: Listing; isOwn?: boolean }) {
   const cover = listing.images?.[0];
   const isShipping = listing.deliveryType === "shipping";
   return (
@@ -27,8 +27,15 @@ export function BookCard({ listing }: { listing: Listing }) {
             No image
           </div>
         )}
-        <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
-          {categoryLabel(listing.category)}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
+          <span className="rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
+            {categoryLabel(listing.category)}
+          </span>
+          {isOwn && (
+            <span className="rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-bold text-background backdrop-blur">
+              Your listing
+            </span>
+          )}
         </div>
         <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
           <SaveButton listingId={listing.id} />

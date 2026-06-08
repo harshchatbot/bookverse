@@ -455,7 +455,7 @@ function BrowsePageContent() {
                         animationFillMode: "both",
                       }}
                     >
-                      <BookCard listing={l} />
+                      <BookCard listing={l} isOwn={!!user && l.sellerUid === user.uid} />
                     </div>
                   ))}
                 </div>
