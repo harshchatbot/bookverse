@@ -108,11 +108,15 @@ export function LineTrend({
           width={48}
         />
         <Tooltip
+          cursor={{ stroke: "var(--primary)", strokeWidth: 1, strokeDasharray: "4 4" }}
           contentStyle={{
             background: "var(--card)",
             border: "1px solid var(--border)",
-            borderRadius: 8,
+            borderRadius: 12,
+            fontSize: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}
+          labelStyle={{ fontWeight: 600, marginBottom: 4 }}
           formatter={(v: number) => (valueFormatter ? valueFormatter(v) : v)}
         />
         <Line
@@ -140,17 +144,21 @@ export function GroupedBars({
       <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis dataKey="key" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-        <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={36} />
+        <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={36} allowDecimals={false} />
         <Tooltip
+          cursor={{ fill: "var(--secondary)", opacity: 0.5 }}
           contentStyle={{
             background: "var(--card)",
             border: "1px solid var(--border)",
-            borderRadius: 8,
+            borderRadius: 12,
+            fontSize: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}
+          labelStyle={{ fontWeight: 600, marginBottom: 4 }}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         {series.map((s) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
+          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} maxBarSize={40} />
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -173,6 +181,7 @@ export function PieBreakdown({
   data: Array<{ label: string; value: number }>;
   valueLabel?: string;
 }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
@@ -180,9 +189,14 @@ export function PieBreakdown({
           contentStyle={{
             background: "var(--card)",
             border: "1px solid var(--border)",
-            borderRadius: 8,
+            borderRadius: 12,
+            fontSize: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}
-          formatter={(value: number) => [value, valueLabel]}
+          formatter={(value: number, name: string) => [
+            `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
+            name,
+          ]}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Pie
@@ -194,6 +208,7 @@ export function PieBreakdown({
           innerRadius={58}
           outerRadius={92}
           paddingAngle={3}
+          strokeWidth={0}
         >
           {data.map((entry, index) => (
             <Cell key={entry.label} fill={PIE_COLORS[index % PIE_COLORS.length]} />

@@ -65,19 +65,19 @@ const STEPS = [
     n: "01",
     icon: Upload,
     t: "List your books",
-    d: "Snap a few photos, set your price, and reach thousands of students in minutes.",
+    d: "Snap a few photos, set your price, and reach thousands of students across India in minutes.",
   },
   {
     n: "02",
-    icon: Users,
-    t: "Connect with buyers",
-    d: "Buyers contact you directly via WhatsApp after completing email, profile, and mobile verification.",
+    icon: ShieldCheck,
+    t: "Choose how to sell",
+    d: "Offer local pickup for nearby buyers or enable Home Delivery via our courier network for buyers across India.",
   },
   {
     n: "03",
-    icon: ShieldCheck,
-    t: "Agree the handover",
-    d: "Discuss price, pickup, inspection, and payment directly with the other person. BookVerse does not handle checkout.",
+    icon: IndianRupee,
+    t: "Get paid safely",
+    d: "Buyers pay securely through BookVerse. You receive the book price directly after delivery is confirmed.",
   },
 ] as const;
 
@@ -92,7 +92,19 @@ const TRUST_SIGNALS = [
     icon: ShieldCheck,
     title: "Verified Sellers",
     description:
-      "Sellers with a valid mobile number get a verified badge, so you know exactly who you are dealing with.",
+      "Sellers verify their mobile number and email before listing. You always know who you are buying from.",
+  },
+  {
+    icon: MapPin,
+    title: "Home Delivery",
+    description:
+      "Sellers can enable courier pickup for nationwide delivery. We handle booking, tracking, and updates end-to-end.",
+  },
+  {
+    icon: IndianRupee,
+    title: "Safe Payments",
+    description:
+      "Home Delivery orders are paid securely through Razorpay. Funds are held until delivery is confirmed, then released to the seller.",
   },
   {
     icon: Eye,
@@ -101,22 +113,10 @@ const TRUST_SIGNALS = [
       "Listings require real photos so buyers can inspect condition before messaging a seller.",
   },
   {
-    icon: Eye,
-    title: "Transparent Pricing",
-    description:
-      "No hidden fees, no platform commission. What you see is what you pay — whether it is a local deal or doorstep delivery.",
-  },
-  {
-    icon: MapPin,
-    title: "City-Based Discovery",
-    description:
-      "Find educational books by city and state, including smaller towns through manual city entry.",
-  },
-  {
     icon: MessageCircle,
-    title: "Direct Communication",
+    title: "Free to List",
     description:
-      "Chat with sellers on WhatsApp before you buy. Ask questions, negotiate, and build confidence before you commit.",
+      "No commission, no listing fees. BookVerse connects buyers and sellers — local deals or nationwide shipping, your choice.",
   },
 ] as const;
 
@@ -155,12 +155,13 @@ const FAQ_ITEMS = [
     value: "direct-deals",
     question: "Does BookVerse handle payment?",
     answer:
-      "No. BookVerse V1 is peer-to-peer. Buyers and sellers discuss price, pickup, inspection, and payment directly over WhatsApp.",
+      "It depends on how you buy. For Home Delivery orders, buyers pay securely through Razorpay and the seller gets paid after delivery is confirmed. For Local Pickup, BookVerse connects you with the seller — you then agree price and payment directly over WhatsApp.",
   },
   {
     value: "commission",
     question: "Does BookVerse charge any commission or fees?",
-    answer: "No. BookVerse does not charge commission on P2P deals in V1.",
+    answer:
+      "Listing is free and BookVerse charges no seller commission. Home Delivery orders include a small platform support fee to cover payment processing and courier coordination.",
   },
 ] as const;
 
@@ -237,8 +238,8 @@ export function HomePageClient() {
                     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
                   }}
                 >
-                  Buy and sell educational books across India. Engineering, Medical, Competitive Exams,
-                  Certification and Professional Books — at a fraction of the price.
+                  Save up to 70% on JEE, NEET, GATE, UPSC, Engineering, Medical and more. Buy from
+                  verified sellers with WhatsApp contact or secure Home Delivery.
                 </motion.p>
 
                 <motion.div
@@ -307,9 +308,9 @@ export function HomePageClient() {
                     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
                   }}
                 >
-                  <TrustItem icon={ShieldCheck} tint="primary" label="Admin-verified listings" />
-                  <TrustItem icon={MessageCircle} tint="teal" label="Direct WhatsApp contact" />
-                  <TrustItem icon={IndianRupee} tint="gold" label="No commission, ever" />
+                  <TrustItem icon={ShieldCheck} tint="primary" label="Verified sellers" />
+                  <TrustItem icon={MessageCircle} tint="teal" label="WhatsApp or Home Delivery" />
+                  <TrustItem icon={IndianRupee} tint="gold" label="Safe payments, no commission" />
                 </motion.div>
               </motion.div>
 

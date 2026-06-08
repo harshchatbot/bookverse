@@ -244,13 +244,11 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   label="Spend"
                   value={rupees(dashboard?.totals.buyerTotalSpent ?? 0)}
                 />
-                {(dashboard?.totals.sellerEarnings ?? 0) > 0 && (
-                  <HeroStat
-                    icon={<Wallet className="h-4 w-4" />}
-                    label="Earnings"
-                    value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
-                  />
-                )}
+                <HeroStat
+                  icon={<Wallet className="h-4 w-4" />}
+                  label="Earned"
+                  value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
+                />
               </div>
             </div>
           </section>
@@ -278,27 +276,24 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
             />
           </section>
 
-          {((dashboard?.totals.sellerEarnings ?? 0) > 0 ||
-            (dashboard?.totals.sellerOrderCount ?? 0) > 0) && (
-              <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-primary" />
-                  <h2 className="font-display text-base font-semibold">Your earnings</h2>
-                </div>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <StatCard
-                    label="Home delivery earnings"
-                    value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
-                    hint="Paid home delivery orders only"
-                  />
-                  <StatCard
-                    label="Seller orders"
-                    value={dashboard?.totals.sellerOrderCount ?? 0}
-                    hint="Orders placed through home delivery"
-                  />
-                </div>
-              </section>
-            )}
+          <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              <h2 className="font-display text-base font-semibold">Your earnings</h2>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <StatCard
+                label="Home delivery earnings"
+                value={rupees(dashboard?.totals.sellerEarnings ?? 0)}
+                hint="Paid home delivery orders only"
+              />
+              <StatCard
+                label="Seller orders"
+                value={dashboard?.totals.sellerOrderCount ?? 0}
+                hint="Orders placed through home delivery"
+              />
+            </div>
+          </section>
 
           {(dashboard?.totals.buyerTotalSpent ?? 0) > 0 && (
             <section className="mt-4 rounded-2xl border border-border bg-card/95 p-5 shadow-card">
