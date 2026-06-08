@@ -425,7 +425,7 @@ test("dashboard shows rewards, badges, referral code, and available coupon", asy
   await expect(page.getByText("Available points")).toBeVisible();
   await expect(page.getByText("Campus Promoter")).toBeVisible();
   await expect(page.getByRole("button", { name: /redeem freedel50/i })).toBeVisible();
-  await expect(page.getByText("Referral code")).toBeVisible();
+  await expect(page.getByText("Invite friends, earn points")).toBeVisible();
 });
 
 test("coupon lifecycle uses FREEDEL50 only after successful payment and seller payout stays unchanged", async ({

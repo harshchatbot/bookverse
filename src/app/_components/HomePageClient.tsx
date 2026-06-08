@@ -11,10 +11,8 @@ import {
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
-import { StaggerTestimonials } from "@/components/StaggerTestimonials";
 import { getApprovedListings } from "@/lib/listings";
-import { CATEGORIES } from "@/lib/constants";
-import { Link, buildUrl } from "@/lib/navigation";
+import { Link } from "@/lib/navigation";
 import {
   ArrowRight,
   Search,
@@ -22,43 +20,12 @@ import {
   MessageCircle,
   IndianRupee,
   Upload,
-  Users,
   MapPin,
   Plus,
-  Wrench,
-  HeartPulse,
-  Atom,
-  Stethoscope,
-  Cpu,
-  Landmark,
-  Building2,
-  Banknote,
-  Briefcase,
-  Calculator,
-  Award,
-  Code2,
-  BookOpen,
   Sparkles,
-  BadgeCheck,
-  Eye,
+  BookOpen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-const CATEGORY_ICONS: Record<string, { icon: LucideIcon; tint: string }> = {
-  engineering: { icon: Wrench, tint: "text-primary" },
-  medical: { icon: HeartPulse, tint: "text-destructive" },
-  jee: { icon: Atom, tint: "text-teal" },
-  neet: { icon: Stethoscope, tint: "text-destructive" },
-  gate: { icon: Cpu, tint: "text-primary" },
-  upsc: { icon: Landmark, tint: "text-gold" },
-  ssc: { icon: Building2, tint: "text-muted-foreground" },
-  banking: { icon: Banknote, tint: "text-success" },
-  mba: { icon: Briefcase, tint: "text-primary" },
-  "ca-cs-cma": { icon: Calculator, tint: "text-gold" },
-  "it-certifications": { icon: Award, tint: "text-teal" },
-  programming: { icon: Code2, tint: "text-primary" },
-  other: { icon: BookOpen, tint: "text-muted-foreground" },
-};
 
 const STEPS = [
   {
@@ -81,45 +48,6 @@ const STEPS = [
   },
 ] as const;
 
-const TRUST_SIGNALS = [
-  {
-    icon: BadgeCheck,
-    title: "Verified Listings",
-    description:
-      "Every listing is reviewed by our team before it goes live. Fake or misleading posts are removed immediately.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Verified Sellers",
-    description:
-      "Sellers verify their mobile number and email before listing. You always know who you are buying from.",
-  },
-  {
-    icon: MapPin,
-    title: "Home Delivery",
-    description:
-      "Sellers can enable courier pickup for nationwide delivery. We handle booking, tracking, and updates end-to-end.",
-  },
-  {
-    icon: IndianRupee,
-    title: "Safe Payments",
-    description:
-      "Home Delivery orders are paid securely through Razorpay. Funds are held until delivery is confirmed, then released to the seller.",
-  },
-  {
-    icon: Eye,
-    title: "Real Book Photos",
-    description:
-      "Listings require real photos so buyers can inspect condition before messaging a seller.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Free to List",
-    description:
-      "No commission, no listing fees. BookVerse connects buyers and sellers — local deals or nationwide shipping, your choice.",
-  },
-] as const;
-
 const FAQ_ITEMS = [
   {
     value: "auth",
@@ -128,40 +56,16 @@ const FAQ_ITEMS = [
       "You can sign up with email and password or continue with Google. Before selling, messaging, saving, or making offers, BookVerse asks you to verify your email, complete your profile, and verify your mobile number.",
   },
   {
-    value: "approval",
-    question: "Why is my listing not showing up immediately?",
-    answer:
-      "Every book listing goes through a quick admin review to make sure photos are clear, details are accurate, and prices are fair. This usually takes a few hours. Once approved, your book appears on the Browse page and you will be notified.",
-  },
-  {
-    value: "delivery-local",
-    question: "What is Local Pickup and how does it work?",
-    answer:
-      "Local Pickup means the seller and buyer meet at an agreed location — often a campus, library, or public place — to exchange the book and payment in person. It is fast, free of shipping costs, and lets you inspect the book before paying.",
-  },
-  {
-    value: "delivery-shipping",
-    question: "Can I find books outside major cities?",
-    answer:
-      "Yes. BookVerse supports state and city discovery, and sellers can manually enter smaller towns if their city is not listed.",
-  },
-  {
-    value: "whatsapp",
-    question: "How do I contact a seller on WhatsApp?",
-    answer:
-      "On any book detail page, click the green 'Contact Seller on WhatsApp' button. It opens a pre-filled message with the book title, price, and location so the seller knows exactly what you are interested in. You can then chat, negotiate, and fix a meeting time.",
-  },
-  {
-    value: "direct-deals",
-    question: "Does BookVerse handle payment?",
-    answer:
-      "It depends on how you buy. For Home Delivery orders, buyers pay securely through Razorpay and the seller gets paid after delivery is confirmed. For Local Pickup, BookVerse connects you with the seller — you then agree price and payment directly over WhatsApp.",
-  },
-  {
     value: "commission",
     question: "Does BookVerse charge any commission or fees?",
     answer:
       "Listing is free and BookVerse charges no seller commission. Home Delivery orders include a small platform support fee to cover payment processing and courier coordination.",
+  },
+  {
+    value: "delivery-local",
+    question: "How does delivery work?",
+    answer:
+      "You can choose Local Pickup — meet the buyer at a campus or public place and get paid in person. Or enable Home Delivery: the buyer pays online via Razorpay, a courier picks up the book from you, and you receive payment after delivery is confirmed.",
   },
 ] as const;
 
@@ -176,6 +80,7 @@ export function HomePageClient() {
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-1">
+        {/* ── Hero ────────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden bg-[image:var(--gradient-hero)] pb-16 pt-12 text-hero-foreground sm:pb-20 sm:pt-16 lg:pb-28 lg:pt-28">
           <div aria-hidden className="absolute inset-0 -z-10">
             <div className="absolute -left-24 -top-32 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[120px]" />
@@ -232,14 +137,22 @@ export function HomePageClient() {
                 </motion.p>
 
                 <motion.p
-                  className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-hero-foreground/80 sm:text-lg"
+                  className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-hero-foreground/80 sm:text-lg"
                   variants={{
                     hidden: { opacity: 0, y: 20 },
                     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
                   }}
                 >
-                  Save up to 70% on JEE, NEET, GATE, UPSC, Engineering, Medical and more. Buy from
-                  verified sellers with WhatsApp contact or secure Home Delivery.
+                  Sell your old books and earn money. Buy textbooks at up to 70% off.
+                </motion.p>
+                <motion.p
+                  className="mx-auto mt-1 max-w-2xl text-sm text-hero-foreground/60 sm:text-base"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                  }}
+                >
+                  JEE · NEET · GATE · UPSC · Engineering · Medical · MBA · CA
                 </motion.p>
 
                 <motion.div
@@ -382,51 +295,46 @@ export function HomePageClient() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between">
-            <div>
-              <h2 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
-                Browse by category
-              </h2>
+        {/* ── Value proposition ────────────────────────────────────────────── */}
+        <section className="bg-secondary/30 py-12">
+          <div className="mx-auto grid max-w-4xl gap-6 px-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-3 text-3xl">📚</div>
+              <h3 className="font-display text-xl font-bold">Selling a book?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Find books for the exam or stream you care about.
+                List for free in 2 minutes. Earn 3–5× more than what the raddiwala pays. Get paid
+                safely via home delivery or meet locally.
               </p>
+              <Link
+                href="/sell"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                Start selling <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-            <Link
-              href="/browse"
-              className="group hidden items-center gap-1 text-sm font-bold text-primary hover:underline sm:inline-flex"
-            >
-              View all
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {CATEGORIES.map((c) => {
-              const meta = CATEGORY_ICONS[c.value] ?? { icon: BookOpen, tint: "text-muted-foreground" };
-              const Icon = meta.icon;
-              return (
-                <Link
-                  key={c.value}
-                  href={buildUrl("/browse", { category: c.value })}
-                  className="group rounded-3xl border border-transparent bg-secondary/60 p-6 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-card hover:shadow-elegant"
-                >
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-background shadow-sm transition-transform group-hover:scale-110">
-                    <Icon className={`h-6 w-6 ${meta.tint}`} />
-                  </div>
-                  <h3 className="mt-6 font-display text-lg leading-tight text-foreground">{c.label}</h3>
-                  <p className="mt-1 text-xs font-medium text-muted-foreground">Explore books</p>
-                </Link>
-              );
-            })}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-3 text-3xl">🎓</div>
+              <h3 className="font-display text-xl font-bold">Buying a book?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Save up to 70% on JEE, NEET, GATE, UPSC, Engineering, Medical books and more. Buy
+                from verified students across India.
+              </p>
+              <Link
+                href="/browse"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                Browse books <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </section>
 
+        {/* ── Books available now ─────────────────────────────────────────── */}
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between">
             <div>
               <h2 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
-                Recently listed
+                Books available now
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Fresh arrivals from sellers across the country.
@@ -469,10 +377,11 @@ export function HomePageClient() {
           )}
         </section>
 
+        {/* ── How it works ─────────────────────────────────────────────────── */}
         <section className="my-20 bg-foreground py-24 text-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-16 text-center">
-              <h2 className="font-display text-4xl tracking-tight sm:text-5xl">How BookVerse works</h2>
+              <h2 className="font-display text-4xl tracking-tight sm:text-5xl">Simple as 1-2-3</h2>
               <p className="mt-4 text-sm text-background/60">A simple process designed for learners.</p>
             </div>
             <div className="grid gap-12 md:grid-cols-3">
@@ -494,6 +403,7 @@ export function HomePageClient() {
           </div>
         </section>
 
+        {/* ── Choose Your Way to Buy ────────────────────────────────────────── */}
         <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <div className="mb-14 text-center">
             <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">
@@ -546,59 +456,14 @@ export function HomePageClient() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-          <div className="mb-14 text-center">
-            <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">
-              Why Trust BookVerse
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Every listing and transaction is designed with student safety in mind.
-            </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {TRUST_SIGNALS.map((t) => {
-              const Icon = t.icon;
-              return (
-                <div
-                  key={t.title}
-                  className="group rounded-3xl border border-border bg-card p-8 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-elegant"
-                >
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="mt-6 font-display text-lg tracking-tight text-foreground">{t.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden bg-secondary/40 py-24">
-          <div aria-hidden className="absolute inset-0 -z-10">
-            <div className="absolute left-1/4 top-0 h-[300px] w-[300px] rounded-full bg-primary/5 blur-[100px]" />
-            <div className="absolute bottom-0 right-1/4 h-[300px] w-[300px] rounded-full bg-teal/5 blur-[100px]" />
-          </div>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-14 text-center">
-              <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">
-                What Students Say
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Real stories from learners who bought and sold books on BookVerse.
-              </p>
-            </div>
-            <StaggerTestimonials />
-          </div>
-        </section>
-
+        {/* ── FAQ ──────────────────────────────────────────────────────────── */}
         <section className="mx-auto max-w-4xl px-4 py-24 sm:px-6 lg:px-8">
           <div className="mb-14 text-center">
             <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">
               Frequently Asked Questions
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Everything you need to know about buying, selling, and staying safe on BookVerse.
+              Everything you need to know about buying and selling on BookVerse.
             </p>
           </div>
           <Accordion type="single" collapsible className="w-full">

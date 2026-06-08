@@ -357,9 +357,9 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
               <div className="rounded-2xl border border-border bg-background p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Referral code</p>
+                    <p className="text-sm font-semibold">Invite friends, earn points</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Share this link with classmates. Referral rewards can build on this later.
+                      Share your referral link. You earn 20 points when a friend joins. They get 10 points free.
                     </p>
                   </div>
                   <button
@@ -455,7 +455,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Share any listing to start earning points — 1 point per share, up to 5 per day.
+                    Share your listings on WhatsApp to earn 1 point per share (up to 5 per day).
+                    Reach 50 points to unlock free home delivery worth ₹50.
                   </p>
                 )}
               </div>

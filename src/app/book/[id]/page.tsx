@@ -69,12 +69,14 @@ export default function BookDetailPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12">
-          <div className="grid gap-8 lg:grid-cols-2">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-2">
             <div className="aspect-square animate-pulse rounded-3xl bg-secondary" />
             <div className="space-y-4">
-              <div className="h-8 w-3/4 animate-pulse rounded bg-secondary" />
-              <div className="h-4 w-1/2 animate-pulse rounded bg-secondary" />
+              <div className="h-8 w-3/4 animate-pulse rounded-xl bg-secondary" />
+              <div className="h-4 w-1/2 animate-pulse rounded-xl bg-secondary" />
+              <div className="h-12 w-1/3 animate-pulse rounded-xl bg-secondary" />
+              <div className="h-32 animate-pulse rounded-2xl bg-secondary" />
             </div>
           </div>
         </main>
@@ -311,6 +313,9 @@ export default function BookDetailPage() {
 
             {/* Share */}
             <ShareBar listing={listing} />
+            <p className="mt-1 text-center text-[11px] text-muted-foreground">
+              Share this listing to earn reward points
+            </p>
 
             <dl className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4">
               <Meta
