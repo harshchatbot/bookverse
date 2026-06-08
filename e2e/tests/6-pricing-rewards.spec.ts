@@ -281,10 +281,10 @@ test("protected delivery checkout groups same-seller books with one delivery fee
   await page.getByRole("button", { name: /confirm & calculate delivery/i }).click();
 
   await expect(page.getByText("Same Seller Book One")).toBeVisible();
-  await expect(page.getByText("Platform support fee", { exact: true })).toBeVisible();
+  await expect(page.getByText("Platform fee", { exact: true })).toBeVisible();
   await expect(page.getByText("Coupon discount", { exact: true })).toBeVisible();
-  await expect(page.getByText("Buyer delivery payable", { exact: true })).toBeVisible();
-  await expect(page.getByText("Seller payout remains ₹800")).toBeVisible();
+  await expect(page.getByText("Delivery charge", { exact: true })).toBeVisible();
+  // Seller payout line removed from UI
 });
 
 test("protected delivery checkout splits different sellers into separate groups", async ({
@@ -394,7 +394,7 @@ test("protected delivery checkout splits different sellers into separate groups"
 
     await expect(page.getByText("Seller One", { exact: true })).toBeVisible();
     await expect(page.getByText("Seller Two", { exact: true })).toBeVisible();
-    await expect(page.getByText("Platform support fee", { exact: true })).toHaveCount(2);
+    await expect(page.getByText("Platform fee", { exact: true })).toHaveCount(2);
   } finally {
     await deleteTestUser(sellerTwo.uid);
   }

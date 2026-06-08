@@ -18,7 +18,6 @@ import { getProfile } from "@/lib/profiles";
 import {
   FREE_DELIVERY_REWARD_CODE,
   getRewardsSummary,
-  PLATFORM_SUPPORT_FEE_INR,
 } from "@/lib/rewards";
 import type { CheckoutDeliveryAddress, Listing } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -522,40 +521,10 @@ function CheckoutPageContent() {
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-6">
-            <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-emerald-500/5 p-6">
-              <div className="flex items-start gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h1 className="font-display text-2xl font-bold tracking-tight">
-                    Home Delivery Checkout
-                  </h1>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    We calculate delivery once for the combined parcel from each seller. If your
-                    selected books come from different sellers, they will be split into separate
-                    home delivery groups with separate shipping charges.
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    A small ₹1 platform support fee helps us keep BookVerse safe, verified, and
-                    running.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <h1 className="font-display text-2xl font-bold tracking-tight">Checkout</h1>
 
             <div className="rounded-3xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-xl font-bold tracking-tight">Selected books</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Seller groups are packed separately for courier pickup.
-                  </p>
-                </div>
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
-                  {selectedListings.length} book{selectedListings.length === 1 ? "" : "s"}
-                </span>
-              </div>
+              <h2 className="font-display text-xl font-bold tracking-tight">Books</h2>
 
               <div className="mt-4 space-y-4">
                 {sellerGroups.map((group) => {
@@ -568,21 +537,13 @@ function CheckoutPageContent() {
                       className="rounded-2xl border border-border bg-background p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{group.sellerName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            One delivery charge for this seller’s combined parcel.
-                          </p>
-                        </div>
+                        <p className="font-semibold">{group.sellerName}</p>
                         <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                          ₹{group.subtotal.toLocaleString("en-IN")} books subtotal
+                          ₹{group.subtotal.toLocaleString("en-IN")}
                         </span>
                       </div>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-muted-foreground">
-                          Delivery is calculated once for the combined parcel from this seller.
-                        </span>
                         {couponSelections[group.sellerUid] ? (
                           <button
                             type="button"
@@ -643,11 +604,7 @@ function CheckoutPageContent() {
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-6">
               <h2 className="font-display text-xl font-bold tracking-tight">Home Address</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Your profile location is only used for trust and nearby discovery. Your private
-                Home Address is used for both courier pickup when you sell and delivery when you
-                buy through Protected Delivery.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">We'll deliver to this address.</p>
               <div className="mt-5 rounded-2xl border border-border bg-background p-4">
                 {address.isDeliveryReady &&
                 (address.validationLevel === "google_validated" ||
@@ -694,20 +651,11 @@ function CheckoutPageContent() {
                 )}
                 Confirm & Calculate Delivery
               </button>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Delivery is calculated once for the combined parcel from each seller. Each seller
-                group gets its own ₹{PLATFORM_SUPPORT_FEE_INR} platform support fee.
-              </p>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6">
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-xl font-bold tracking-tight">Seller groups</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Each seller gets one payment and one combined shipment.
-                  </p>
-                </div>
+                <h2 className="font-display text-xl font-bold tracking-tight">Your order</h2>
                 {createdGroups.length > 0 ? (
                   <button
                     type="button"
@@ -716,14 +664,14 @@ function CheckoutPageContent() {
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
                   >
                     <CreditCard className="h-3.5 w-3.5" />
-                    Pay groups
+                    Pay now
                   </button>
                 ) : null}
               </div>
 
               {createdGroups.length === 0 ? (
                 <div className="mt-4 rounded-2xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                  Calculate the seller groups first to see combined delivery charges.
+                  Click 'Confirm &amp; Calculate Delivery' to see your delivery charges.
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
@@ -745,7 +693,7 @@ function CheckoutPageContent() {
                           <StatusBadge status={paymentState} />
                         </div>
                         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                          <Row label="Books subtotal" value={group.breakdown.subtotal} />
+                          <Row label="Books" value={group.breakdown.subtotal} />
                           <Row label="Delivery charge" value={group.breakdown.shippingFee} />
                           {group.breakdown.couponDiscount > 0 ? (
                             <Row
@@ -755,19 +703,11 @@ function CheckoutPageContent() {
                             />
                           ) : null}
                           <Row
-                            label="Buyer delivery payable"
-                            value={group.breakdown.buyerDeliveryPayable}
-                          />
-                          <Row
-                            label="Platform support fee"
+                            label="Platform fee"
                             value={group.breakdown.platformSupportFee}
                           />
                           <Row label="Total" value={group.breakdown.total} strong />
                         </dl>
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Seller payout remains ₹{group.breakdown.subtotal.toLocaleString("en-IN")}.
-                          Delivery and the ₹1 support fee are charged to the buyer separately.
-                        </p>
                       </div>
                     );
                   })}
