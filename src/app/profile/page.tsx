@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@/lib/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   linkWithCredential,
@@ -11,7 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, MailCheck, Phone, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, MailCheck, Phone, ShieldCheck, Wallet } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector";
 import { AppPageShell } from "@/components/PageShell";
@@ -31,7 +31,10 @@ import {
   getProfile,
   saveHomeAddress,
   hasCompleteHomeAddress,
+  getPayoutDetails,
+  savePayoutDetails,
   type HomeAddress,
+  type PayoutDetails,
 } from "@/lib/profiles";
 import { apiFetch } from "@/lib/api-client";
 import {
@@ -106,6 +109,14 @@ function ProfileContent({ user }: { user: User }) {
   const [cooldown, setCooldown] = useState(0);
   const [homeValidationMessage, setHomeValidationMessage] = useState("");
 
+  const [payoutForm, setPayoutForm] = useState<PayoutDetails>({
+    upiId: "",
+    accountHolderName: "",
+    accountNumber: "",
+    ifsc: "",
+  });
+  const [savingPayout, setSavingPayout] = useState(false);
+
   const { data: profile, isLoading } = useQuery({
     queryKey: ["user-profile", user.uid],
     queryFn: () => getUserProfile(user.uid),
@@ -140,6 +151,13 @@ function ProfileContent({ user }: { user: User }) {
         }
       } catch (error) {
         console.error("Could not load address:", error);
+      }
+      // Load payout details (non-fatal)
+      try {
+        const payout = await getPayoutDetails(user.uid);
+        if (payout) setPayoutForm(payout);
+      } catch {
+        // non-fatal
       }
     };
     loadAddress();
@@ -285,6 +303,30 @@ function ProfileContent({ user }: { user: User }) {
       toast.error(error instanceof Error ? error.message : "Could not save address");
     } finally {
       setSavingAddress(false);
+    }
+  };
+
+  const savePayout = async () => {
+    if (!payoutForm.upiId.trim() && !payoutForm.accountNumber.trim()) {
+      toast.error("Enter a UPI ID or bank account details.");
+      return;
+    }
+    if (payoutForm.accountNumber.trim() && !payoutForm.ifsc.trim()) {
+      toast.error("IFSC code is required with a bank account number.");
+      return;
+    }
+    if (payoutForm.accountNumber.trim() && !payoutForm.accountHolderName.trim()) {
+      toast.error("Account holder name is required.");
+      return;
+    }
+    setSavingPayout(true);
+    try {
+      await savePayoutDetails(user.uid, payoutForm);
+      toast.success("Payout details saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save payout details.");
+    } finally {
+      setSavingPayout(false);
     }
   };
 
@@ -505,36 +547,21 @@ function ProfileContent({ user }: { user: User }) {
       />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <div>
-          <h1 className="font-display text-3xl font-bold">Complete your BookVerse profile</h1>
+          <h1 className="font-display text-3xl font-bold">Your BookVerse profile</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Verify your mobile number to sell books, contact sellers, and keep BookVerse safe.
+            {completed
+              ? "All set! You can buy and sell books on BookVerse."
+              : "Complete the steps below to unlock buying and selling on BookVerse."}
           </p>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <StatusCard
-            icon={<MailCheck className="h-4 w-4" />}
-            label="Email"
-            ok={emailVerified}
-            text={emailVerified ? "Verified" : "Verification needed"}
-          />
-          <StatusCard
-            icon={<Phone className="h-4 w-4" />}
-            label="Mobile"
-            ok={phoneVerified}
-            text={
-              phoneVerified
-                ? "Your mobile number is verified."
-                : "Please verify your mobile number to continue."
-            }
-          />
-          <StatusCard
-            icon={<ShieldCheck className="h-4 w-4" />}
-            label="Profile"
-            ok={completed}
-            text={completed ? "Complete" : "Details required"}
-          />
-        </div>
+        {/* Progress stepper */}
+        <ProfileStepper
+          emailVerified={emailVerified}
+          addressComplete={hasCompleteHomeAddress(pickupForm)}
+          phoneVerified={phoneVerified}
+          completed={completed}
+        />
 
         {isLoading ? (
           <div className="mt-8 h-96 animate-pulse rounded-2xl bg-secondary" />
@@ -880,6 +907,72 @@ function ProfileContent({ user }: { user: User }) {
                 )}
               </div>
             </section>
+
+            {/* Payout details */}
+            <section className="rounded-xl border border-border bg-secondary/30 p-4">
+              <div className="flex items-start gap-3">
+                <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <div>
+                  <h2 className="font-semibold">Payout details</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    We&apos;ll pay your book sale proceeds to this account. UPI preferred; bank
+                    details accepted as fallback.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-4">
+                <Field
+                  label="UPI ID"
+                  value={payoutForm.upiId}
+                  onChange={(value) => setPayoutForm((f) => ({ ...f, upiId: value }))}
+                  placeholder="yourname@upi"
+                  helper="Preferred — fastest payout method"
+                />
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span>or bank account</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <Field
+                  label="Account holder name"
+                  value={payoutForm.accountHolderName}
+                  onChange={(value) => setPayoutForm((f) => ({ ...f, accountHolderName: value }))}
+                  placeholder="As on bank passbook"
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Account number"
+                    value={payoutForm.accountNumber}
+                    onChange={(value) =>
+                      setPayoutForm((f) => ({ ...f, accountNumber: value.replace(/\D/g, "") }))
+                    }
+                    inputMode="numeric"
+                    placeholder="1234567890"
+                  />
+                  <Field
+                    label="IFSC code"
+                    value={payoutForm.ifsc}
+                    onChange={(value) =>
+                      setPayoutForm((f) => ({
+                        ...f,
+                        ifsc: value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                      }))
+                    }
+                    maxLength={11}
+                    placeholder="SBIN0001234"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={savePayout}
+                  disabled={savingPayout}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {savingPayout && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Save payout details
+                </button>
+              </div>
+            </section>
           </div>
         )}
       </main>
@@ -927,24 +1020,114 @@ function Field({
   );
 }
 
-function StatusCard({
-  icon,
-  label,
-  ok,
-  text,
+function ProfileStepper({
+  emailVerified,
+  addressComplete,
+  phoneVerified,
+  completed,
 }: {
-  icon: ReactNode;
-  label: string;
-  ok: boolean;
-  text: string;
+  emailVerified: boolean;
+  addressComplete: boolean;
+  phoneVerified: boolean;
+  completed: boolean;
 }) {
+  const steps = [
+    {
+      id: "email",
+      icon: <MailCheck className="h-4 w-4" />,
+      label: "Verify email",
+      done: emailVerified,
+      tip: "Check your inbox for the verification link.",
+    },
+    {
+      id: "address",
+      icon: <ShieldCheck className="h-4 w-4" />,
+      label: "Add home address",
+      done: addressComplete,
+      tip: "Needed for courier pickup and delivery.",
+    },
+    {
+      id: "mobile",
+      icon: <Phone className="h-4 w-4" />,
+      label: "Verify mobile",
+      done: phoneVerified,
+      tip: "Used for OTP and WhatsApp communication.",
+    },
+    {
+      id: "ready",
+      icon: <CheckCircle2 className="h-4 w-4" />,
+      label: "Ready to buy & sell",
+      done: completed,
+      tip: "All steps complete — marketplace unlocked.",
+    },
+  ];
+
+  const activeIndex = steps.findIndex((s) => !s.done);
+  const allDone = activeIndex === -1;
+
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <span className={ok ? "text-success" : "text-muted-foreground"}>{icon}</span>
-        {label}
+    <div className="mt-6">
+      <div className="flex items-start gap-0">
+        {steps.map((step, i) => {
+          const isDone = step.done;
+          const isActive = !allDone && i === activeIndex;
+          const isPast = i < (activeIndex === -1 ? steps.length : activeIndex);
+          const isLast = i === steps.length - 1;
+
+          return (
+            <div key={step.id} className="flex flex-1 flex-col items-center">
+              <div className="flex w-full items-center">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                    isDone
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : isActive
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : isActive ? (
+                    step.icon
+                  ) : (
+                    <Circle className="h-4 w-4" />
+                  )}
+                </div>
+                {!isLast && (
+                  <div
+                    className={`h-0.5 flex-1 transition-colors ${
+                      isPast || isDone ? "bg-emerald-500" : "bg-border"
+                    }`}
+                  />
+                )}
+              </div>
+              <div className="mt-2 px-1 text-center">
+                <p
+                  className={`text-xs font-medium ${
+                    isDone
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : isActive
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {step.label}
+                </p>
+                {isActive && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{step.tip}</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <p className={`mt-1 text-xs ${ok ? "text-success" : "text-muted-foreground"}`}>{text}</p>
+
+      {allDone && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+          🎉 Your profile is complete. You can now buy and sell books on BookVerse!
+        </div>
+      )}
     </div>
   );
 }

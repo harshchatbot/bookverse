@@ -451,6 +451,49 @@ export async function savePickupAddress(uid: string, pickup: PickupAddress): Pro
   await saveHomeAddress(uid, pickup);
 }
 
+export interface PayoutDetails {
+  upiId: string;
+  accountHolderName: string;
+  accountNumber: string;
+  ifsc: string;
+  updatedAt?: string;
+}
+
+export async function getPayoutDetails(uid: string): Promise<PayoutDetails | null> {
+  try {
+    const snap = await getDoc(doc(db, COLLECTION, uid));
+    if (!snap.exists()) return null;
+    const d = snap.data() as { payoutDetails?: Partial<PayoutDetails> };
+    if (!d.payoutDetails) return null;
+    return {
+      upiId: d.payoutDetails.upiId?.trim() ?? "",
+      accountHolderName: d.payoutDetails.accountHolderName?.trim() ?? "",
+      accountNumber: d.payoutDetails.accountNumber?.trim() ?? "",
+      ifsc: (d.payoutDetails.ifsc ?? "").toUpperCase().trim(),
+      updatedAt: d.payoutDetails.updatedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function savePayoutDetails(uid: string, details: PayoutDetails): Promise<void> {
+  await setDoc(
+    doc(db, COLLECTION, uid),
+    {
+      payoutDetails: {
+        upiId: details.upiId.trim(),
+        accountHolderName: details.accountHolderName.trim(),
+        accountNumber: details.accountNumber.trim(),
+        ifsc: details.ifsc.toUpperCase().trim(),
+        updatedAt: new Date().toISOString(),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function uploadAvatar(uid: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() || "jpg";
   const path = `avatars/${uid}/avatar-${Date.now()}.${ext}`;

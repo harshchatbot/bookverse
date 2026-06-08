@@ -225,6 +225,59 @@ export async function getAllDisputes(status?: DisputeStatus): Promise<Dispute[]>
   );
 }
 
+export interface SellerPayoutWithDetails extends SellerPayout {
+  payoutDetails?: {
+    upiId?: string;
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifsc?: string;
+  } | null;
+}
+
+/** Fetches pending/eligible payouts and enriches each with the seller's saved payout details. */
+export async function getSellerPayouts(
+  status?: PayoutStatus,
+): Promise<SellerPayoutWithDetails[]> {
+  const payouts = await getAllPayouts(status);
+  if (payouts.length === 0) return [];
+
+  // Deduplicate seller UIDs
+  const sellerUids = [...new Set(payouts.map((p) => p.sellerUid).filter(Boolean))];
+
+  // Fetch payout details for each unique seller
+  const detailsMap = new Map<
+    string,
+    { upiId?: string; accountHolderName?: string; accountNumber?: string; ifsc?: string } | null
+  >();
+  await Promise.all(
+    sellerUids.map(async (uid) => {
+      try {
+        const snap = await getDoc(doc(db, "profiles", uid));
+        if (!snap.exists()) {
+          detailsMap.set(uid, null);
+          return;
+        }
+        const d = snap.data() as {
+          payoutDetails?: {
+            upiId?: string;
+            accountHolderName?: string;
+            accountNumber?: string;
+            ifsc?: string;
+          };
+        };
+        detailsMap.set(uid, d.payoutDetails ?? null);
+      } catch {
+        detailsMap.set(uid, null);
+      }
+    }),
+  );
+
+  return payouts.map((p) => ({
+    ...p,
+    payoutDetails: detailsMap.get(p.sellerUid) ?? null,
+  }));
+}
+
 // Buyer/seller can write a dispute (rules allow this) — server resolves.
 export async function raiseDispute(input: {
   orderId: string;
