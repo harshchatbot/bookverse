@@ -101,6 +101,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create seller payout record if not already created
+    if (!order.payoutId) {
+      try {
+        const payoutRef = db.collection("seller_payouts").doc();
+        await payoutRef.set({
+          orderId: orderDoc.id,
+          sellerUid: order.sellerUid,
+          sellerEmail: order.sellerEmail ?? "",
+          sellerName: order.sellerName ?? "",
+          amount: order.sellerAmount ?? order.subtotal ?? 0,
+          bookTitle: order.items?.[0]?.title ?? "",
+          status: "pending",
+          eligibleAt: null,
+          paidAt: null,
+          mode: null,
+          reference: null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        await orderDoc.ref.update({ payoutId: payoutRef.id });
+      } catch (error) {
+        console.error("[razorpay webhook] payout creation failed", error);
+      }
+    }
     // TODO: move heavier fulfillment orchestration out of the Vercel webhook path into FastAPI/worker processing.
     const result = await runFulfillment(orderDoc.id);
     return NextResponse.json({ ok: true, fulfillment: result });
