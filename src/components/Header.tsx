@@ -368,6 +368,7 @@ function getNavLinks({
 
   return [
     { to: "/sell", label: "Sell Book" },
+    { to: "/orders", label: "My Orders" },
     { to: "/offers", label: "Offers" },
     { to: "/profile", label: "Profile" },
   ];

@@ -261,6 +261,9 @@ function SellForm({ user }: { user: User }) {
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pickupIncomplete, setPickupIncomplete] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [mandatoryPhotos, setMandatoryPhotos] = useState<(File | null)[]>([null, null, null]);
+  const [optionalPhotos, setOptionalPhotos] = useState<(File | null)[]>([null, null, null]);
   const [bulkShared, setBulkShared] = useState<SharedBulkFields>({
     sellerName: access.profile?.name || user.displayName || "",
     sellerMobile: indianMobileNational(
@@ -317,6 +320,11 @@ function SellForm({ user }: { user: User }) {
     }
     return previewUrlsRef.current.get(key)!;
   };
+
+  const getAllImages = (): File[] => [
+    ...mandatoryPhotos.filter((f): f is File => f !== null),
+    ...optionalPhotos.filter((f): f is File => f !== null),
+  ];
 
   const {
     register,
@@ -550,6 +558,51 @@ function SellForm({ user }: { user: User }) {
     toast.success("Cover photo selected.");
   };
 
+  const setMandatoryPhoto = (index: number, file: File) => {
+    setMandatoryPhotos((prev) => { const next = [...prev]; next[index] = file; return next; });
+  };
+  const removeMandatoryPhoto = (index: number) => {
+    setMandatoryPhotos((prev) => { const next = [...prev]; next[index] = null; return next; });
+  };
+  const setOptionalPhoto = (index: number, file: File) => {
+    setOptionalPhotos((prev) => { const next = [...prev]; next[index] = file; return next; });
+  };
+  const removeOptionalPhoto = (index: number) => {
+    setOptionalPhotos((prev) => { const next = [...prev]; next[index] = null; return next; });
+  };
+
+  const validateStep = (s: 1 | 2 | 3 | 4): string | null => {
+    if (s === 1) {
+      if (!mandatoryPhotos[0]) return "Please add a Front Cover photo.";
+      return null;
+    }
+    if (s === 2) {
+      if (!watch("title")?.trim()) return "Book title is required.";
+      if (!watch("category")) return "Please pick a category.";
+      if (!watch("condition")) return "Please pick a condition.";
+      return null;
+    }
+    if (s === 3) {
+      const price = watch("sellingPrice");
+      if (!price || price < 1) return "Enter a selling price of at least ₹1.";
+      if (!watch("deliveryType")) return "Please pick a delivery type.";
+      if (!watch("state")) return "Please select a state.";
+      if (!watch("city")) return "Please select a city.";
+      return null;
+    }
+    return null;
+  };
+
+  const goNext = () => {
+    const error = validateStep(step);
+    if (error) { toast.error(error); return; }
+    setStep((s) => (Math.min(s + 1, 4) as 1 | 2 | 3 | 4));
+  };
+
+  const goBack = () => {
+    setStep((s) => (Math.max(s - 1, 1) as 1 | 2 | 3 | 4));
+  };
+
   const addBulkBook = () => {
     if (bulkBooks.length >= MAX_BULK_BOOKS) {
       toast.error(`You can add up to ${MAX_BULK_BOOKS} books in one bulk session.`);
@@ -582,7 +635,7 @@ function SellForm({ user }: { user: User }) {
       toast.error("Enter your city or town.");
       return;
     }
-    if (singleImages.length === 0) {
+    if (getAllImages().length === 0) {
       toast.error("Please upload at least 1 photo of the book.");
       return;
     }
@@ -596,7 +649,7 @@ function SellForm({ user }: { user: User }) {
     setUploadProgress(0);
 
     try {
-      const orderedImages = getOrderedImages(singleImages, singleCoverImageIndex);
+      const orderedImages = getAllImages();
       const imageUrls: string[] = [];
 
       for (let index = 0; index < orderedImages.length; index += 1) {
@@ -763,12 +816,9 @@ function SellForm({ user }: { user: User }) {
     <>
       <FullScreenLoader
         open={submitting}
-        title={listingMode === "bulk" ? "Submitting your book stack…" : "Listing your book…"}
+        title="Listing your book…"
         message={
-          submitStatus ||
-          (listingMode === "bulk"
-            ? "Please wait while we upload each book and create pending listings."
-            : "Please wait while we upload your photos and submit your listing.")
+          submitStatus || "Please wait while we upload your photos and submit your listing."
         }
         progress={uploadProgress}
       />
@@ -778,10 +828,9 @@ function SellForm({ user }: { user: User }) {
           <main className="flex-1">
             <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
               <div className="max-w-3xl">
-                <h1 className="font-display text-3xl font-bold sm:text-4xl">List books for sale</h1>
+                <h1 className="font-display text-3xl font-bold sm:text-4xl">List a book for sale</h1>
                 <p className="mt-2 text-muted-foreground">
-                  Add a single book or list multiple books from the same course in one session.
-                  Every listing stays P2P and goes live after admin approval.
+                  List your book in 4 quick steps. Every listing goes live after admin approval.
                 </p>
               </div>
 
@@ -816,57 +865,95 @@ function SellForm({ user }: { user: User }) {
                 </div>
               )}
 
-              <Section
-                title="Choose listing mode"
-                subtitle="Pick the flow that matches how many books you want to add today."
-              >
-                <div className="inline-flex rounded-full border border-border bg-background p-1">
-                  <button
-                    type="button"
-                    onClick={() => switchMode("single")}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      listingMode === "single"
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Single Book
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchMode("bulk")}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      listingMode === "bulk"
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Bulk Add Multiple Books
-                  </button>
-                </div>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Bulk mode creates separate pending listings, one for each book, so My Listings,
-                  admin approval, and your dashboard all continue to work as usual.
-                </p>
-              </Section>
+              {false && (
+                <Section
+                  title="Choose listing mode"
+                  subtitle="Pick the flow that matches how many books you want to add today."
+                >
+                  <div className="inline-flex rounded-full border border-border bg-background p-1">
+                    <button
+                      type="button"
+                      onClick={() => switchMode("single")}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        listingMode === "single"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Single Book
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchMode("bulk")}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        listingMode === "bulk"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Bulk Add Multiple Books
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Bulk mode creates separate pending listings, one for each book, so My Listings,
+                    admin approval, and your dashboard all continue to work as usual.
+                  </p>
+                </Section>
+              )}
 
-              {listingMode === "single" ? (
-                <form onSubmit={handleSubmit(submitSingleListing)} className="mt-8 space-y-8">
+              <StepBar current={step} />
+
+              <form onSubmit={handleSubmit(submitSingleListing)} className="mt-6 space-y-4">
+                {step === 1 && (
                   <Section
-                    title="Upload photos"
-                    subtitle="Up to 6 photos. Choose a clear front-cover photo as your cover image."
+                    title="Add photos"
+                    subtitle="A clear front cover is required. Back cover and open pages help buyers decide faster."
                   >
-                    <ImageGrid
-                      images={singleImages}
-                      coverImageIndex={singleCoverImageIndex}
-                      onOpen={(index) => setSingleLightboxIndex(index)}
-                      onRemove={removeSingleImage}
-                      onSetCover={setSingleAsCover}
-                      onFiles={onSingleFiles}
-                      getPreviewUrl={getPreviewUrl}
-                    />
+                    <div className="space-y-5">
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Mandatory photos
+                        </p>
+                        <div className="grid grid-cols-3 gap-4">
+                          {(["Front Cover *", "Back Cover *", "Open Pages *"] as const).map(
+                            (label, index) => (
+                              <PhotoSlot
+                                key={label}
+                                label={label}
+                                file={mandatoryPhotos[index] ?? null}
+                                onFile={(file) => setMandatoryPhoto(index, file)}
+                                onRemove={() => removeMandatoryPhoto(index)}
+                                getPreviewUrl={getPreviewUrl}
+                              />
+                            ),
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Optional photos (up to 3)
+                        </p>
+                        <div className="grid grid-cols-3 gap-4">
+                          {[0, 1, 2].map((index) => (
+                            <PhotoSlot
+                              key={`opt-${index}`}
+                              label={`Optional ${index + 1}`}
+                              file={optionalPhotos[index] ?? null}
+                              onFile={(file) => setOptionalPhoto(index, file)}
+                              onRemove={() => removeOptionalPhoto(index)}
+                              getPreviewUrl={getPreviewUrl}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, or WebP · max {MAX_SIZE_MB}MB per photo. Front cover appears first on your listing.
+                      </p>
+                    </div>
                   </Section>
+                )}
 
+                {step === 2 && (
                   <Section title="Book details">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field label="Book title" error={errors.title?.message}>
@@ -894,6 +981,26 @@ function SellForm({ user }: { user: User }) {
                       <Field label="Edition (optional)">
                         <Input {...register("edition")} placeholder="2nd edition, 2022" />
                       </Field>
+                      <Field label="Condition" error={errors.condition?.message}>
+                        <Select
+                          value={singleCondition}
+                          onChange={(value) =>
+                            setValue("condition", value, { shouldValidate: true })
+                          }
+                          options={CONDITIONS.map((entry) => ({
+                            value: entry.value,
+                            label: entry.label,
+                          }))}
+                          placeholder="Select condition"
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+                )}
+
+                {step === 3 && (
+                  <Section title="Pricing & delivery">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <Field
                         label="Original purchase price (₹) — optional"
                         error={errors.originalPrice?.message}
@@ -911,19 +1018,6 @@ function SellForm({ user }: { user: User }) {
                           type="number"
                           min={1}
                           {...register("sellingPrice", { valueAsNumber: true })}
-                        />
-                      </Field>
-                      <Field label="Condition" error={errors.condition?.message}>
-                        <Select
-                          value={singleCondition}
-                          onChange={(value) =>
-                            setValue("condition", value, { shouldValidate: true })
-                          }
-                          options={CONDITIONS.map((entry) => ({
-                            value: entry.value,
-                            label: entry.label,
-                          }))}
-                          placeholder="Select condition"
                         />
                       </Field>
                       <Field label="Delivery type" error={errors.deliveryType?.message}>
@@ -970,194 +1064,84 @@ function SellForm({ user }: { user: User }) {
                       data-testid="seller-payout-preview-single"
                     />
                   </Section>
+                )}
 
-                  <Section title="Seller contact">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Seller name" error={errors.sellerName?.message}>
-                        <Input {...register("sellerName")} placeholder="Your name" />
-                      </Field>
-                      <Field label="WhatsApp mobile number" error={errors.sellerMobile?.message}>
-                        <Input
-                          {...register("sellerMobile", {
-                            onChange: (event) => {
-                              event.target.value = event.target.value
-                                .replace(/\D/g, "")
-                                .slice(0, 10);
-                            },
-                          })}
-                          inputMode="numeric"
-                          autoComplete="tel-national"
-                          placeholder="10-digit number"
-                          maxLength={10}
-                        />
-                      </Field>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Buyers will contact you on this number via WhatsApp.
-                    </p>
-                  </Section>
+                {step === 4 && (
+                  <>
+                    <Section title="Seller contact">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Seller name" error={errors.sellerName?.message}>
+                          <Input {...register("sellerName")} placeholder="Your name" />
+                        </Field>
+                        <Field label="WhatsApp mobile number" error={errors.sellerMobile?.message}>
+                          <Input
+                            {...register("sellerMobile", {
+                              onChange: (event) => {
+                                event.target.value = event.target.value
+                                  .replace(/\D/g, "")
+                                  .slice(0, 10);
+                              },
+                            })}
+                            inputMode="numeric"
+                            autoComplete="tel-national"
+                            placeholder="10-digit number"
+                            maxLength={10}
+                          />
+                        </Field>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Buyers will contact you on this number via WhatsApp.
+                      </p>
+                    </Section>
 
-                  <SubmitArea
-                    submitting={submitting}
-                    submitStatus={submitStatus}
-                    uploadProgress={uploadProgress}
-                    disabled={!access.canUseMarketplace}
-                    label="Submit for review"
-                  />
-
-                  {singleLightboxIndex !== null && singleImages[singleLightboxIndex] && (
-                    <Lightbox
-                      file={singleImages[singleLightboxIndex]}
-                      index={singleLightboxIndex}
-                      total={singleImages.length}
-                      onClose={() => setSingleLightboxIndex(null)}
-                      onPrev={() =>
-                        setSingleLightboxIndex((current) =>
-                          current !== null && current > 0 ? current - 1 : current,
-                        )
-                      }
-                      onNext={() =>
-                        setSingleLightboxIndex((current) =>
-                          current !== null && current < singleImages.length - 1
-                            ? current + 1
-                            : current,
-                        )
-                      }
-                      onRemove={() => {
-                        removeSingleImage(singleLightboxIndex);
-                        if (singleImages.length <= 1) {
-                          setSingleLightboxIndex(null);
-                        } else if (singleLightboxIndex >= singleImages.length - 1) {
-                          setSingleLightboxIndex(singleImages.length - 2);
-                        }
-                      }}
-                      getPreviewUrl={getPreviewUrl}
+                    <SubmitArea
+                      submitting={submitting}
+                      submitStatus={submitStatus}
+                      uploadProgress={uploadProgress}
+                      disabled={!access.canUseMarketplace}
+                      label="Submit for review"
                     />
-                  )}
-                </form>
-              ) : (
-                <div className="mt-8 space-y-8">
-                  <Section
-                    title="Shared details for all books"
-                    subtitle="These details apply to every listing created in this bulk session."
-                  >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Seller name" error={bulkErrors.shared.sellerName}>
-                        <Input
-                          value={bulkShared.sellerName}
-                          onChange={(event) =>
-                            setBulkShared((current) => ({
-                              ...current,
-                              sellerName: event.target.value,
-                            }))
-                          }
-                          placeholder="Your name"
-                        />
-                      </Field>
-                      <Field label="WhatsApp mobile number" error={bulkErrors.shared.sellerMobile}>
-                        <Input
-                          value={bulkShared.sellerMobile}
-                          onChange={(event) =>
-                            setBulkShared((current) => ({
-                              ...current,
-                              sellerMobile: event.target.value.replace(/\D/g, "").slice(0, 10),
-                            }))
-                          }
-                          inputMode="numeric"
-                          autoComplete="tel-national"
-                          placeholder="10-digit number"
-                          maxLength={10}
-                        />
-                      </Field>
-                      <Field label="Delivery type" error={bulkErrors.shared.deliveryType}>
-                        <Select
-                          value={bulkShared.deliveryType}
-                          onChange={(value) =>
-                            setBulkShared((current) => ({ ...current, deliveryType: value }))
-                          }
-                          options={DELIVERY_TYPES.map((entry) => ({
-                            value: entry.value,
-                            label: entry.label,
-                          }))}
-                          placeholder="Select delivery"
-                        />
-                      </Field>
-                      <div className="sm:col-span-2">
-                        <LocationSelect
-                          state={bulkShared.state}
-                          city={bulkShared.city}
-                          manualCity={bulkManualCity}
-                          onStateChange={(value) =>
-                            setBulkShared((current) => ({ ...current, state: value }))
-                          }
-                          onCityChange={(value) =>
-                            setBulkShared((current) => ({ ...current, city: value }))
-                          }
-                          onManualCityChange={setBulkManualCity}
-                          stateError={bulkErrors.shared.state}
-                          cityError={bulkErrors.shared.city}
-                        />
-                      </div>
-                    </div>
-                  </Section>
+                  </>
+                )}
 
-                  <Section
-                    title="Books in this bulk session"
-                    subtitle={`Add between ${MIN_BULK_BOOKS} and ${MAX_BULK_BOOKS} books. Each book becomes its own pending listing.`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-sm font-medium text-muted-foreground">
-                        <Layers3 className="h-4 w-4" />
-                        {bulkBooks.length} of {MAX_BULK_BOOKS} books ready
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={addBulkBook}
-                          disabled={bulkBooks.length >= MAX_BULK_BOOKS}
-                          className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <Plus className="h-4 w-4" /> Add another book
-                        </button>
-                      </div>
-                    </div>
+                <StepNav
+                  current={step}
+                  onBack={goBack}
+                  onNext={goNext}
+                  isLastStep={step === 4}
+                  submitting={submitting}
+                  disabled={!access.canUseMarketplace}
+                />
+              </form>
 
-                    <div className="mt-6 space-y-5">
-                      {bulkBooks.map((book, index) => (
-                        <BulkBookCard
-                          key={book.id}
-                          book={book}
-                          index={index}
-                          errors={bulkErrors.books[index] ?? {}}
-                          getPreviewUrl={getPreviewUrl}
-                          onChangeField={updateBulkBookField}
-                          onFiles={onBulkFiles}
-                          onRemoveImage={removeBulkImage}
-                          onSetCover={setBulkAsCover}
-                          onRemoveBook={removeBulkBook}
-                          canRemove={bulkBooks.length > MIN_BULK_BOOKS}
-                          protectedDeliveryEnabled={protectedDeliveryEnabled}
-                        />
-                      ))}
-                    </div>
-                    <PayoutPreview
-                      sellingPrice={getBulkExpectedPayout(bulkBooks)}
-                      protectedDeliveryEnabled={protectedDeliveryEnabled}
-                      heading="Bulk payout preview"
-                      note={`Total expected payout across ${bulkBooks.length} book${bulkBooks.length > 1 ? "s" : ""}`}
-                      data-testid="seller-payout-preview-bulk-total"
-                    />
-                  </Section>
-
-                  <SubmitArea
-                    submitting={submitting}
-                    submitStatus={submitStatus}
-                    uploadProgress={uploadProgress}
-                    disabled={!access.canUseMarketplace}
-                    label={`Submit ${bulkBooks.length} listings`}
-                    onClick={submitBulkListings}
-                  />
-                </div>
+              {singleLightboxIndex !== null && singleImages[singleLightboxIndex] && (
+                <Lightbox
+                  file={singleImages[singleLightboxIndex]}
+                  index={singleLightboxIndex}
+                  total={singleImages.length}
+                  onClose={() => setSingleLightboxIndex(null)}
+                  onPrev={() =>
+                    setSingleLightboxIndex((current) =>
+                      current !== null && current > 0 ? current - 1 : current,
+                    )
+                  }
+                  onNext={() =>
+                    setSingleLightboxIndex((current) =>
+                      current !== null && current < singleImages.length - 1
+                        ? current + 1
+                        : current,
+                    )
+                  }
+                  onRemove={() => {
+                    removeSingleImage(singleLightboxIndex);
+                    if (singleImages.length <= 1) {
+                      setSingleLightboxIndex(null);
+                    } else if (singleLightboxIndex >= singleImages.length - 1) {
+                      setSingleLightboxIndex(singleImages.length - 2);
+                    }
+                  }}
+                  getPreviewUrl={getPreviewUrl}
+                />
               )}
             </div>
           </main>
@@ -1733,6 +1717,163 @@ function getSubmitErrorMessage(error: unknown) {
   }
   if (message) return message;
   return "Failed to create listing. Please try again.";
+}
+
+function StepBar({ current }: { current: number }) {
+  const labels = ["Photos", "Book Details", "Pricing", "Review"];
+  return (
+    <div className="mt-8 flex items-start">
+      {labels.map((label, i) => {
+        const n = i + 1;
+        const done = n < current;
+        const active = n === current;
+        const isLast = i === labels.length - 1;
+        return (
+          <div key={n} className={`flex flex-col items-center ${isLast ? "" : "flex-1"}`}>
+            <div className="flex w-full items-center">
+              <div
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold transition-colors ${
+                  done
+                    ? "bg-primary text-primary-foreground"
+                    : active
+                      ? "border-2 border-primary bg-primary/10 text-primary"
+                      : "border border-border bg-background text-muted-foreground"
+                }`}
+              >
+                {done ? "✓" : n}
+              </div>
+              {!isLast && (
+                <div className={`ml-1 h-px flex-1 ${done ? "bg-primary" : "bg-border"}`} />
+              )}
+            </div>
+            <span
+              className={`mt-1.5 max-w-[56px] text-center text-[10px] font-medium leading-tight ${
+                active ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StepNav({
+  current,
+  onBack,
+  onNext,
+  isLastStep,
+  submitting,
+  disabled,
+}: {
+  current: number;
+  onBack: () => void;
+  onNext: () => void;
+  isLastStep: boolean;
+  submitting: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <div className="mt-2 flex items-center justify-between gap-3">
+      {current > 1 ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold transition hover:bg-secondary"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </button>
+      ) : (
+        <div />
+      )}
+      {!isLastStep && (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={disabled || submitting}
+          className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition hover:opacity-90 disabled:opacity-60"
+        >
+          Continue
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PhotoSlot({
+  label,
+  file,
+  onFile,
+  onRemove,
+  getPreviewUrl,
+}: {
+  label: string;
+  file: File | null;
+  onFile: (file: File) => void;
+  onRemove: () => void;
+  getPreviewUrl: (file: File) => string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const f = event.target.files?.[0];
+    if (!f) return;
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      toast.error(`${f.name} is not a supported format. Use JPG, PNG, or WebP.`);
+      return;
+    }
+    if (f.size > MAX_SIZE_BYTES) {
+      toast.error(`${f.name} is too large. Max ${MAX_SIZE_MB}MB.`);
+      return;
+    }
+    onFile(f);
+    event.target.value = "";
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="truncate text-[11px] font-semibold text-muted-foreground">{label}</p>
+      {file ? (
+        <div className="relative aspect-square overflow-hidden rounded-xl border border-primary/40 ring-2 ring-primary/20">
+          <img
+            src={getPreviewUrl(file)}
+            alt={label}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          <button
+            type="button"
+            onClick={onRemove}
+            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-foreground/80 text-background transition-colors hover:bg-foreground"
+            aria-label={`Remove ${label}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          <ImagePlus className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Add photo</span>
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleChange}
+      />
+    </div>
+  );
 }
 
 function Section({

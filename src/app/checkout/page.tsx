@@ -138,6 +138,16 @@ function CheckoutPageContent() {
     ensureAccess("contact");
   }, [accessLoading, canUseMarketplace, ensureAccess, router]);
 
+  const allGroupsPaidForRedirect =
+    createdGroups.length > 0 &&
+    createdGroups.every((group) => paymentStates[group.orderId] === "paid");
+
+  useEffect(() => {
+    if (!allGroupsPaidForRedirect) return;
+    const timer = setTimeout(() => router.push("/orders"), 3000);
+    return () => clearTimeout(timer);
+  }, [allGroupsPaidForRedirect, router]);
+
   useEffect(() => {
     if (!user) return;
     const profileHome = homeAddressQuery.data?.homeAddress;

@@ -148,6 +148,7 @@ export async function createTestListing(
     sellerUid,
     status: "pending",
     views: 0,
+    isTestData: true,
     createdAt: now,
     updatedAt: now,
   });
@@ -192,6 +193,7 @@ export async function createTestProfile(uid: string, data?: TestProfileInput): P
         locality: data?.locality ?? "Test Area",
         address: "",
         role: "buyer",
+        isTestData: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -483,6 +485,21 @@ export async function cleanupTestData(): Promise<void> {
     await doc.ref.delete();
   }
 
+  // Delete test users from users collection
+  const usersSnap = await db
+    .collection("users")
+    .where("uid", ">=", TEST_USER_PREFIX)
+    .where("uid", "<", TEST_USER_PREFIX + "~")
+    .get();
+  for (const doc of usersSnap.docs) {
+    const uid = doc.id;
+    try {
+      await auth.deleteUser(uid);
+    } catch (error) {
+      console.warn(`[cleanup] Failed to delete auth user ${uid}:`, error);
+    }
+    await doc.ref.delete();
+  }
   // Delete test notifications
   const notificationsSnap = await db.collectionGroup("notifications").get();
 

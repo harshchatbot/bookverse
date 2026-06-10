@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Heart, LayoutDashboard, PlusSquare, Search } from "lucide-react";
+import { BookOpen, LayoutDashboard, Package, PlusSquare, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useAppPathname } from "@/lib/navigation";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
@@ -18,7 +18,7 @@ export function BottomNav() {
 
   const navItems = [
     { href: "/browse", icon: Search, label: "Browse" },
-    { href: "/wishlist", icon: Heart, label: "Wishlist" },
+    { href: "/orders", icon: Package, label: "Orders" },
     { href: "/sell", icon: PlusSquare, label: "Sell" },
     { href: "/my-listings", icon: BookOpen, label: "Listings" },
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },

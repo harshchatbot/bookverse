@@ -240,7 +240,7 @@ service cloud.firestore {
       allow update: if isAdmin()
                     || (isSignedIn()
                         && resource.data.sellerUid == request.auth.uid
-                        && resource.data.status in ['approved', 'pending']
+                        && resource.data.status in ['approved', 'pending', 'sold']
                         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
                           'status',
                           'updatedAt',

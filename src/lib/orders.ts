@@ -278,6 +278,12 @@ export async function getSellerPayouts(
   }));
 }
 
+/** Alias for getMyOrdersAsBuyer — buyer-facing orders list. */
+export const getBuyerOrders = getMyOrdersAsBuyer;
+
+/** Alias for getOrder — fetch a single order by ID. */
+export const getOrderById = getOrder;
+
 // Buyer/seller can write a dispute (rules allow this) — server resolves.
 export async function raiseDispute(input: {
   orderId: string;
