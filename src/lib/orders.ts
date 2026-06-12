@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
+import { apiFetch } from "@/lib/api-client";
 import { db } from "@/integrations/firebase/client";
 import { serializeFirestore } from "./serialize";
 import type {
@@ -183,38 +184,26 @@ function normalizeOrderForDisplay(order: Order): Order {
 }
 
 export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
-  const ordersRef = collection(db, "orders");
-  const [buyerIdSnap, buyerUidSnap] = await Promise.all([
-    getDocs(query(ordersRef, where("buyerId", "==", uid), fbLimit(50))),
-    getDocs(query(ordersRef, where("buyerUid", "==", uid), fbLimit(50))),
-  ]);
-
-  const merged = new Map<string, Order>();
-  for (const docSnap of [...buyerIdSnap.docs, ...buyerUidSnap.docs]) {
-    merged.set(
-      docSnap.id,
-      serializeFirestore({ id: docSnap.id, ...(docSnap.data() as Omit<Order, "id">) }),
-    );
+  console.info("[orders] getBuyerOrders called", { currentUserUid: uid });
+  try {
+    const response = await apiFetch<{ orders: Order[] }>("/api/orders/my");
+    const rawOrders = Array.isArray(response.orders) ? response.orders : [];
+    const orders = rawOrders.map(normalizeOrderForDisplay);
+    console.info("[orders] buyer query", {
+      currentUserUid: uid,
+      fieldsUsed: ["buyerId", "buyerUid"],
+      returnedCount: orders.length,
+    });
+    console.info("[orders] raw returned orders", rawOrders);
+    console.info("[orders] mapped orders", orders);
+    return orders;
+  } catch (error) {
+    console.error("[orders] getBuyerOrders failed", {
+      currentUserUid: uid,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-
-  const rawOrders = [...merged.values()].sort((a, b) => {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return bTime - aTime;
-  });
-  const orders = rawOrders.map(normalizeOrderForDisplay);
-
-  console.info("[orders] buyer query", {
-    currentUserUid: uid,
-    fieldsUsed: ["buyerId", "buyerUid"],
-    buyerIdCount: buyerIdSnap.size,
-    buyerUidCount: buyerUidSnap.size,
-    returnedCount: orders.length,
-  });
-  console.info("[orders] raw returned orders", rawOrders);
-  console.info("[orders] mapped orders", orders);
-
-  return orders;
 }
 
 export async function getMyOrdersAsSeller(uid: string): Promise<Order[]> {

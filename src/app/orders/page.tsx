@@ -41,7 +41,7 @@ export default function OrdersPage() {
 }
 
 function OrdersContent({ buyerUid }: { buyerUid: string }) {
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, error } = useQuery({
     queryKey: ["buyer-orders", buyerUid],
     queryFn: () => getBuyerOrders(buyerUid),
   });
@@ -54,6 +54,11 @@ function OrdersContent({ buyerUid }: { buyerUid: string }) {
     if (!orders) return;
     console.info("[orders/page] rendered orders count", orders.length);
   }, [orders]);
+
+  useEffect(() => {
+    if (!error) return;
+    console.error("[orders/page] query error", error);
+  }, [error]);
 
   return (
     <AppPageShell>
@@ -69,6 +74,12 @@ function OrdersContent({ buyerUid }: { buyerUid: string }) {
         </div>
 
         <div className="mt-6 space-y-3">
+          <p className="text-sm text-muted-foreground">Loaded {orders?.length ?? 0} orders</p>
+          {error ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              Could not load orders right now.
+            </div>
+          ) : null}
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-24 animate-pulse rounded-2xl bg-secondary" />
@@ -98,6 +109,10 @@ function OrdersContent({ buyerUid }: { buyerUid: string }) {
 
 function OrderRow({ order }: { order: Order }) {
   const firstItem = order.items[0];
+  const title =
+    (typeof firstItem?.title === "string" && firstItem.title) ||
+    (order.listing && typeof order.listing.title === "string" ? order.listing.title : null) ||
+    "Book order";
 
   return (
     <Link
@@ -108,7 +123,7 @@ function OrderRow({ order }: { order: Order }) {
         <OrderStatusIcon status={order.status} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{firstItem?.title ?? "Order"}</p>
+        <p className="truncate font-semibold">{title}</p>
         <p className="text-xs text-muted-foreground">
           {ORDER_STATUS_LABEL[order.status]} · ₹{order.totalAmount.toLocaleString("en-IN")}
         </p>
