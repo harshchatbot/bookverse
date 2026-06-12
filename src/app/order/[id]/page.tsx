@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ExternalLink, MapPin, Package, Truck } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
@@ -43,10 +44,30 @@ function OrderDetail({ buyerUid }: { buyerUid: string }) {
   const params = useParams();
   const orderId = params.id as string;
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, error } = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => getOrderById(orderId),
+    retry: false,
   });
+
+  useEffect(() => {
+    console.info("[order/page] currentUser.uid", buyerUid);
+    console.info("[order/page] orderId", orderId);
+  }, [buyerUid, orderId]);
+
+  useEffect(() => {
+    if (!order) return;
+    console.info("[order/page] loaded order", {
+      orderId: order.id,
+      buyerId: order.buyerId,
+      buyerUid: order.buyerUid,
+      sellerId: order.sellerId,
+      status: order.status,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      fulfillmentStatus: order.fulfillmentStatus,
+    });
+  }, [order]);
 
   if (isLoading) {
     return (
@@ -58,14 +79,17 @@ function OrderDetail({ buyerUid }: { buyerUid: string }) {
     );
   }
 
-  if (!order || order.buyerUid !== buyerUid) {
+  const message =
+    error instanceof Error && /401/.test(error.message)
+      ? "Please sign in to view this order."
+      : "Order not found or you do not have access.";
+
+  if (!order) {
     return (
       <AppPageShell>
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
           <h1 className="font-display text-2xl font-bold">Order not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This order doesn't exist or belongs to a different account.
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{message}</p>
           <Link
             href="/orders"
             className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
@@ -135,11 +159,37 @@ function OrderStatusCard({ order }: { order: Order }) {
 }
 
 function OrderItemsCard({ order }: { order: Order }) {
+  const items = order.items.length
+    ? order.items
+    : [
+        {
+          title:
+            (order.listing && typeof order.listing.title === "string" && order.listing.title) ||
+            "Book order",
+          author:
+            (order.listing && typeof order.listing.author === "string" && order.listing.author) ||
+            "",
+          price: order.totalAmount,
+          image:
+            order.listing && typeof order.listing.image === "string" ? order.listing.image : "",
+          listingId: order.listingId ?? "",
+          sellerUid: order.sellerUid,
+          category:
+            (order.listing && typeof order.listing.category === "string" && order.listing.category) ||
+            "",
+          condition:
+            (order.listing && typeof order.listing.condition === "string" && order.listing.condition) ||
+            "",
+          quantity: 1,
+          estimatedWeightKg: 0,
+        },
+      ];
+
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <h2 className="font-semibold">Books</h2>
       <div className="mt-3 space-y-3">
-        {order.items.map((item, i) => (
+        {items.map((item, i) => (
           <div key={i} className="flex items-center gap-3">
             {item.image ? (
               <img

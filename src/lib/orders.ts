@@ -161,7 +161,7 @@ export interface Dispute {
   updatedAt: string | null;
 }
 
-function normalizeOrderForDisplay(order: Order): Order {
+export function normalizeOrderForDisplay(order: Order): Order {
   const normalizedStatus: OrderStatus =
     order.status ?? (order.paymentStatus === "captured" ? "paid" : "pending_payment");
   return {
@@ -219,9 +219,16 @@ export async function getMyOrdersAsSeller(uid: string): Promise<Order[]> {
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const snap = await getDoc(doc(db, "orders", id));
-  if (!snap.exists()) return null;
-  return serializeFirestore({ id: snap.id, ...(snap.data() as Omit<Order, "id">) });
+  try {
+    const response = await apiFetch<Order>(`/api/orders/${id}`);
+    return normalizeOrderForDisplay(response);
+  } catch (error) {
+    console.error("[orders] getOrder failed", {
+      orderId: id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 export async function getAllOrders(status?: OrderStatus): Promise<Order[]> {
