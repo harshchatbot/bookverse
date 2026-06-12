@@ -32,6 +32,10 @@ function maskRazorpayKeyId(keyId: string) {
   return "unknown";
 }
 
+export function razorpayKeyPrefix(keyId: string): string {
+  return keyId.startsWith("rzp_test") ? "rzp_test" : keyId.startsWith("rzp_live") ? "rzp_live" : "unknown";
+}
+
 export function getRazorpayConfig(): RazorpayConfig {
   const mode = getRazorpayMode();
   const keyId =

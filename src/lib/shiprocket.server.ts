@@ -3,6 +3,18 @@
 
 const BASE = "https://apiv2.shiprocket.in/v1/external";
 
+function getShiprocketMode(): "live" | "mock" {
+  return (process.env.SHIPROCKET_MODE ?? "").trim().toLowerCase() === "live" ? "live" : "mock";
+}
+
+function getRazorpayMode(): "live" | "test" {
+  return (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() === "test" ? "test" : "live";
+}
+
+function shouldUseMockServiceability() {
+  return getRazorpayMode() === "test" || getShiprocketMode() !== "live";
+}
+
 interface CachedToken {
   token: string;
   expiresAt: number;
@@ -62,6 +74,28 @@ export async function checkServiceability(opts: {
   declaredValue: number; // INR
   cod?: boolean;
 }): Promise<ServiceabilityResult> {
+  if (shouldUseMockServiceability()) {
+    console.info("[shiprocket/serviceability] using mock serviceability", {
+      razorpayMode: getRazorpayMode(),
+      shiprocketMode: getShiprocketMode(),
+      pickupPincode: opts.pickupPincode,
+      deliveryPincode: opts.deliveryPincode,
+      weightKg: opts.weightKg,
+      declaredValue: opts.declaredValue,
+    });
+    return {
+      available: true,
+      rate: 60,
+      courierId: 0,
+      courierName: "Mock Courier",
+      etd: null,
+      raw: {
+        mode: "mock",
+        reason: getRazorpayMode() === "test" ? "razorpay_test_mode" : "shiprocket_not_live",
+      },
+    };
+  }
+
   const params = new URLSearchParams({
     pickup_postcode: opts.pickupPincode,
     delivery_postcode: opts.deliveryPincode,

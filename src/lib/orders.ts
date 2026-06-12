@@ -207,15 +207,26 @@ export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
 }
 
 export async function getMyOrdersAsSeller(uid: string): Promise<Order[]> {
-  const snap = await getDocs(
-    query(
-      collection(db, "orders"),
-      where("sellerUid", "==", uid),
-      orderBy("createdAt", "desc"),
-      fbLimit(50),
-    ),
-  );
-  return snap.docs.map((d) => serializeFirestore({ id: d.id, ...(d.data() as Omit<Order, "id">) }));
+  console.info("[orders] getSellerOrders called", { currentUserUid: uid });
+  try {
+    const response = await apiFetch<{ orders: Order[] }>("/api/seller/orders");
+    const rawOrders = Array.isArray(response.orders) ? response.orders : [];
+    const orders = rawOrders.map(normalizeOrderForDisplay);
+    console.info("[orders] seller query", {
+      currentUserUid: uid,
+      fieldsUsed: ["sellerId", "sellerUid", "listingId(fallback)"],
+      returnedCount: orders.length,
+    });
+    console.info("[orders] raw seller orders", rawOrders);
+    console.info("[orders] mapped seller orders", orders);
+    return orders;
+  } catch (error) {
+    console.error("[orders] getSellerOrders failed", {
+      currentUserUid: uid,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
@@ -329,6 +340,7 @@ export async function getSellerPayouts(
 
 /** Alias for getMyOrdersAsBuyer — buyer-facing orders list. */
 export const getBuyerOrders = getMyOrdersAsBuyer;
+export const getSellerOrders = getMyOrdersAsSeller;
 
 /** Alias for getOrder — fetch a single order by ID. */
 export const getOrderById = getOrder;

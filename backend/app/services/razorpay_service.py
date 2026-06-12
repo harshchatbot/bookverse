@@ -48,6 +48,14 @@ def _mask_key_id(key_id: str) -> str:
     return "unknown"
 
 
+def get_razorpay_key_prefix(key_id: str) -> str:
+    if key_id.startswith("rzp_test"):
+        return "rzp_test"
+    if key_id.startswith("rzp_live"):
+        return "rzp_live"
+    return "unknown"
+
+
 def get_razorpay_config() -> RazorpayConfig:
     global _logged_config_key
     settings = get_settings()

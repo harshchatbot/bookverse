@@ -49,6 +49,13 @@ export function getPublicRazorpayMode() {
   return readPublicEnv("NEXT_PUBLIC_RAZORPAY_MODE", "VITE_RAZORPAY_MODE");
 }
 
+export function getRazorpayKeyPrefix(keyId: string | null | undefined) {
+  const key = (keyId ?? "").trim();
+  if (key.startsWith("rzp_test")) return "rzp_test";
+  if (key.startsWith("rzp_live")) return "rzp_live";
+  return "unknown";
+}
+
 export function getRazorpayKeyId(serverSelectedKeyId?: string) {
   const mode = (getPublicRazorpayMode() ?? "").trim().toLowerCase();
   const explicitKey =

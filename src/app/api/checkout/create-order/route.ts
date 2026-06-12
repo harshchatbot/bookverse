@@ -4,7 +4,13 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminKit, requireAuth } from "@/lib/admin.server";
-import { estimateGatewayFee, razorpay, razorpayKeyId } from "@/lib/razorpay.server";
+import {
+  estimateGatewayFee,
+  getRazorpayConfig,
+  razorpay,
+  razorpayKeyId,
+  razorpayKeyPrefix,
+} from "@/lib/razorpay.server";
 import {
   estimateListingWeightKg,
   estimateParcelDimensions,
@@ -370,11 +376,38 @@ export async function POST(request: NextRequest) {
 
     const subtotal = getOrderItemsSubtotal(items);
     const totalWeightKg = getOrderTotalWeight(items);
-    const serviceability = await checkServiceability({
-      pickupPincode: pickupAddress.pincode,
-      deliveryPincode: parsed.data.buyerDeliveryAddress.pincode,
-      declaredValue: subtotal,
-      weightKg: totalWeightKg,
+    let serviceability;
+    try {
+      serviceability = await checkServiceability({
+        pickupPincode: pickupAddress.pincode,
+        deliveryPincode: parsed.data.buyerDeliveryAddress.pincode,
+        declaredValue: subtotal,
+        weightKg: totalWeightKg,
+      });
+    } catch (error) {
+      console.error("[checkout/create-order] serviceability lookup failed", {
+        sellerUid,
+        pickupPincode: pickupAddress.pincode,
+        deliveryPincode: parsed.data.buyerDeliveryAddress.pincode,
+        subtotal,
+        totalWeightKg,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json(
+        {
+          error:
+            "Could not check delivery serviceability right now. Please try again in a moment.",
+        },
+        { status: 502 },
+      );
+    }
+
+    console.info("[checkout/create-order] serviceability resolved", {
+      sellerUid,
+      available: serviceability.available,
+      rate: serviceability.rate,
+      courierId: serviceability.courierId,
+      courierName: serviceability.courierName,
     });
 
     if (!serviceability.available) {
@@ -426,6 +459,7 @@ export async function POST(request: NextRequest) {
 
     let rzpOrder;
     try {
+      const activeConfig = getRazorpayConfig();
       rzpOrder = await razorpay().orders.create({
         amount: Math.round(total * 100),
         currency: "INR",
@@ -440,10 +474,19 @@ export async function POST(request: NextRequest) {
       });
     } catch (error) {
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Razorpay error" },
+          { error: error instanceof Error ? error.message : "Razorpay error" },
         { status: 502 },
       );
     }
+    const activeConfig = getRazorpayConfig();
+    const activeKeyPrefix = razorpayKeyPrefix(activeConfig.keyId);
+    console.info("[checkout/create-order] Razorpay create-order config", {
+      razorpayMode: activeConfig.mode,
+      keyPrefix: activeKeyPrefix,
+      razorpayOrderId: rzpOrder.id,
+      amount: Number(rzpOrder.amount),
+      currency: rzpOrder.currency,
+    });
 
     await orderRef.set({
       buyerId: decoded.uid,
@@ -527,6 +570,8 @@ export async function POST(request: NextRequest) {
       amount: Number(rzpOrder.amount),
       currency: rzpOrder.currency,
       key: razorpayKeyId(),
+      razorpayMode: activeConfig.mode,
+      keyPrefix: activeKeyPrefix,
       buyerName: parsed.data.buyerDeliveryAddress.name,
       buyerEmail: parsed.data.buyerDeliveryAddress.email,
       buyerPhone: parsed.data.buyerDeliveryAddress.phone,

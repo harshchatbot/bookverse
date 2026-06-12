@@ -20,7 +20,7 @@ export function BottomNav() {
     { href: "/browse", icon: Search, label: "Browse" },
     { href: "/orders", icon: Package, label: "Orders" },
     { href: "/sell", icon: PlusSquare, label: "Sell" },
-    { href: "/my-listings", icon: BookOpen, label: "Listings" },
+    { href: "/seller/orders", icon: BookOpen, label: "Sales" },
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ];
 

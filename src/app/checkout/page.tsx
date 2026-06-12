@@ -10,7 +10,7 @@ import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector"
 import { AppPageShell } from "@/components/PageShell";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
 import { apiFetch } from "@/lib/api-client";
-import { getRazorpayKeyId } from "@/lib/env";
+import { getPublicRazorpayMode, getRazorpayKeyId, getRazorpayKeyPrefix } from "@/lib/env";
 import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getListingsByIds } from "@/lib/listings";
 import { normalizeListingIds, type CreatedProtectedDeliveryGroup } from "@/lib/protected-delivery";
@@ -33,6 +33,10 @@ type RazorpaySuccessResponse = {
   razorpay_payment_id: string;
   razorpay_signature: string;
 };
+
+function prefixesMatch(frontendPrefix: string, backendPrefix?: string) {
+  return frontendPrefix !== "unknown" && backendPrefix !== undefined && frontendPrefix === backendPrefix;
+}
 
 function buildDeliveryAddress1(address: CheckoutDeliveryAddress) {
   return [
@@ -337,6 +341,14 @@ function CheckoutPageContent() {
           }),
         },
       );
+      console.info("[checkout] create-order response groups", response.groups.map((group) => ({
+        orderId: group.orderId,
+        razorpayMode: group.razorpayMode ?? null,
+        keyPrefix: group.keyPrefix ?? null,
+        razorpayOrderId: group.razorpayOrderId,
+        amount: group.amount,
+        currency: group.currency,
+      })));
 
       setCreatedGroups(response.groups);
       setPaymentStates(
@@ -406,9 +418,24 @@ function CheckoutPageContent() {
         reject(new Error("Razorpay checkout is unavailable."));
         return;
       }
+      const frontendMode = (getPublicRazorpayMode() ?? "").trim().toLowerCase() || "live";
+      const frontendKey = getRazorpayKeyId(group.key);
+      const frontendKeyPrefix = getRazorpayKeyPrefix(frontendKey);
+      const backendKeyPrefix = group.keyPrefix ?? getRazorpayKeyPrefix(group.key);
+      console.info("[checkout] opening Razorpay", {
+        razorpayMode: frontendMode,
+        frontendKeyPrefix,
+        backendKeyPrefix,
+        razorpayOrderId: group.razorpayOrderId,
+        amount: group.amount,
+      });
+      if (!prefixesMatch(frontendKeyPrefix, backendKeyPrefix)) {
+        reject(new Error("Payment configuration mismatch. Please contact support."));
+        return;
+      }
 
       const instance = new window.Razorpay({
-        key: getRazorpayKeyId(group.key),
+        key: frontendKey,
         amount: group.amount,
         currency: group.currency,
         name: "BookVerse",

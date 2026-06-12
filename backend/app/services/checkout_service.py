@@ -13,7 +13,9 @@ from app.services.fulfillment_service import run_fulfillment
 from app.services.razorpay_service import (
     create_razorpay_order,
     estimate_gateway_fee,
+    get_razorpay_config,
     get_razorpay_key_id,
+    get_razorpay_key_prefix,
     verify_razorpay_signature,
 )
 from app.services.rewards_service import get_coupons_by_ids, mark_coupon_used_for_order
@@ -360,6 +362,16 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
                 },
             }
         )
+        active_config = get_razorpay_config()
+        active_key_prefix = get_razorpay_key_prefix(active_config.key_id)
+        logger.info(
+            "Razorpay create-order mode=%s keyPrefix=%s razorpayOrderId=%s amount=%s currency=%s",
+            active_config.mode,
+            active_key_prefix,
+            razorpay_order["id"],
+            razorpay_order["amount"],
+            razorpay_order["currency"],
+        )
 
         order_ref.set(
             {
@@ -446,6 +458,8 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
                 "amount": int(razorpay_order["amount"]),
                 "currency": razorpay_order["currency"],
                 "key": get_razorpay_key_id(),
+                "razorpayMode": active_config.mode,
+                "keyPrefix": active_key_prefix,
                 "buyerName": address["name"],
                 "buyerEmail": address["email"],
                 "buyerPhone": address["phone"],

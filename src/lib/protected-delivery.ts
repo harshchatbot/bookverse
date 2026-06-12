@@ -69,6 +69,8 @@ export interface CreatedProtectedDeliveryGroup {
   amount: number;
   currency: string;
   key: string;
+  razorpayMode?: string;
+  keyPrefix?: string;
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
