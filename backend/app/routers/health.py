@@ -1,14 +1,23 @@
+from datetime import datetime, timezone
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import get_settings
 from app.core.firebase import get_firebase_app
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("")
 def health() -> dict[str, object]:
-    return {"ok": True, "service": "bookverse-api"}
+    logger.info("/health hit")
+    return {
+        "ok": True,
+        "service": "bookverse-api",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.get("/firebase")
@@ -23,4 +32,3 @@ def health_firebase() -> dict[str, object]:
         raise HTTPException(status_code=500, detail="Firebase project ID is unavailable.")
 
     return {"ok": True, "firebaseProjectId": project_id}
-

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import logging
 from typing import Any
 
 from google.cloud import firestore
@@ -15,6 +16,7 @@ from app.services.shiprocket_service import (
     should_create_live_shiprocket_order,
 )
 
+logger = logging.getLogger(__name__)
 
 def _estimate_parcel_dimensions(item_count: int) -> dict[str, int]:
     safe_count = max(1, min(item_count, 10))
@@ -76,16 +78,23 @@ async def run_fulfillment(order_id: str) -> dict[str, Any]:
         return {"ok": False, "reachedStep": None, "error": "Order fulfillment data missing"}
 
     if not should_create_live_shiprocket_order():
+        skip_reason = (
+            "mock_mode"
+            if not is_shiprocket_auto_fulfillment_enabled()
+            or not is_live_shiprocket_order_creation_allowed()
+            else "live_mode_disabled"
+        )
+        logger.info(
+            "Shiprocket skipped because disabled/mock/test mode orderId=%s reason=%s",
+            order_id,
+            skip_reason,
+        )
         order_ref.update(
             {
                 "shipmentStatus": "SHIPROCKET_SKIPPED",
+                "fulfillmentStatus": "shiprocket_not_created",
                 "fulfillmentState": "SHIPROCKET_SKIPPED",
-                "fulfillmentSkippedReason": (
-                    "mock_mode"
-                    if not is_shiprocket_auto_fulfillment_enabled()
-                    or not is_live_shiprocket_order_creation_allowed()
-                    else "live_mode_disabled"
-                ),
+                "fulfillmentSkippedReason": skip_reason,
                 "fulfillmentLastCheckedAt": _now_iso(),
                 "updatedAt": firestore.SERVER_TIMESTAMP,
             }

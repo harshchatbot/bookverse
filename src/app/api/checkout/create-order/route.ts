@@ -188,6 +188,7 @@ type PreparedSellerGroup = {
 };
 
 export async function POST(request: NextRequest) {
+  console.info("[checkout/create-order] hit");
   let decoded;
   try {
     decoded = await requireAuth(request);
@@ -445,8 +446,10 @@ export async function POST(request: NextRequest) {
     }
 
     await orderRef.set({
+      buyerId: decoded.uid,
       buyerUid: decoded.uid,
       buyerEmail: decoded.email ?? parsed.data.buyerDeliveryAddress.email,
+      sellerId: group.sellerUid,
       sellerUid: group.sellerUid,
       sellerEmail: group.sellerEmail,
       fulfillmentMode: parsed.data.selectedFulfillmentMode,
@@ -461,12 +464,15 @@ export async function POST(request: NextRequest) {
         category: group.items[0]?.category ?? "",
         originalPrice: null,
       },
+      listingId: group.items[0]?.listingId ?? null,
       pickupAddress: group.pickupAddress,
       shippingAddress: parsed.data.buyerDeliveryAddress,
       courierId: group.courierId,
       courierName: group.courierName,
       subtotal: group.subtotal,
       bookPrice: group.subtotal,
+      amount: total,
+      currency: "INR",
       shippingFee: group.shippingFee,
       gatewayFee,
       platformFee,
@@ -480,10 +486,13 @@ export async function POST(request: NextRequest) {
       totalWeightKg: group.totalWeightKg,
       parcelDimensions: group.parcel,
       status: "pending_payment",
+      orderStatus: "created",
       paymentStatus: "pending",
       shipmentStatus: "pending",
+      fulfillmentStatus: "pending",
       paymentId: null,
       razorpayOrderId: rzpOrder.id,
+      razorpayPaymentId: null,
       shipmentId: null,
       shiprocketOrderId: null,
       shiprocketShipmentId: null,
@@ -497,6 +506,14 @@ export async function POST(request: NextRequest) {
       hasOpenDispute: false,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
+    });
+    console.info("[checkout/create-order] Firestore order created", {
+      orderId: orderRef.id,
+      buyerId: decoded.uid,
+      sellerId: group.sellerUid,
+      listingId: group.items[0]?.listingId ?? null,
+      amount: total,
+      currency: "INR",
     });
 
     groups.push({

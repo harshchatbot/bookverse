@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +10,7 @@ from app.core.security import get_current_user
 from app.services.checkout_service import create_checkout_orders, verify_checkout_payment
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class BuyerDeliveryAddress(BaseModel):
@@ -67,6 +69,11 @@ class VerifyBody(BaseModel):
 async def create_order(
     body: CreateOrderBody, current_user: dict = Depends(get_current_user)
 ) -> dict:
+    logger.info(
+        "Razorpay create order API hit uid=%s listingCount=%s",
+        current_user.get("uid"),
+        len(body.listingIds),
+    )
     if not body.listingIds:
         raise HTTPException(status_code=400, detail="List should have at least 1 item after validation, not 0")
     try:
@@ -84,6 +91,7 @@ async def create_order(
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("Firestore order creation failure")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc) or "Checkout create order failed."
         ) from exc
@@ -91,6 +99,12 @@ async def create_order(
 
 @router.post("/verify")
 async def verify_order(body: VerifyBody, current_user: dict = Depends(get_current_user)) -> dict:
+    logger.info(
+        "Razorpay verify payment API hit uid=%s orderId=%s razorpayOrderId=%s",
+        current_user.get("uid"),
+        body.orderId,
+        body.razorpayOrderId,
+    )
     try:
         return await verify_checkout_payment(
             uid=current_user["uid"],
@@ -106,3 +120,9 @@ async def verify_order(body: VerifyBody, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Razorpay verify payment failure")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc) or "Checkout verify payment failed.",
+        ) from exc

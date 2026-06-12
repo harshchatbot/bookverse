@@ -15,6 +15,16 @@ uvicorn app.main:app --reload --port 8000
 curl http://localhost:8000/health
 ```
 
+Response:
+
+```json
+{
+  "ok": true,
+  "service": "bookverse-api",
+  "timestamp": "2026-06-12T12:00:00+00:00"
+}
+```
+
 ## Auth test
 
 ```bash
@@ -41,15 +51,24 @@ GOOGLE_MAPS_SERVER_API_KEY=
 For protected-delivery checkout routes migrated to FastAPI, set:
 
 ```bash
+RAZORPAY_MODE=live
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
+RAZORPAY_TEST_KEY_ID=
+RAZORPAY_TEST_KEY_SECRET=
 SHIPROCKET_EMAIL=
 SHIPROCKET_PASSWORD=
 SHIPROCKET_TOKEN=
-SHIPROCKET_MODE=
+SHIPROCKET_MODE=mock
 SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT=
 SHIPROCKET_ALLOW_LIVE_ORDER_CREATION=
 ```
+
+Mode switching:
+
+- `RAZORPAY_MODE=test` uses `RAZORPAY_TEST_KEY_ID` + `RAZORPAY_TEST_KEY_SECRET`
+- `RAZORPAY_MODE=live` (or unset) uses existing `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET`
+- Shiprocket should stay `mock` while Razorpay test payments are being debugged
 
 ## Pickup address validation
 

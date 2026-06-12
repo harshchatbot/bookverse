@@ -10,10 +10,12 @@ import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector"
 import { AppPageShell } from "@/components/PageShell";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
 import { apiFetch } from "@/lib/api-client";
+import { getRazorpayKeyId } from "@/lib/env";
 import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getListingsByIds } from "@/lib/listings";
 import { normalizeListingIds, type CreatedProtectedDeliveryGroup } from "@/lib/protected-delivery";
 import { loadRazorpayCheckout } from "@/lib/razorpay-client";
+import { getOrder } from "@/lib/orders";
 import { getProfile } from "@/lib/profiles";
 import {
   FREE_DELIVERY_REWARD_CODE,
@@ -371,7 +373,7 @@ function CheckoutPageContent() {
     group: CreatedProtectedDeliveryGroup,
     response: RazorpaySuccessResponse,
   ) => {
-    await apiFetch("/api/checkout/verify", {
+    const verifyResult = await apiFetch<{ ok: boolean; orderId: string }>("/api/checkout/verify", {
       method: "POST",
       body: JSON.stringify({
         orderId: group.orderId,
@@ -380,6 +382,20 @@ function CheckoutPageContent() {
         razorpaySignature: response.razorpay_signature,
       }),
     });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const order = await getOrder(verifyResult.orderId);
+      if (order) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+
+    console.error("[checkout] payment verified but order is not readable yet", {
+      orderId: verifyResult.orderId,
+      buyerUid: user?.uid ?? null,
+    });
+    throw new Error("Payment succeeded but your order is not visible yet. Please refresh My Orders.");
   };
 
   const openGroupPayment = async (group: CreatedProtectedDeliveryGroup) => {
@@ -392,7 +408,7 @@ function CheckoutPageContent() {
       }
 
       const instance = new window.Razorpay({
-        key: group.key,
+        key: getRazorpayKeyId(group.key),
         amount: group.amount,
         currency: group.currency,
         name: "BookVerse",

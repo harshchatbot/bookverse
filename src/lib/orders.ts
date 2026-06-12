@@ -78,11 +78,14 @@ export interface OrderListingSnapshot {
 
 export interface Order {
   id: string;
+  buyerId?: string;
   buyerUid: string;
   buyerEmail: string;
+  sellerId?: string;
   sellerUid: string;
   sellerEmail: string;
   fulfillmentMode?: FulfillmentMode;
+  listingId?: string | null;
   listing?: OrderListingSnapshot;
   items: OrderItemSnapshot[];
   itemCount: number;
@@ -90,6 +93,8 @@ export interface Order {
   shippingAddress: CheckoutDeliveryAddress;
   subtotal: number;
   // amounts in INR (whole rupees)
+  amount?: number;
+  currency?: string;
   bookPrice: number;
   shippingFee: number;
   gatewayFee: number;
@@ -103,8 +108,11 @@ export interface Order {
   // amount the seller is owed (= bookPrice for MVP)
   sellerAmount: number;
   status: OrderStatus;
+  orderStatus?: string;
+  fulfillmentStatus?: string;
   paymentId: string | null;
   razorpayOrderId: string | null;
+  razorpayPaymentId?: string | null;
   shipmentId: string | null;
   shiprocketOrderId: number | null;
   shiprocketShipmentId: number | null;
@@ -153,15 +161,35 @@ export interface Dispute {
 }
 
 export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
-  const snap = await getDocs(
-    query(
-      collection(db, "orders"),
-      where("buyerUid", "==", uid),
-      orderBy("createdAt", "desc"),
-      fbLimit(50),
-    ),
-  );
-  return snap.docs.map((d) => serializeFirestore({ id: d.id, ...(d.data() as Omit<Order, "id">) }));
+  const ordersRef = collection(db, "orders");
+  const [buyerIdSnap, buyerUidSnap] = await Promise.all([
+    getDocs(query(ordersRef, where("buyerId", "==", uid), fbLimit(50))),
+    getDocs(query(ordersRef, where("buyerUid", "==", uid), fbLimit(50))),
+  ]);
+
+  const merged = new Map<string, Order>();
+  for (const docSnap of [...buyerIdSnap.docs, ...buyerUidSnap.docs]) {
+    merged.set(
+      docSnap.id,
+      serializeFirestore({ id: docSnap.id, ...(docSnap.data() as Omit<Order, "id">) }),
+    );
+  }
+
+  const orders = [...merged.values()].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  console.info("[orders] buyer query", {
+    currentUserUid: uid,
+    fieldsUsed: ["buyerId", "buyerUid"],
+    buyerIdCount: buyerIdSnap.size,
+    buyerUidCount: buyerUidSnap.size,
+    returnedCount: orders.length,
+  });
+
+  return orders;
 }
 
 export async function getMyOrdersAsSeller(uid: string): Promise<Order[]> {

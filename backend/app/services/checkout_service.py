@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
+import logging
 from typing import Any
 
 from google.cloud import firestore
@@ -22,6 +23,7 @@ FREE_DELIVERY_REWARD_CODE = "FREEDEL50"
 FREE_DELIVERY_MAX_DISCOUNT = 50
 PLATFORM_SUPPORT_FEE_INR = 1
 PROTECTED_DELIVERY_MAX_ITEMS_PER_SELLER = 10
+logger = logging.getLogger(__name__)
 
 
 def normalize_listing_ids(ids: list[str]) -> list[str]:
@@ -361,8 +363,10 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
 
         order_ref.set(
             {
+                "buyerId": uid,
                 "buyerUid": uid,
                 "buyerEmail": email or address["email"],
+                "sellerId": group["sellerUid"],
                 "sellerUid": group["sellerUid"],
                 "sellerEmail": group["sellerEmail"],
                 "fulfillmentMode": payload["selectedFulfillmentMode"],
@@ -377,12 +381,15 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
                     "category": group["items"][0]["category"] if group["items"] else "",
                     "originalPrice": None,
                 },
+                "listingId": group["items"][0]["listingId"] if group["items"] else None,
                 "pickupAddress": group["pickupAddress"],
                 "shippingAddress": address,
                 "courierId": group["courierId"],
                 "courierName": group["courierName"],
                 "subtotal": group["subtotal"],
                 "bookPrice": group["subtotal"],
+                "amount": total,
+                "currency": "INR",
                 "shippingFee": group["shippingFee"],
                 "gatewayFee": gateway_fee,
                 "platformFee": platform_fee,
@@ -396,10 +403,13 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
                 "totalWeightKg": group["totalWeightKg"],
                 "parcelDimensions": group["parcel"],
                 "status": "pending_payment",
+                "orderStatus": "created",
                 "paymentStatus": "pending",
                 "shipmentStatus": "pending",
+                "fulfillmentStatus": "pending",
                 "paymentId": None,
                 "razorpayOrderId": razorpay_order["id"],
+                "razorpayPaymentId": None,
                 "shipmentId": None,
                 "shiprocketOrderId": None,
                 "shiprocketShipmentId": None,
@@ -414,6 +424,14 @@ async def create_checkout_orders(*, uid: str, email: str | None, payload: dict[s
                 "createdAt": firestore.SERVER_TIMESTAMP,
                 "updatedAt": firestore.SERVER_TIMESTAMP,
             }
+        )
+        logger.info(
+            "Firestore order creation success orderId=%s buyerId=%s sellerId=%s listingId=%s amount=%s",
+            order_ref.id,
+            uid,
+            group["sellerUid"],
+            group["items"][0]["listingId"] if group["items"] else None,
+            total,
         )
 
         groups.append(
@@ -481,6 +499,7 @@ async def verify_checkout_payment(
     payment_ref.set(
         {
             "orderId": order_ref.id,
+            "buyerId": uid,
             "buyerUid": uid,
             "sellerUid": order.get("sellerUid"),
             "razorpayOrderId": razorpay_order_id,
@@ -496,10 +515,19 @@ async def verify_checkout_payment(
     order_ref.update(
         {
             "status": "paid",
+            "orderStatus": "created",
             "paymentStatus": "captured",
+            "fulfillmentStatus": str(order.get("fulfillmentStatus") or "pending"),
             "paymentId": payment_ref.id,
+            "razorpayPaymentId": razorpay_payment_id,
             "updatedAt": firestore.SERVER_TIMESTAMP,
         }
+    )
+    logger.info(
+        "Firestore order payment captured orderId=%s buyerId=%s razorpayPaymentId=%s",
+        order_ref.id,
+        uid,
+        razorpay_payment_id,
     )
 
     mark_coupon_used_for_order(

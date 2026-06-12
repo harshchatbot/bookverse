@@ -31,6 +31,8 @@ def is_live_shiprocket_order_creation_allowed() -> bool:
 
 def should_create_live_shiprocket_order() -> bool:
     return (
+        (get_settings().razorpay_mode or "").strip().lower() != "test"
+        and
         _shiprocket_mode() == "live"
         and is_shiprocket_auto_fulfillment_enabled()
         and is_live_shiprocket_order_creation_allowed()

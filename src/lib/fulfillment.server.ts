@@ -113,6 +113,7 @@ function isLiveShiprocketOrderCreationAllowed() {
 
 function shouldCreateLiveShiprocketOrder() {
   return (
+    (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() !== "test" &&
     getShiprocketMode() === "live" &&
     isShiprocketAutoFulfillmentEnabled() &&
     isLiveShiprocketOrderCreationAllowed()
@@ -166,9 +167,21 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
     const now = new Date().toISOString();
     const shiprocketMode = getShiprocketMode();
     const fulfillmentState = "SHIPROCKET_SKIPPED";
+    const skipReason =
+      shiprocketMode !== "live"
+        ? "mock_mode"
+        : !isShiprocketAutoFulfillmentEnabled()
+          ? "auto_create_disabled"
+          : "live_creation_not_allowed";
+    console.info("[fulfillment] Shiprocket skipped because disabled/mock/test mode", {
+      orderId,
+      shiprocketMode,
+      reason: skipReason,
+    });
     await orderRef.update({
       status: orderStatus === "paid" ? "paid" : orderStatus,
       shipmentStatus: fulfillmentState,
+      fulfillmentStatus: "shiprocket_not_created",
       shiprocketOrderId: null,
       shiprocketShipmentId: null,
       awb: null,
@@ -176,12 +189,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       trackingUrl: null,
       updatedAt: FieldValue.serverTimestamp(),
       fulfillmentState,
-      fulfillmentSkippedReason:
-        shiprocketMode !== "live"
-          ? "mock_mode"
-          : !isShiprocketAutoFulfillmentEnabled()
-            ? "auto_create_disabled"
-            : "live_creation_not_allowed",
+      fulfillmentSkippedReason: skipReason,
       fulfillmentLastCheckedAt: now,
     });
     return {

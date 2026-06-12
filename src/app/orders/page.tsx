@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Clock, Package, PackageCheck, Truck, XCircle } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
@@ -44,6 +45,10 @@ function OrdersContent({ buyerUid }: { buyerUid: string }) {
     queryKey: ["buyer-orders", buyerUid],
     queryFn: () => getBuyerOrders(buyerUid),
   });
+
+  useEffect(() => {
+    console.info("[orders/page] currentUser.uid", buyerUid);
+  }, [buyerUid]);
 
   return (
     <AppPageShell>

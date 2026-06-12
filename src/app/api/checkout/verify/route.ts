@@ -25,6 +25,7 @@ async function responseFromThrown(error: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+  console.info("[checkout/verify] hit");
   let decoded: Awaited<ReturnType<typeof requireAuth>>;
   try {
     decoded = await requireAuth(request);
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
   const paymentRef = db.collection("payments").doc();
   await paymentRef.set({
     orderId: orderRef.id,
+    buyerId: decoded.uid,
     buyerUid: decoded.uid,
     sellerUid: order.sellerUid,
     razorpayOrderId: parsed.data.razorpayOrderId,
@@ -82,9 +84,22 @@ export async function POST(request: NextRequest) {
 
   await orderRef.update({
     status: "paid",
+    orderStatus: "created",
     paymentStatus: "captured",
+    fulfillmentStatus: order.fulfillmentStatus ?? "pending",
     paymentId: paymentRef.id,
+    razorpayPaymentId: parsed.data.razorpayPaymentId,
     updatedAt: FieldValue.serverTimestamp(),
+  });
+  console.info("[checkout/verify] Firestore order payment captured", {
+    orderId: orderRef.id,
+    buyerId: decoded.uid,
+    sellerId: order.sellerUid,
+    listingId: order.listingId ?? order.listing?.id ?? null,
+    amount: order.amount ?? order.totalAmount ?? null,
+    currency: order.currency ?? "INR",
+    razorpayOrderId: parsed.data.razorpayOrderId,
+    razorpayPaymentId: parsed.data.razorpayPaymentId,
   });
 
   await markCouponUsedForOrder({

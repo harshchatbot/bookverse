@@ -17,8 +17,11 @@ class Settings(BaseSettings):
     google_maps_server_api_key: str | None = Field(
         default=None, alias="GOOGLE_MAPS_SERVER_API_KEY"
     )
+    razorpay_mode: str | None = Field(default=None, alias="RAZORPAY_MODE")
     razorpay_key_id: str | None = Field(default=None, alias="RAZORPAY_KEY_ID")
     razorpay_key_secret: str | None = Field(default=None, alias="RAZORPAY_KEY_SECRET")
+    razorpay_test_key_id: str | None = Field(default=None, alias="RAZORPAY_TEST_KEY_ID")
+    razorpay_test_key_secret: str | None = Field(default=None, alias="RAZORPAY_TEST_KEY_SECRET")
     shiprocket_email: str | None = Field(default=None, alias="SHIPROCKET_EMAIL")
     shiprocket_password: str | None = Field(default=None, alias="SHIPROCKET_PASSWORD")
     shiprocket_token: str | None = Field(default=None, alias="SHIPROCKET_TOKEN")
