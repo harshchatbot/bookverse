@@ -64,6 +64,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Order/payment mismatch" }, { status: 400 });
   }
   if (order.status !== "pending_payment") {
+    const backfillPatch: Record<string, unknown> = {};
+    if (!order.buyerId && order.buyerUid) backfillPatch.buyerId = order.buyerUid;
+    if (!order.orderStatus && order.paymentStatus === "captured") backfillPatch.orderStatus = "created";
+    if (!order.fulfillmentStatus) backfillPatch.fulfillmentStatus = "shiprocket_not_created";
+    if (!order.razorpayPaymentId) backfillPatch.razorpayPaymentId = parsed.data.razorpayPaymentId;
+    if (Object.keys(backfillPatch).length > 0) {
+      backfillPatch.updatedAt = FieldValue.serverTimestamp();
+      await orderRef.update(backfillPatch);
+      console.info("[checkout/verify] normalized already-paid order", {
+        orderId: orderRef.id,
+        ...backfillPatch,
+      });
+    }
     return NextResponse.json({ ok: true, orderId: orderRef.id, status: order.status });
   }
 
@@ -86,7 +99,7 @@ export async function POST(request: NextRequest) {
     status: "paid",
     orderStatus: "created",
     paymentStatus: "captured",
-    fulfillmentStatus: order.fulfillmentStatus ?? "pending",
+    fulfillmentStatus: order.fulfillmentStatus ?? "shiprocket_not_created",
     paymentId: paymentRef.id,
     razorpayPaymentId: parsed.data.razorpayPaymentId,
     updatedAt: FieldValue.serverTimestamp(),

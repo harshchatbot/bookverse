@@ -160,6 +160,28 @@ export interface Dispute {
   updatedAt: string | null;
 }
 
+function normalizeOrderForDisplay(order: Order): Order {
+  const normalizedStatus: OrderStatus =
+    order.status ?? (order.paymentStatus === "captured" ? "paid" : "pending_payment");
+  return {
+    ...order,
+    buyerId: order.buyerId ?? order.buyerUid,
+    orderStatus: order.orderStatus ?? (order.paymentStatus === "captured" ? "created" : undefined),
+    fulfillmentStatus:
+      order.fulfillmentStatus ??
+      (order.paymentStatus === "captured" ? "shiprocket_not_created" : "pending"),
+    razorpayPaymentId: order.razorpayPaymentId ?? null,
+    status: normalizedStatus,
+    totalAmount:
+      typeof order.totalAmount === "number"
+        ? order.totalAmount
+        : typeof order.amount === "number"
+          ? order.amount
+          : 0,
+    items: Array.isArray(order.items) ? order.items : [],
+  };
+}
+
 export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
   const ordersRef = collection(db, "orders");
   const [buyerIdSnap, buyerUidSnap] = await Promise.all([
@@ -175,11 +197,12 @@ export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
     );
   }
 
-  const orders = [...merged.values()].sort((a, b) => {
+  const rawOrders = [...merged.values()].sort((a, b) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return bTime - aTime;
   });
+  const orders = rawOrders.map(normalizeOrderForDisplay);
 
   console.info("[orders] buyer query", {
     currentUserUid: uid,
@@ -188,6 +211,8 @@ export async function getMyOrdersAsBuyer(uid: string): Promise<Order[]> {
     buyerUidCount: buyerUidSnap.size,
     returnedCount: orders.length,
   });
+  console.info("[orders] raw returned orders", rawOrders);
+  console.info("[orders] mapped orders", orders);
 
   return orders;
 }

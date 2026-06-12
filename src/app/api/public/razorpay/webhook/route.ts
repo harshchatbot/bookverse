@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       await paymentRef.set(
         {
           orderId: orderDoc.id,
+          buyerId: order.buyerUid ?? null,
           buyerUid: order.buyerUid,
           sellerUid: order.sellerUid,
           razorpayOrderId: rzpOrderId,
@@ -78,8 +79,12 @@ export async function POST(request: NextRequest) {
       );
       await orderDoc.ref.update({
         status: "paid",
+        buyerId: order.buyerUid ?? null,
+        orderStatus: "created",
         paymentStatus: "captured",
+        fulfillmentStatus: order.fulfillmentStatus ?? "shiprocket_not_created",
         paymentId: paymentRef.id,
+        razorpayPaymentId: pay!.id,
         updatedAt: FieldValue.serverTimestamp(),
       });
       await markCouponUsedForOrder({
@@ -99,6 +104,20 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error("[razorpay webhook] listing update failed", error);
       }
+    }
+
+    const normalizationPatch: Record<string, unknown> = {};
+    if (!order.buyerId && order.buyerUid) normalizationPatch.buyerId = order.buyerUid;
+    if (!order.orderStatus) normalizationPatch.orderStatus = "created";
+    if (!order.fulfillmentStatus) normalizationPatch.fulfillmentStatus = "shiprocket_not_created";
+    if (!order.razorpayPaymentId && pay?.id) normalizationPatch.razorpayPaymentId = pay.id;
+    if (Object.keys(normalizationPatch).length > 0) {
+      normalizationPatch.updatedAt = FieldValue.serverTimestamp();
+      await orderDoc.ref.update(normalizationPatch);
+      console.info("[razorpay webhook] normalized legacy order", {
+        orderId: orderDoc.id,
+        ...normalizationPatch,
+      });
     }
 
     // Create seller payout record if not already created

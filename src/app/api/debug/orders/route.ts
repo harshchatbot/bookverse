@@ -62,8 +62,78 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing uid" }, { status: 400 });
   }
 
-  const { db } = await adminKit();
+  const { db, FieldValue } = await adminKit();
   const ordersRef = db.collection("orders");
+  const [initialBuyerIdSnap, initialBuyerUidSnap] = await Promise.all([
+    ordersRef.where("buyerId", "==", uid).get(),
+    ordersRef.where("buyerUid", "==", uid).get(),
+  ]);
+
+  const paymentsRef = db.collection("payments");
+  const backfillErrors: Array<{ documentId: string; error: string }> = [];
+  const patchedDocumentIds: string[] = [];
+  let backfillUpdatedCount = 0;
+  let backfillAttempted = false;
+
+  const matchedDocs = new Map<string, (typeof initialBuyerUidSnap.docs)[number]>();
+  for (const doc of [...initialBuyerIdSnap.docs, ...initialBuyerUidSnap.docs]) {
+    matchedDocs.set(doc.id, doc);
+  }
+
+  for (const doc of matchedDocs.values()) {
+    const data = doc.data();
+    const backfillPatch: Record<string, unknown> = {};
+    if (!data.buyerId && typeof data.buyerUid === "string") backfillPatch.buyerId = data.buyerUid;
+    if (!data.orderStatus && data.paymentStatus === "captured") {
+      backfillPatch.orderStatus = "created";
+    }
+    if (!data.fulfillmentStatus) backfillPatch.fulfillmentStatus = "shiprocket_not_created";
+    if (!data.razorpayPaymentId) {
+      const paymentByOrder = await paymentsRef.where("orderId", "==", doc.id).limit(1).get();
+      const paymentByRazorpayOrder =
+        paymentByOrder.empty && typeof data.razorpayOrderId === "string"
+          ? await paymentsRef.where("razorpayOrderId", "==", data.razorpayOrderId).limit(1).get()
+          : null;
+      const paymentDoc = !paymentByOrder.empty
+        ? paymentByOrder.docs[0]
+        : paymentByRazorpayOrder && !paymentByRazorpayOrder.empty
+          ? paymentByRazorpayOrder.docs[0]
+          : undefined;
+      const paymentData = paymentDoc?.data();
+      if (typeof paymentData?.razorpayPaymentId === "string") {
+        backfillPatch.razorpayPaymentId = paymentData.razorpayPaymentId;
+      }
+    }
+    if (Object.keys(backfillPatch).length > 0) {
+      backfillAttempted = true;
+      const patchPayload = {
+        ...backfillPatch,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      console.info("[debug/orders] patch attempt", {
+        documentId: doc.id,
+        patchPayload: backfillPatch,
+      });
+      try {
+        await doc.ref.update(patchPayload);
+        patchedDocumentIds.push(doc.id);
+        backfillUpdatedCount += 1;
+        console.info("[debug/orders] patch success", {
+          documentId: doc.id,
+          patchPayload: backfillPatch,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        backfillErrors.push({ documentId: doc.id, error: message });
+        console.error("[debug/orders] patch failure", {
+          documentId: doc.id,
+          patchPayload: backfillPatch,
+          error: message,
+        });
+      }
+    }
+  }
+
   const [buyerIdSnap, buyerUidSnap] = await Promise.all([
     ordersRef.where("buyerId", "==", uid).get(),
     ordersRef.where("buyerUid", "==", uid).get(),
@@ -85,12 +155,20 @@ export async function GET(request: NextRequest) {
     buyerIdCount: buyerIdSnap.size,
     buyerUidCount: buyerUidSnap.size,
     returnedCount: orders.length,
+    backfillAttempted,
+    backfillUpdatedCount,
+    backfillErrors,
+    patchedDocumentIds,
   });
 
   return NextResponse.json({
     buyerIdCount: buyerIdSnap.size,
     buyerUidCount: buyerUidSnap.size,
     returnedCount: orders.length,
+    backfillAttempted,
+    backfillUpdatedCount,
+    backfillErrors,
+    patchedDocumentIds,
     orders,
   });
 }

@@ -50,6 +50,11 @@ function OrdersContent({ buyerUid }: { buyerUid: string }) {
     console.info("[orders/page] currentUser.uid", buyerUid);
   }, [buyerUid]);
 
+  useEffect(() => {
+    if (!orders) return;
+    console.info("[orders/page] rendered orders count", orders.length);
+  }, [orders]);
+
   return (
     <AppPageShell>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
