@@ -220,9 +220,7 @@ function MyListingsContent({ user }: { user: User }) {
               <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm">
                 <p className="font-semibold text-destructive">Could not load your listings</p>
                 <p className="mt-1 text-muted-foreground">
-                  {error instanceof Error
-                    ? error.message
-                    : "Something went wrong while loading your listings."}
+                  We couldn&apos;t load your listings right now. Please try again in a moment.
                 </p>
                 <button
                   type="button"

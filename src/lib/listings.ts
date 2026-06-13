@@ -18,6 +18,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { apiFetch } from "@/lib/api-client";
 import { db, storage } from "@/integrations/firebase/client";
 import type { Listing } from "./types";
 import type { ListingStatus } from "./constants";
@@ -139,46 +140,22 @@ export async function getListingsByStatus(status: ListingStatus): Promise<Listin
 }
 
 export async function getMyListings(uid: string): Promise<Listing[]> {
-  const [sellerUidSnap, sellerIdSnap, ownerIdSnap] = await Promise.all([
-    getDocs(query(collection(db, COLLECTION), where("sellerUid", "==", uid))),
-    getDocs(query(collection(db, COLLECTION), where("sellerId", "==", uid))),
-    getDocs(query(collection(db, COLLECTION), where("ownerId", "==", uid))),
-  ]);
-
-  const merged = new Map<string, Listing>();
-  for (const snap of [sellerUidSnap, sellerIdSnap, ownerIdSnap]) {
-    for (const listing of snapToListings(snap)) {
-      merged.set(listing.id, listing);
-    }
+  console.info("[listings] getMyListings called", { currentUserUid: uid });
+  try {
+    const response = await apiFetch<{ listings: Listing[] }>("/api/listings/my");
+    const listings = Array.isArray(response.listings) ? response.listings : [];
+    console.info("[listings] getMyListings returned", {
+      currentUserUid: uid,
+      returnedCount: listings.length,
+    });
+    return listings;
+  } catch (error) {
+    console.error("[listings] getMyListings failed", {
+      currentUserUid: uid,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-
-  return [...merged.values()].sort((a, b) => {
-    const getTime = (value: unknown) => {
-      if (!value) return 0;
-
-      if (typeof value === "number") return value;
-
-      if (value instanceof Date) return value.getTime();
-
-      if (typeof value === "string") {
-        const parsed = Date.parse(value);
-        return Number.isNaN(parsed) ? 0 : parsed;
-      }
-
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        "toMillis" in value &&
-        typeof (value as { toMillis: unknown }).toMillis === "function"
-      ) {
-        return (value as { toMillis: () => number }).toMillis();
-      }
-
-      return 0;
-    };
-
-    return getTime(b.createdAt) - getTime(a.createdAt);
-  });
 }
 
 export async function getSellerApprovedListings(uid: string): Promise<Listing[]> {
