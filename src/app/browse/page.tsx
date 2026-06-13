@@ -125,7 +125,13 @@ function BrowsePageContent() {
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (searchParams.get("focus") !== "search") return;
+    searchInputRef.current?.focus();
+  }, [searchParams]);
 
   const { data, hasNextPage, isFetchingNextPage, isPending, fetchNextPage } = useInfiniteQuery(
     listingsInfiniteQueryOptions({
@@ -378,6 +384,7 @@ function BrowsePageContent() {
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  ref={searchInputRef}
                   value={params.q}
                   onChange={(e) => update({ q: e.target.value })}
                   placeholder="Search by title or author…"

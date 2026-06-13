@@ -3,12 +3,15 @@
 import { useState, type ReactNode } from "react";
 import {
   Bell,
-  HandCoins,
+  BookOpen,
+  Compass,
+  ClipboardList,
   Heart,
-  ListChecks,
   LogOut,
   Menu,
+  PlusSquare,
   ShieldCheck,
+  ShoppingBag,
   UserRound,
   X,
 } from "lucide-react";
@@ -21,10 +24,13 @@ const bookverseLogo = { url: "/assets/logo/bookverse-logo.webp" };
 
 export type HeaderMode = "marketing" | "app" | "admin";
 
+type NavLink = { to: string; label: string };
+type DrawerLink = { to: string; label: string; icon: ReactNode };
+
 export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
   const { user, signOut, isAdmin, loading } = useAuth();
   const access = useMarketplaceAccess();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const path = useAppPathname();
 
@@ -35,9 +41,10 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
     (!user.emailVerified || !access.phoneVerified || !access.profileCompleted || access.loading);
 
   const navLinks = getNavLinks({ mode, user: !!user, isAdmin, profileIncomplete });
+  const drawerLinks = getDrawerLinks({ user: !!user, isAdmin, profileIncomplete });
 
   const signOutAndClose = async () => {
-    setOpen(false);
+    setMobileOpen(false);
     setMenuOpen(false);
     await signOut();
   };
@@ -46,7 +53,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
     <header className="glass-panel sticky top-0 z-40 border-x-0 border-t-0">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
-          href={user ? (isAdmin ? "/admin" : profileIncomplete ? "/profile" : "/dashboard") : "/"}
+          href={user ? (isAdmin ? "/admin" : profileIncomplete ? "/profile" : "/browse") : "/"}
           className="flex items-center gap-2 font-display text-lg font-bold"
           aria-label="BookVerse home"
         >
@@ -100,6 +107,7 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
                   onClick={() => setMenuOpen((value) => !value)}
                   disabled={loading}
                   className="flex items-center gap-2 rounded-full border border-border bg-card px-1.5 py-1.5 transition-shadow hover:shadow-card disabled:opacity-60"
+                  aria-label="Account menu"
                 >
                   {user.photoURL ? (
                     <img
@@ -121,37 +129,16 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-popover shadow-elegant">
+                    <div className="absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-popover shadow-elegant">
                       <div className="border-b border-border px-4 py-3">
                         <p className="truncate text-sm font-semibold">{user.displayName}</p>
                         <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                       </div>
-                      {isAdmin ? (
+                      {profileIncomplete ? (
                         <>
-                          <HeaderMenuLink
-                            to="/admin"
-                            label="Admin Dashboard"
-                            icon={<ShieldCheck className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/browse"
-                            label="Browse"
-                            icon={<Bell className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
                           <HeaderMenuLink
                             to="/profile"
                             label="Profile"
-                            icon={<UserRound className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                        </>
-                      ) : profileIncomplete ? (
-                        <>
-                          <HeaderMenuLink
-                            to="/profile"
-                            label="Complete Profile"
                             icon={<UserRound className="h-4 w-4" />}
                             onSelect={() => setMenuOpen(false)}
                           />
@@ -167,62 +154,21 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
                             <HeaderMenuLink
                               to="/profile"
                               label="Verify Mobile"
-                              icon={<Bell className="h-4 w-4" />}
+                              icon={<ShieldCheck className="h-4 w-4" />}
                               onSelect={() => setMenuOpen(false)}
                             />
                           )}
                         </>
                       ) : (
-                        <>
+                        drawerLinks.map((link) => (
                           <HeaderMenuLink
-                            to="/dashboard"
-                            label="Dashboard"
-                            icon={<ListChecks className="h-4 w-4" />}
+                            key={link.to}
+                            to={link.to}
+                            label={link.label}
+                            icon={link.icon}
                             onSelect={() => setMenuOpen(false)}
                           />
-                          <HeaderMenuLink
-                            to="/browse"
-                            label="Browse"
-                            icon={<Bell className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/sell"
-                            label="Sell Book"
-                            icon={<ListChecks className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/my-listings"
-                            label="My Listings"
-                            icon={<ListChecks className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/wishlist"
-                            label="Wishlist"
-                            icon={<Heart className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/offers"
-                            label="Offers"
-                            icon={<HandCoins className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/notifications"
-                            label="Notifications"
-                            icon={<Bell className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                          <HeaderMenuLink
-                            to="/profile"
-                            label="Profile"
-                            icon={<UserRound className="h-4 w-4" />}
-                            onSelect={() => setMenuOpen(false)}
-                          />
-                        </>
+                        ))
                       )}
                       <button
                         onClick={signOutAndClose}
@@ -240,71 +186,84 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
 
         <div className="flex items-center gap-2 md:hidden">
           {user && !isAdmin && !profileIncomplete && <NotificationsBell />}
-          {user && (
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2 py-1 text-xs font-semibold transition-shadow hover:shadow-card"
-            >
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt=""
-                  width={24}
-                  height={24}
-                  loading="lazy"
-                  decoding="async"
-                  referrerPolicy="no-referrer"
-                  className="h-6 w-6 rounded-full"
-                />
-              ) : (
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {user.displayName?.[0] ?? user.email?.[0] ?? "U"}
-                </span>
-              )}
-              <span className="max-w-[80px] truncate">
-                {user.displayName?.split(" ")[0] ?? user.email?.split("@")[0] ?? ""}
-              </span>
-            </Link>
-          )}
           <button
-            onClick={() => setOpen((value) => !value)}
+            onClick={() => setMobileOpen((value) => !value)}
             className="grid h-10 w-10 place-items-center rounded-full border border-border"
-            aria-label="Menu"
+            aria-label="Open menu"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {open && (
+      {mobileOpen && (
         <div className="border-t border-border bg-background md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                href={link.to}
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-secondary"
-              >
-                {link.label}
-              </Link>
-            ))}
             {!user ? (
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="rounded-xl border border-border px-3 py-2.5 text-sm font-semibold"
-              >
-                Login / Sign up
-              </Link>
+              <>
+                <HeaderMenuLink
+                  to="/browse"
+                  label="Browse Books"
+                  icon={<Compass className="h-4 w-4" />}
+                  onSelect={() => setMobileOpen(false)}
+                />
+                <HeaderMenuLink
+                  to="/sell"
+                  label="Sell a Book"
+                  icon={<PlusSquare className="h-4 w-4" />}
+                  onSelect={() => setMobileOpen(false)}
+                />
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-xl border border-border px-3 py-2.5 text-sm font-semibold"
+                >
+                  Login / Sign up
+                </Link>
+              </>
+            ) : profileIncomplete ? (
+              <>
+                <HeaderMenuLink
+                  to="/profile"
+                  label="Profile"
+                  icon={<UserRound className="h-4 w-4" />}
+                  onSelect={() => setMobileOpen(false)}
+                />
+                {profileNeedsEmail && (
+                  <HeaderMenuLink
+                    to="/profile"
+                    label="Verify Email"
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    onSelect={() => setMobileOpen(false)}
+                  />
+                )}
+                {profileNeedsPhone && (
+                  <HeaderMenuLink
+                    to="/profile"
+                    label="Verify Mobile"
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    onSelect={() => setMobileOpen(false)}
+                  />
+                )}
+              </>
             ) : (
-              <button
-                onClick={signOutAndClose}
-                className="rounded-xl px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
-              >
-                Logout
-              </button>
+              <>
+                {drawerLinks.map((link) => (
+                  <HeaderMenuLink
+                    key={link.to}
+                    to={link.to}
+                    label={link.label}
+                    icon={link.icon}
+                    onSelect={() => setMobileOpen(false)}
+                  />
+                ))}
+                <button
+                  onClick={signOutAndClose}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-destructive hover:bg-secondary"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -328,9 +287,10 @@ function HeaderMenuLink({
     <Link
       href={to}
       onClick={onSelect}
-      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-secondary"
+      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm hover:bg-secondary"
     >
-      {icon} {label}
+      {icon}
+      {label}
     </Link>
   );
 }
@@ -345,32 +305,65 @@ function getNavLinks({
   user: boolean;
   isAdmin: boolean;
   profileIncomplete: boolean;
-}) {
+}): NavLink[] {
   if (!user) {
     return [
       { to: "/", label: "Home" },
-      { to: "/browse", label: "Browse" },
+      { to: "/browse", label: "Browse Books" },
       { to: "/about", label: "How it works" },
     ];
   }
 
   if (mode === "admin" || isAdmin) {
     return [
-      { to: "/admin", label: "Admin Dashboard" },
-      { to: "/browse", label: "Browse" },
+      { to: "/admin", label: "Admin Panel" },
+      { to: "/browse", label: "Browse Books" },
       { to: "/profile", label: "Profile" },
     ];
   }
 
   if (profileIncomplete) {
-    return [{ to: "/profile", label: "Complete Profile" }];
+    return [{ to: "/profile", label: "Profile" }];
   }
 
   return [
-    { to: "/sell", label: "Sell Book" },
+    { to: "/browse", label: "Browse Books" },
+    { to: "/sell", label: "Sell a Book" },
+    { to: "/my-listings", label: "My Listings" },
     { to: "/orders", label: "My Orders" },
-    { to: "/seller/orders", label: "My Sales" },
-    { to: "/offers", label: "Offers" },
     { to: "/profile", label: "Profile" },
   ];
+}
+
+function getDrawerLinks({
+  user,
+  isAdmin,
+  profileIncomplete,
+}: {
+  user: boolean;
+  isAdmin: boolean;
+  profileIncomplete: boolean;
+}): DrawerLink[] {
+  if (!user || profileIncomplete) return [];
+
+  const links: DrawerLink[] = [
+    { to: "/browse", label: "Browse Books", icon: <Compass className="h-4 w-4" /> },
+    { to: "/sell", label: "Sell a Book", icon: <PlusSquare className="h-4 w-4" /> },
+    { to: "/my-listings", label: "My Listings", icon: <ClipboardList className="h-4 w-4" /> },
+    { to: "/seller/orders", label: "My Sales", icon: <ShoppingBag className="h-4 w-4" /> },
+    { to: "/orders", label: "My Orders", icon: <BookOpen className="h-4 w-4" /> },
+    { to: "/wishlist", label: "Wishlist", icon: <Heart className="h-4 w-4" /> },
+    { to: "/notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+    { to: "/profile", label: "Profile", icon: <UserRound className="h-4 w-4" /> },
+  ];
+
+  if (isAdmin) {
+    links.splice(links.length - 1, 0, {
+      to: "/admin",
+      label: "Admin Panel",
+      icon: <ShieldCheck className="h-4 w-4" />,
+    });
+  }
+
+  return links;
 }

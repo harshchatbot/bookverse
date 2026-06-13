@@ -40,6 +40,21 @@ const deliveryLabel: Record<string, string> = {
   shipping: "Home Delivery",
 };
 
+function getListingStatusMeta(status: string) {
+  if (status === "paused") {
+    return {
+      label: "Paused",
+      className: "bg-secondary text-foreground border-border",
+    };
+  }
+
+  return {
+    label: statusLabel[status as ListingStatus] ?? status.replace(/_/g, " "),
+    className:
+      statusStyle[status as ListingStatus] ?? "bg-secondary text-foreground border-border",
+  };
+}
+
 export default function MyListingsPage() {
   return (
     <AuthGate
@@ -224,15 +239,15 @@ function MyListingsContent({ user }: { user: User }) {
             ) : listings.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-14 text-center">
                 <BookOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-                <p className="font-semibold">No listings yet</p>
+                <p className="font-semibold">You haven&apos;t listed any books yet</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  List your first book — it only takes a minute.
+                  Start with one listing and it will appear here once saved.
                 </p>
                 <Link
                   href="/sell"
                   className="mt-5 inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
                 >
-                  Sell a book
+                  List a Book
                 </Link>
               </div>
             ) : (
@@ -280,11 +295,16 @@ function MyListingsContent({ user }: { user: User }) {
                     </div>
                   </Link>
                   <div className="flex flex-wrap items-center gap-2">
+                    {(() => {
+                      const statusMeta = getListingStatusMeta(String(l.status));
+                      return (
                     <span
-                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[l.status]}`}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusMeta.className}`}
                     >
-                      {statusLabel[l.status]}
+                      {statusMeta.label}
                     </span>
+                      );
+                    })()}
                     {(l.status === "approved" || l.status === "pending") && (
                       <button
                         onClick={() => openEdit(l)}

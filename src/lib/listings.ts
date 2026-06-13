@@ -139,9 +139,20 @@ export async function getListingsByStatus(status: ListingStatus): Promise<Listin
 }
 
 export async function getMyListings(uid: string): Promise<Listing[]> {
-  const snap = await getDocs(query(collection(db, COLLECTION), where("sellerUid", "==", uid)));
+  const [sellerUidSnap, sellerIdSnap, ownerIdSnap] = await Promise.all([
+    getDocs(query(collection(db, COLLECTION), where("sellerUid", "==", uid))),
+    getDocs(query(collection(db, COLLECTION), where("sellerId", "==", uid))),
+    getDocs(query(collection(db, COLLECTION), where("ownerId", "==", uid))),
+  ]);
 
-  return snapToListings(snap).sort((a, b) => {
+  const merged = new Map<string, Listing>();
+  for (const snap of [sellerUidSnap, sellerIdSnap, ownerIdSnap]) {
+    for (const listing of snapToListings(snap)) {
+      merged.set(listing.id, listing);
+    }
+  }
+
+  return [...merged.values()].sort((a, b) => {
     const getTime = (value: unknown) => {
       if (!value) return 0;
 

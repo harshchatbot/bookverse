@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, LayoutDashboard, Package, PlusSquare, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Compass, Package, PlusSquare, Search, UserRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useAppPathname } from "@/lib/navigation";
 import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
@@ -9,19 +10,33 @@ export function BottomNav() {
   const { user } = useAuth();
   const { loading } = useMarketplaceAccess();
   const path = useAppPathname();
+  const [searchFocus, setSearchFocus] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setSearchFocus(path === "/browse" && params.get("focus") === "search");
+  }, [path]);
 
   // Only show for logged-in, non-loading users
   if (!user || loading) return null;
 
-  const isActive = (href: string) =>
-    href === "/" ? path === "/" : path.startsWith(href);
+  const isActive = (href: string) => {
+    if (href === "/browse?focus=search") {
+      return searchFocus;
+    }
+    if (href === "/browse") {
+      return path === "/browse" && !searchFocus;
+    }
+    return href === "/" ? path === "/" : path.startsWith(href);
+  };
 
   const navItems = [
-    { href: "/browse", icon: Search, label: "Browse" },
-    { href: "/orders", icon: Package, label: "Orders" },
+    { href: "/browse", icon: Compass, label: "Browse" },
+    { href: "/browse?focus=search", icon: Search, label: "Search" },
     { href: "/sell", icon: PlusSquare, label: "Sell" },
-    { href: "/seller/orders", icon: BookOpen, label: "Sales" },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/orders", icon: Package, label: "Orders" },
+    { href: "/profile", icon: UserRound, label: "Profile" },
   ];
 
   return (
