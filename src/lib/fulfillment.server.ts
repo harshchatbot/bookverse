@@ -111,6 +111,12 @@ function isLiveShiprocketOrderCreationAllowed() {
   return process.env.SHIPROCKET_ALLOW_LIVE_ORDER_CREATION === "true";
 }
 
+function getShiprocketFulfillmentMode(): "manual" | "auto" {
+  return (process.env.SHIPROCKET_FULFILLMENT_MODE ?? "").trim().toLowerCase() === "auto"
+    ? "auto"
+    : "manual";
+}
+
 function shouldCreateLiveShiprocketOrder() {
   return (
     (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() !== "test" &&
@@ -162,6 +168,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   const totalWeightKg = typeof order.totalWeightKg === "number" ? order.totalWeightKg : null;
   const subtotal = typeof order.subtotal === "number" ? order.subtotal : null;
   const courierId = typeof order.courierId === "number" ? order.courierId : undefined;
+  const fulfillmentMode = getShiprocketFulfillmentMode();
 
   if (!shouldCreateLiveShiprocketOrder()) {
     const now = new Date().toISOString();
@@ -197,6 +204,8 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       reachedStep: "order_created",
     };
   }
+
+  console.info("[shiprocket] fulfillment mode", fulfillmentMode, { orderId });
 
   let shipmentId = order.shiprocketShipmentId as number | null;
   let shipmentDocId = order.shipmentId as string | null;
@@ -253,8 +262,10 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       shipmentDocId = shipmentRef.id;
       shipmentId = sr.shipmentId;
       await orderRef.update({
-        status: "shipment_created",
-        shipmentStatus: "shipment_created",
+        status: fulfillmentMode === "auto" ? "shipment_created" : "paid",
+        shipmentStatus: fulfillmentMode === "auto" ? "shipment_created" : "manual_ship_pending",
+        fulfillmentStatus:
+          fulfillmentMode === "auto" ? "shipment_created" : "shiprocket_order_created",
         shipmentId: shipmentDocId,
         shiprocketOrderId: sr.shiprocketOrderId,
         shiprocketShipmentId: shipmentId,
@@ -271,6 +282,10 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
     }
   } else {
     reached = "order_created";
+  }
+
+  if (fulfillmentMode !== "auto") {
+    return { ok: true, reachedStep: reached };
   }
 
   // ---- Step 2: assign AWB ----

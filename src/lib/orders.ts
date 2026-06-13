@@ -40,6 +40,7 @@ export type OrderStatus =
 export type PaymentStatus = "pending" | "captured" | "refunded" | "failed";
 export type ShipmentStatus =
   | "pending"
+  | "manual_ship_pending"
   | "shipment_created"
   | "pickup_scheduled"
   | "in_transit"

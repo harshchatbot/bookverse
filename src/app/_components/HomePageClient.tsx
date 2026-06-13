@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -11,8 +12,11 @@ import {
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BookCard } from "@/components/BookCard";
+import { MarketingPageShell } from "@/components/PageShell";
+import { Spinner } from "@/components/Spinner";
+import { useAuth } from "@/hooks/useAuth";
 import { getApprovedListings } from "@/lib/listings";
-import { Link } from "@/lib/navigation";
+import { Link, useAppRouter } from "@/lib/navigation";
 import {
   ArrowRight,
   Search,
@@ -70,11 +74,39 @@ const FAQ_ITEMS = [
 ] as const;
 
 export function HomePageClient() {
+  const { user, loading } = useAuth();
+  const router = useAppRouter();
   const { data } = useQuery({
     queryKey: ["listings", "featured"],
     queryFn: () => getApprovedListings({ limit: 8 }),
+    enabled: !loading && !user,
   });
   const featured = data?.items ?? [];
+
+  useEffect(() => {
+    if (loading || !user) return;
+    router.replace("/browse");
+  }, [loading, router, user]);
+
+  if (loading) {
+    return (
+      <MarketingPageShell>
+        <main className="mx-auto flex min-h-[60vh] w-full max-w-md flex-1 items-center justify-center px-4">
+          <Spinner label="Loading BookVerse…" />
+        </main>
+      </MarketingPageShell>
+    );
+  }
+
+  if (user) {
+    return (
+      <MarketingPageShell>
+        <main className="mx-auto flex min-h-[60vh] w-full max-w-md flex-1 items-center justify-center px-4">
+          <Spinner label="Opening your marketplace…" />
+        </main>
+      </MarketingPageShell>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

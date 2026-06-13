@@ -39,6 +39,8 @@ export function LoginPageClient() {
     queryFn: () => getUserProfile(user!.uid),
     enabled: !!user,
   });
+  const authPageLoading = loading || !!user;
+  const redirectingAuthenticatedUser = !!user;
 
   useEffect(() => {
     if (loading || (user && profileQuery.isLoading)) return;
@@ -115,9 +117,12 @@ export function LoginPageClient() {
   return (
     <MarketingPageShell>
       <div className="mx-auto grid w-full max-w-5xl flex-1 gap-10 px-4 py-16 md:grid-cols-[1fr_360px] md:items-center">
-        {loading ? (
+        {authPageLoading ? (
           <div className="md:col-span-2">
-            <Spinner size={72} label="Just a moment..." />
+            <Spinner
+              size={72}
+              label={redirectingAuthenticatedUser ? "Opening your marketplace…" : "Just a moment..."}
+            />
           </div>
         ) : (
           <>

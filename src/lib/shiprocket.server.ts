@@ -11,8 +11,23 @@ function getRazorpayMode(): "live" | "test" {
   return (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() === "test" ? "test" : "live";
 }
 
+function getShiprocketFulfillmentMode(): "manual" | "auto" {
+  return (process.env.SHIPROCKET_FULFILLMENT_MODE ?? "").trim().toLowerCase() === "auto"
+    ? "auto"
+    : "manual";
+}
+
 function shouldUseMockServiceability() {
   return getRazorpayMode() === "test" || getShiprocketMode() !== "live";
+}
+
+function assertAutoFulfillment(action: "assign_awb" | "generate_pickup") {
+  const fulfillmentMode = getShiprocketFulfillmentMode();
+  if (fulfillmentMode !== "auto") {
+    throw new Error(
+      `Shiprocket ${action} is disabled because fulfillment mode is ${fulfillmentMode}.`,
+    );
+  }
 }
 
 interface CachedToken {
@@ -239,6 +254,7 @@ export async function assignAwb(opts: {
   shipmentId: number;
   courierId?: number;
 }): Promise<AssignAwbResult> {
+  assertAutoFulfillment("assign_awb");
   type Resp = {
     awb_assign_status?: number;
     status?: number;
@@ -277,6 +293,7 @@ export interface PickupResult {
 
 /** Generate a pickup request for one or more shipment ids. */
 export async function generatePickup(shipmentId: number): Promise<PickupResult> {
+  assertAutoFulfillment("generate_pickup");
   type Resp = {
     pickup_status?: number;
     response?: {
