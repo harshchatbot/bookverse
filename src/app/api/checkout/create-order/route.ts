@@ -28,6 +28,7 @@ import {
 } from "@/lib/rewards";
 import { getCouponsByIds } from "@/lib/rewards.server";
 import { checkServiceability } from "@/lib/shiprocket.server";
+import { getCustomerFacingCourierName, type ServiceabilitySource } from "@/lib/shipping-display";
 import type { Listing, OrderItemSnapshot, PickupAddressSnapshot } from "@/lib/types";
 
 const AddressSchema = z.object({
@@ -190,6 +191,8 @@ type PreparedSellerGroup = {
   shippingFee: number;
   courierId: number;
   courierName: string;
+  serviceabilitySource: ServiceabilitySource;
+  estimatedDeliveryDate: string | null;
   parcel: ReturnType<typeof estimateParcelDimensions>;
 };
 
@@ -408,6 +411,8 @@ export async function POST(request: NextRequest) {
       rate: serviceability.rate,
       courierId: serviceability.courierId,
       courierName: serviceability.courierName,
+      serviceabilitySource: serviceability.serviceabilitySource,
+      etd: serviceability.etd,
     });
 
     if (!serviceability.available) {
@@ -430,6 +435,8 @@ export async function POST(request: NextRequest) {
       shippingFee: Math.ceil(serviceability.rate),
       courierId: serviceability.courierId,
       courierName: serviceability.courierName,
+      serviceabilitySource: serviceability.serviceabilitySource,
+      estimatedDeliveryDate: serviceability.etd ?? null,
       parcel: estimateParcelDimensions(items.length),
     });
   }
@@ -453,6 +460,10 @@ export async function POST(request: NextRequest) {
     });
     const platformFee = platformSupportFee;
     const sellerAmount = group.subtotal;
+    const customerFacingCourierName = getCustomerFacingCourierName(
+      group.courierName,
+      group.serviceabilitySource,
+    );
 
     const orderRef = db.collection("orders").doc();
     const receipt = `bv_${orderRef.id.slice(0, 30)}`;
@@ -511,7 +522,8 @@ export async function POST(request: NextRequest) {
       pickupAddress: group.pickupAddress,
       shippingAddress: parsed.data.buyerDeliveryAddress,
       courierId: group.courierId,
-      courierName: group.courierName,
+      courierName: customerFacingCourierName,
+      serviceabilitySource: group.serviceabilitySource,
       subtotal: group.subtotal,
       bookPrice: group.subtotal,
       amount: total,
@@ -542,6 +554,7 @@ export async function POST(request: NextRequest) {
       awb: null,
       courierAssigned: null,
       trackingUrl: null,
+      estimatedDeliveryDate: group.estimatedDeliveryDate,
       payoutId: null,
       deliveredAt: null,
       payoutEligibleAt: null,
@@ -575,7 +588,9 @@ export async function POST(request: NextRequest) {
       buyerName: parsed.data.buyerDeliveryAddress.name,
       buyerEmail: parsed.data.buyerDeliveryAddress.email,
       buyerPhone: parsed.data.buyerDeliveryAddress.phone,
-      courierName: group.courierName,
+      courierName: customerFacingCourierName ?? "",
+      serviceabilitySource: group.serviceabilitySource,
+      estimatedDeliveryDate: group.estimatedDeliveryDate,
       breakdown: {
         subtotal: group.subtotal,
         shippingFee: group.shippingFee,

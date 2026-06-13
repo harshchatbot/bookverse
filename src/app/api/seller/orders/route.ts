@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminKit, requireAuth } from "@/lib/admin.server";
 import type { Order } from "@/lib/orders";
+import { getCustomerFacingCourierName, normalizeServiceabilitySource } from "@/lib/shipping-display";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,7 @@ type ApiSellerOrder = {
   shiprocketShipmentId: number | null;
   awb: string | null;
   courierName: string | null;
+  serviceabilitySource?: string | null;
   trackingUrl: string | null;
   shipmentStatus: string | null;
   createdAt: string | null;
@@ -95,6 +97,11 @@ function normalizeSellerOrder(
     asString(data.listingTitle) ||
     asString(data.title) ||
     "Book order";
+  const serviceabilitySource = normalizeServiceabilitySource(data.serviceabilitySource);
+  const customerFacingCourierName = getCustomerFacingCourierName(
+    asString(data.courierName) ?? asString(data.courierCompany),
+    serviceabilitySource,
+  );
 
   return {
     id,
@@ -120,7 +127,8 @@ function normalizeSellerOrder(
     shiprocketOrderId: asNumber(data.shiprocketOrderId),
     shiprocketShipmentId: asNumber(data.shiprocketShipmentId),
     awb: asString(data.awb) ?? asString(data.awbCode),
-    courierName: asString(data.courierName) ?? asString(data.courierCompany),
+    courierName: customerFacingCourierName,
+    serviceabilitySource,
     trackingUrl: asString(data.trackingUrl) ?? asString(data.shiprocketTrackingUrl),
     shipmentStatus: asString(data.shipmentStatus) ?? asString(data.shiprocketStatus),
     createdAt: asIsoString(data.createdAt),
@@ -131,7 +139,7 @@ function normalizeSellerOrder(
         asNumber(data.shipmentId) ??
         asString(data.shipmentId),
       awb: asString(data.awb) ?? asString(data.awbCode),
-      courier: asString(data.courierName) ?? asString(data.courierCompany),
+      courier: customerFacingCourierName,
       shipmentStatus: asString(data.shipmentStatus) ?? asString(data.shiprocketStatus),
       pickupStatus: asString(data.pickupStatus),
       trackingUrl: asString(data.trackingUrl) ?? asString(data.shiprocketTrackingUrl),

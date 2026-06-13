@@ -1,4 +1,5 @@
 import type { CheckoutDeliveryAddress, Listing, OrderItemSnapshot } from "@/lib/types";
+import type { ServiceabilitySource } from "@/lib/shipping-display";
 import { FREE_DELIVERY_MAX_DISCOUNT, PLATFORM_SUPPORT_FEE_INR } from "./rewards";
 
 export const PROTECTED_DELIVERY_MAX_ITEMS_PER_SELLER = 10;
@@ -75,6 +76,8 @@ export interface CreatedProtectedDeliveryGroup {
   buyerEmail: string;
   buyerPhone: string;
   courierName: string;
+  serviceabilitySource?: ServiceabilitySource;
+  estimatedDeliveryDate?: string | null;
   breakdown: {
     subtotal: number;
     shippingFee: number;

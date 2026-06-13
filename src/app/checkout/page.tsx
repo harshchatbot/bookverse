@@ -24,6 +24,7 @@ import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 import { getListingsByIds } from "@/lib/listings";
 import { normalizeListingIds, type CreatedProtectedDeliveryGroup } from "@/lib/protected-delivery";
 import { loadRazorpayCheckout } from "@/lib/razorpay-client";
+import { getCustomerFacingCourierMessage, getCustomerFacingCourierName } from "@/lib/shipping-display";
 import { getOrder } from "@/lib/orders";
 import { getProfile } from "@/lib/profiles";
 import {
@@ -615,7 +616,18 @@ function CheckoutPageContent() {
     },
     { subtotal: 0, shippingFee: 0, couponDiscount: 0, platformSupportFee: 0, total: 0 },
   );
-  const courierSummary = Array.from(new Set(createdGroups.map((group) => group.courierName).filter(Boolean)));
+  const courierSummary = Array.from(
+    new Set(
+      createdGroups
+        .map((group) =>
+          getCustomerFacingCourierName(group.courierName, group.serviceabilitySource),
+        )
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const estimatedDeliveryDates = Array.from(
+    new Set(createdGroups.map((group) => group.estimatedDeliveryDate).filter(Boolean)),
+  );
 
   return (
     <AppPageShell>
@@ -846,12 +858,27 @@ function CheckoutPageContent() {
 
                 {deliveryCalculated ? (
                   <div className="mt-4 rounded-2xl border border-border/70 bg-card px-4 py-3 text-sm">
-                    <p className="font-medium">
-                      Courier: {courierSummary.length > 0 ? courierSummary.join(", ") : "Assigned after payment"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Delivery estimate will be shared after shipment processing.
-                    </p>
+                    {courierSummary.length > 0 ? (
+                      <>
+                        <p className="font-medium">Courier: {courierSummary.join(", ")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {estimatedDeliveryDates.length > 0
+                            ? `Estimated delivery: ${estimatedDeliveryDates
+                                .map((value) =>
+                                  new Date(value).toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                  }),
+                                )
+                                .join(", ")}`
+                            : "Delivery estimate will be shared after shipment processing."}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Delivery partner will be assigned after shipment processing.
+                      </p>
+                    )}
                   </div>
                 ) : null}
 
@@ -903,8 +930,11 @@ function CheckoutPageContent() {
                           <div>
                             <p className="font-semibold">{group.sellerName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {group.itemCount} book{group.itemCount === 1 ? "" : "s"} · courier:{" "}
-                              {group.courierName}
+                              {group.itemCount} book{group.itemCount === 1 ? "" : "s"} ·{" "}
+                              {getCustomerFacingCourierMessage(
+                                group.courierName,
+                                group.serviceabilitySource,
+                              )}
                             </p>
                           </div>
                           <StatusBadge status={paymentState} />

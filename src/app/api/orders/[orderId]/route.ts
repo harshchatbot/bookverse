@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, requireAuth } from "@/lib/admin.server";
 import { normalizeOrderForDisplay, type Order } from "@/lib/orders";
+import { getCustomerFacingCourierName, normalizeServiceabilitySource } from "@/lib/shipping-display";
 
 export const runtime = "nodejs";
 
@@ -91,7 +92,10 @@ function serializeOrder(id: string, data: Record<string, unknown>): Order {
     shiprocketOrderId: asNumber(data.shiprocketOrderId),
     shiprocketShipmentId: asNumber(data.shiprocketShipmentId),
     awb: asString(data.awb),
-    courierName: asString(data.courierName),
+    courierName: getCustomerFacingCourierName(
+      asString(data.courierName) ?? asString(data.courierCompany),
+      normalizeServiceabilitySource(data.serviceabilitySource),
+    ),
     trackingUrl: asString(data.trackingUrl),
     payoutId: asString(data.payoutId),
     deliveredAt: asIsoString(data.deliveredAt),
@@ -153,6 +157,11 @@ export async function GET(
   }
 
   const normalized = normalizeOrderForDisplay(serializeOrder(orderId, data));
+  const serviceabilitySource = normalizeServiceabilitySource(data.serviceabilitySource);
+  const customerFacingCourierName = getCustomerFacingCourierName(
+    asString(data.courierName) ?? asString(data.courierCompany),
+    serviceabilitySource,
+  );
   const shipping: NormalizedShipping = {
     fulfillmentStatus:
       normalized.fulfillmentStatus ??
@@ -163,7 +172,7 @@ export async function GET(
       asNumber(data.shipmentId) ??
       asString(data.shipmentId),
     awb: asString(data.awb) ?? asString(data.awbCode),
-    courier: asString(data.courierName) ?? asString(data.courierCompany),
+    courier: customerFacingCourierName,
     shipmentStatus: asString(data.shipmentStatus) ?? asString(data.shiprocketStatus),
     pickupStatus: asString(data.pickupStatus),
     trackingUrl: asString(data.trackingUrl) ?? asString(data.shiprocketTrackingUrl),
@@ -204,6 +213,7 @@ export async function GET(
       awbCode: data.awbCode ?? null,
       courierName: data.courierName ?? null,
       courierCompany: data.courierCompany ?? null,
+      serviceabilitySource: data.serviceabilitySource ?? null,
       shipmentStatus: data.shipmentStatus ?? null,
       pickupStatus: data.pickupStatus ?? null,
       trackingUrl: data.trackingUrl ?? null,

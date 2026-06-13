@@ -1,5 +1,6 @@
 // Minimal Shiprocket REST client. Token cached in module scope per worker.
 // Docs: https://apidocs.shiprocket.in/
+import type { ServiceabilitySource } from "@/lib/shipping-display";
 
 const BASE = "https://apiv2.shiprocket.in/v1/external";
 
@@ -79,6 +80,7 @@ export interface ServiceabilityResult {
   courierId: number;
   courierName: string;
   etd: string | null;
+  serviceabilitySource: ServiceabilitySource;
   raw: unknown;
 }
 
@@ -104,6 +106,7 @@ export async function checkServiceability(opts: {
       courierId: 0,
       courierName: "Mock Courier",
       etd: null,
+      serviceabilitySource: "mock",
       raw: {
         mode: "mock",
         reason: getRazorpayMode() === "test" ? "razorpay_test_mode" : "shiprocket_not_live",
@@ -132,7 +135,15 @@ export async function checkServiceability(opts: {
   const data = await srFetch<Resp>(`/courier/serviceability/?${params.toString()}`);
   const couriers = data.data?.available_courier_companies ?? [];
   if (couriers.length === 0) {
-    return { available: false, rate: 0, courierId: 0, courierName: "", etd: null, raw: data };
+    return {
+      available: false,
+      rate: 0,
+      courierId: 0,
+      courierName: "",
+      etd: null,
+      serviceabilitySource: "shiprocket",
+      raw: data,
+    };
   }
   // Pick cheapest.
   const cheapest = couriers.reduce((a, b) => (a.rate <= b.rate ? a : b));
@@ -142,6 +153,7 @@ export async function checkServiceability(opts: {
     courierId: cheapest.courier_company_id,
     courierName: cheapest.courier_name,
     etd: cheapest.etd ?? null,
+    serviceabilitySource: "shiprocket",
     raw: data,
   };
 }

@@ -18,6 +18,7 @@ import { AppPageShell } from "@/components/PageShell";
 import { PageSpinner } from "@/components/Spinner";
 import { getOrderById, ORDER_STATUS_LABEL, type Order, type OrderStatus } from "@/lib/orders";
 import { Link } from "@/lib/navigation";
+import { getCustomerFacingCourierName } from "@/lib/shipping-display";
 
 type ShippingInfo = {
   fulfillmentStatus?: string | null;
@@ -240,7 +241,7 @@ function buildFallbackShipping(order: OrderDetailData): ShippingInfo {
     shiprocketOrderId: order.shiprocketOrderId ?? null,
     shipmentId: order.shiprocketShipmentId ?? order.shipmentId ?? null,
     awb: order.awb ?? null,
-    courier: order.courierName ?? null,
+    courier: getCustomerFacingCourierName(order.courierName) ?? null,
     shipmentStatus: order.shipmentStatus ?? null,
     pickupStatus: null,
     trackingUrl: order.trackingUrl ?? null,

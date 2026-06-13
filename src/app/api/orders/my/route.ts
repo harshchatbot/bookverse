@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, requireAuth } from "@/lib/admin.server";
+import { getCustomerFacingCourierName, normalizeServiceabilitySource } from "@/lib/shipping-display";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,7 @@ type ApiOrder = {
   shiprocketShipmentId: number | null;
   awb: string | null;
   courierName: string | null;
+  serviceabilitySource?: string | null;
   trackingUrl: string | null;
   payoutId: string | null;
   deliveredAt: string | null;
@@ -93,7 +95,11 @@ function serializeOrder(id: string, data: Record<string, unknown>): ApiOrder {
     shiprocketOrderId: asNumber(data.shiprocketOrderId),
     shiprocketShipmentId: asNumber(data.shiprocketShipmentId),
     awb: asString(data.awb),
-    courierName: asString(data.courierName),
+    courierName: getCustomerFacingCourierName(
+      asString(data.courierName) ?? asString(data.courierCompany),
+      normalizeServiceabilitySource(data.serviceabilitySource),
+    ),
+    serviceabilitySource: asString(data.serviceabilitySource),
     trackingUrl: asString(data.trackingUrl),
     payoutId: asString(data.payoutId),
     deliveredAt: asIsoString(data.deliveredAt),
