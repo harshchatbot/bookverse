@@ -4,9 +4,18 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link, useAppRouter } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CreditCard, Loader2, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  Loader2,
+  MapPin,
+  PackageCheck,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
-import { GoogleAddressMapSelector } from "@/components/GoogleAddressMapSelector";
 import { AppPageShell } from "@/components/PageShell";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
 import { apiFetch } from "@/lib/api-client";
@@ -64,6 +73,28 @@ function clearDeliveryValidationState(address: CheckoutDeliveryAddress): Checkou
   };
 }
 
+function maskPhone(phone?: string) {
+  if (!phone) return "Not available";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 4) return phone;
+  return `+91 ••••••${digits.slice(-4)}`;
+}
+
+function getProgressStep({
+  addressReady,
+  deliveryReady,
+  processing,
+}: {
+  addressReady: boolean;
+  deliveryReady: boolean;
+  processing: boolean;
+}) {
+  if (processing) return 3;
+  if (deliveryReady) return 2;
+  if (addressReady) return 1;
+  return 1;
+}
+
 export default function CheckoutPage() {
   return (
     <Suspense
@@ -113,6 +144,7 @@ function CheckoutPageContent() {
   const [createdGroups, setCreatedGroups] = useState<CreatedProtectedDeliveryGroup[]>([]);
   const [paymentStates, setPaymentStates] = useState<Record<string, GroupPaymentState>>({});
   const [couponSelections, setCouponSelections] = useState<Record<string, string>>({});
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const listingIds = useMemo(
     () => normalizeListingIds((searchParams.get("ids") ?? "").split(",")),
@@ -318,6 +350,7 @@ function CheckoutPageContent() {
     }
 
     setCreatingOrders(true);
+    setCheckoutError(null);
     setLoaderMessage("Calculating delivery charges per seller…");
     setLoaderProgress(20);
 
@@ -369,10 +402,16 @@ function CheckoutPageContent() {
         errorMessage.toLowerCase().includes("pickup address") ||
         errorMessage.toLowerCase().includes("home address")
       ) {
+        setCheckoutError(
+          "Delivery is not available for this address right now. Please update your address or try again.",
+        );
         toast.error(
           "Home delivery is unavailable for one or more items — the seller hasn't added a validated Home Address yet. You can contact them on WhatsApp instead.",
         );
       } else {
+        setCheckoutError(
+          "Delivery is not available for this address right now. Please update your address or try again.",
+        );
         toast.error(errorMessage);
       }
     } finally {
@@ -554,6 +593,29 @@ function CheckoutPageContent() {
     createdGroups.every((group) => paymentStates[group.orderId] === "paid");
   const availableCoupons = rewardsQuery.data?.availableCoupons ?? [];
   const selectedCouponIds = Object.values(couponSelections);
+  const addressReady =
+    address.isDeliveryReady === true &&
+    (address.validationLevel === "google_validated" ||
+      address.validationLevel === "google_geo_confirmed") &&
+    address.buyerConfirmed === true;
+  const deliveryCalculated = createdGroups.length > 0;
+  const progressStep = getProgressStep({
+    addressReady,
+    deliveryReady: deliveryCalculated,
+    processing,
+  });
+  const totals = createdGroups.reduce(
+    (acc, group) => {
+      acc.subtotal += group.breakdown.subtotal;
+      acc.shippingFee += group.breakdown.shippingFee;
+      acc.couponDiscount += group.breakdown.couponDiscount;
+      acc.platformSupportFee += group.breakdown.platformSupportFee;
+      acc.total += group.breakdown.total;
+      return acc;
+    },
+    { subtotal: 0, shippingFee: 0, couponDiscount: 0, platformSupportFee: 0, total: 0 },
+  );
+  const courierSummary = Array.from(new Set(createdGroups.map((group) => group.courierName).filter(Boolean)));
 
   return (
     <AppPageShell>
@@ -564,7 +626,7 @@ function CheckoutPageContent() {
         progress={loaderProgress}
       />
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 lg:px-8 lg:pb-8">
         <Link
           href="/browse"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -572,12 +634,31 @@ function CheckoutPageContent() {
           <ArrowLeft className="h-4 w-4" /> Back to browse
         </Link>
 
+        <div className="mt-6">
+          <h1 className="font-display text-2xl font-bold tracking-tight">Checkout</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            <StepPill label="Address" active={progressStep === 1} complete={addressReady} />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <StepPill label="Delivery" active={progressStep === 2} complete={deliveryCalculated} />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <StepPill label="Payment" active={progressStep === 3} complete={allGroupsPaid} />
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-6">
-            <h1 className="font-display text-2xl font-bold tracking-tight">Checkout</h1>
-
             <div className="rounded-3xl border border-border bg-card p-6">
-              <h2 className="font-display text-xl font-bold tracking-tight">Books</h2>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl font-bold tracking-tight">Order Items</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Delivery is calculated using seller pickup pincode and your delivery pincode.
+                  </p>
+                </div>
+                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  {selectedListings.length} item{selectedListings.length === 1 ? "" : "s"}
+                </span>
+              </div>
 
               <div className="mt-4 space-y-4">
                 {sellerGroups.map((group) => {
@@ -590,7 +671,10 @@ function CheckoutPageContent() {
                       className="rounded-2xl border border-border bg-background p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold">{group.sellerName}</p>
+                        <div>
+                          <p className="font-semibold">{group.sellerName}</p>
+                          <p className="text-xs text-muted-foreground">Seller parcel</p>
+                        </div>
                         <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                           ₹{group.subtotal.toLocaleString("en-IN")}
                         </span>
@@ -635,15 +719,18 @@ function CheckoutPageContent() {
                         {group.items.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2"
+                            className="rounded-2xl border border-border/70 px-3 py-3"
                           >
-                            <div className="min-w-0">
-                              <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
-                              <p className="text-xs text-muted-foreground">{item.author}</p>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
+                                <p className="text-xs text-muted-foreground">{item.author}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Qty 1</p>
+                              </div>
+                              <p className="shrink-0 text-sm font-semibold">
+                                ₹{item.sellingPrice.toLocaleString("en-IN")}
+                              </p>
                             </div>
-                            <p className="shrink-0 text-sm font-semibold">
-                              ₹{item.sellingPrice.toLocaleString("en-IN")}
-                            </p>
                           </div>
                         ))}
                       </div>
@@ -656,22 +743,32 @@ function CheckoutPageContent() {
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-6">
-              <h2 className="font-display text-xl font-bold tracking-tight">Home Address</h2>
-              <p className="mt-1 text-sm text-muted-foreground">We'll deliver to this address.</p>
+              <h2 className="font-display text-xl font-bold tracking-tight">Delivering to</h2>
+              <p className="mt-1 text-sm text-muted-foreground">This private Home Address will be used for delivery.</p>
               <div className="mt-5 rounded-2xl border border-border bg-background p-4">
                 {address.isDeliveryReady &&
                 (address.validationLevel === "google_validated" ||
                   address.validationLevel === "google_geo_confirmed") ? (
                   <>
-                    <p className="text-sm font-semibold">Deliver to Home Address</p>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                        Home Address
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold">{address.name}</p>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {address.formattedAddress || buildDeliveryAddress1(address)}
                     </p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {address.validationLevel === "google_geo_confirmed"
-                        ? "Google could not fully verify the house number, but your map pin and Home Address details look complete."
-                        : "This Home Address is validated for protected delivery."}
-                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">{maskPhone(address.phone)}</p>
+                    {address.validationLevel === "google_geo_confirmed" ? (
+                      <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-3 text-xs text-amber-800 dark:text-amber-200">
+                        Map pin is approximate. Please make sure house number and landmark are correct.
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        This Home Address is validated for protected delivery.
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>
@@ -687,46 +784,113 @@ function CheckoutPageContent() {
                 href="/profile#home-address"
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-secondary"
               >
-                <ShieldCheck className="h-4 w-4" />
-                Update Home Address
+                <MapPin className="h-4 w-4" />
+                Update address
               </Link>
-
-              <button
-                type="button"
-                onClick={createGroupedOrders}
-                disabled={creatingOrders || processing}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition hover:opacity-90 disabled:opacity-60"
-              >
-                {creatingOrders ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Truck className="h-4 w-4" />
-                )}
-                Confirm & Calculate Delivery
-              </button>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-display text-xl font-bold tracking-tight">Your order</h2>
-                {createdGroups.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={payAllGroups}
-                    disabled={processing}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-                  >
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Pay now
-                  </button>
+                <h2 className="font-display text-xl font-bold tracking-tight">Price Details</h2>
+                {deliveryCalculated ? (
+                  <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    Ready
+                  </span>
                 ) : null}
               </div>
 
-              {createdGroups.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                  Click 'Confirm &amp; Calculate Delivery' to see your delivery charges.
+              <div className="mt-4 rounded-2xl border border-border bg-background p-4">
+                <dl className="space-y-3 text-sm">
+                  <SummaryRow label="Book price" value={`₹${totals.subtotal.toLocaleString("en-IN")}`} />
+                  <SummaryRow
+                    label="Delivery"
+                    value={
+                      creatingOrders ? (
+                        <span className="inline-flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Calculating
+                        </span>
+                      ) : deliveryCalculated ? (
+                        `₹${totals.shippingFee.toLocaleString("en-IN")}`
+                      ) : (
+                        "Calculate"
+                      )
+                    }
+                  />
+                  <SummaryRow
+                    label="Coupon / Reward"
+                    value={
+                      deliveryCalculated
+                        ? totals.couponDiscount > 0
+                          ? `-₹${totals.couponDiscount.toLocaleString("en-IN")}`
+                          : "—"
+                        : "—"
+                    }
+                  />
+                  <SummaryRow
+                    label="Platform fee"
+                    value={
+                      deliveryCalculated
+                        ? `₹${totals.platformSupportFee.toLocaleString("en-IN")}`
+                        : "—"
+                    }
+                  />
+                  <SummaryRow
+                    label="Total payable"
+                    value={
+                      deliveryCalculated ? `₹${totals.total.toLocaleString("en-IN")}` : "—"
+                    }
+                    strong
+                  />
+                </dl>
+
+                {deliveryCalculated ? (
+                  <div className="mt-4 rounded-2xl border border-border/70 bg-card px-4 py-3 text-sm">
+                    <p className="font-medium">
+                      Courier: {courierSummary.length > 0 ? courierSummary.join(", ") : "Assigned after payment"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Delivery estimate will be shared after shipment processing.
+                    </p>
+                  </div>
+                ) : null}
+
+                {checkoutError ? (
+                  <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    {checkoutError}
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={deliveryCalculated ? payAllGroups : createGroupedOrders}
+                  disabled={
+                    creatingOrders ||
+                    processing ||
+                    (!deliveryCalculated && !addressReady)
+                  }
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {creatingOrders || processing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : deliveryCalculated ? (
+                    <CreditCard className="h-4 w-4" />
+                  ) : (
+                    <Truck className="h-4 w-4" />
+                  )}
+                  {deliveryCalculated
+                    ? `Pay ₹${totals.total.toLocaleString("en-IN")} securely`
+                    : "Confirm address & calculate delivery"}
+                </button>
+
+                <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+                  <p>Secure payment powered by Razorpay.</p>
+                  <p>Shipment will be created after successful payment.</p>
+                  <p>Shipment will be processed manually by BookVerse after payment.</p>
                 </div>
-              ) : (
+              </div>
+
+              {deliveryCalculated ? (
                 <div className="mt-4 space-y-3">
                   {createdGroups.map((group) => {
                     const paymentState = paymentStates[group.orderId] ?? "pending";
@@ -765,7 +929,7 @@ function CheckoutPageContent() {
                     );
                   })}
                 </div>
-              )}
+              ) : null}
 
               {allGroupsPaid ? (
                 <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300">
@@ -781,20 +945,28 @@ function CheckoutPageContent() {
   );
 }
 
-function Field({
+function StepPill({
   label,
-  className = "",
-  children,
+  active,
+  complete,
 }: {
   label: string;
-  className?: string;
-  children: ReactNode;
+  active: boolean;
+  complete: boolean;
 }) {
   return (
-    <label className={`block ${className}`}>
-      <span className="mb-2 block text-sm font-medium">{label}</span>
-      {children}
-    </label>
+    <div
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${
+        active
+          ? "bg-foreground text-background"
+          : complete
+            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            : "bg-secondary text-muted-foreground"
+      }`}
+    >
+      {complete ? <CheckCircle2 className="h-4 w-4" /> : null}
+      {label}
+    </div>
   );
 }
 
@@ -815,6 +987,23 @@ function Row({
       <dd className={strong ? "mt-1 font-semibold" : "mt-1"}>
         {negative ? "-" : ""}₹{value.toLocaleString("en-IN")}
       </dd>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: ReactNode;
+  strong?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between gap-3 ${strong ? "pt-2" : ""}`}>
+      <dt className={strong ? "font-semibold text-foreground" : "text-muted-foreground"}>{label}</dt>
+      <dd className={strong ? "font-semibold text-foreground" : "text-foreground"}>{value}</dd>
     </div>
   );
 }
