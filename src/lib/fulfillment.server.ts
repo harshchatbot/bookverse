@@ -16,6 +16,11 @@ import {
   type CreateOrderInput,
 } from "@/lib/shiprocket.server";
 
+function sanitizeFulfillmentError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]").slice(0, 500);
+}
+
 function nowYMDHM(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -117,9 +122,15 @@ function getShiprocketFulfillmentMode(): "manual" | "auto" {
     : "manual";
 }
 
+function isLiveShiprocketForTestPaymentsEnabled() {
+  return process.env.ENABLE_LIVE_SHIPROCKET_FOR_TEST_PAYMENTS === "true";
+}
+
 function shouldCreateLiveShiprocketOrder() {
+  const razorpayMode = (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase();
+  const allowLiveForTest = isLiveShiprocketForTestPaymentsEnabled();
   return (
-    (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() !== "test" &&
+    (razorpayMode !== "test" || allowLiveForTest) &&
     getShiprocketMode() === "live" &&
     isShiprocketAutoFulfillmentEnabled() &&
     isLiveShiprocketOrderCreationAllowed()
@@ -150,15 +161,33 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
     : null;
   const pickup = isPickupAddressLike(pickupCandidate) ? pickupCandidate : null;
   if (!pickup) {
+    await orderRef.update({
+      fulfillmentStatus: "shiprocket_disabled",
+      shiprocketError: "Shiprocket skipped: seller_pickup_address_missing",
+      fulfillmentSkippedReason: "seller_pickup_address_missing",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     return { ok: false, reachedStep: null, error: "Seller pickup address missing" };
   }
 
   const items = getStoredOrderItems(order);
   if (items.length === 0) {
+    await orderRef.update({
+      fulfillmentStatus: "shiprocket_disabled",
+      shiprocketError: "Shiprocket skipped: order_items_missing",
+      fulfillmentSkippedReason: "order_items_missing",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     return { ok: false, reachedStep: null, error: "Order items missing" };
   }
   const buyerAddress = isShippingAddressLike(order.shippingAddress) ? order.shippingAddress : null;
   if (!buyerAddress) {
+    await orderRef.update({
+      fulfillmentStatus: "shiprocket_disabled",
+      shiprocketError: "Shiprocket skipped: buyer_shipping_address_missing",
+      fulfillmentSkippedReason: "buyer_shipping_address_missing",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     return { ok: false, reachedStep: null, error: "Buyer shipping address missing" };
   }
   const parcelDimensions = isParcelDimensionsLike(order.parcelDimensions)
@@ -169,26 +198,44 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   const subtotal = typeof order.subtotal === "number" ? order.subtotal : null;
   const courierId = typeof order.courierId === "number" ? order.courierId : undefined;
   const fulfillmentMode = getShiprocketFulfillmentMode();
+  const razorpayMode = (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase() || "live";
+  const shiprocketEnabled = getShiprocketMode() === "live";
+  const shiprocketMode = getShiprocketMode();
+  const enableLiveShiprocketForTestPayments = isLiveShiprocketForTestPaymentsEnabled();
+
+  console.info("[fulfillment] start", { orderId });
+  console.info("[fulfillment] razorpayMode", { orderId, razorpayMode });
+  console.info("[fulfillment] shiprocketEnabled", { orderId, shiprocketEnabled });
+  console.info("[fulfillment] shiprocketMode", { orderId, shiprocketMode });
+  console.info("[fulfillment] enableLiveShiprocketForTestPayments", {
+    orderId,
+    enableLiveShiprocketForTestPayments,
+  });
+  console.info("[fulfillment] fulfillmentMode", { orderId, fulfillmentMode });
 
   if (!shouldCreateLiveShiprocketOrder()) {
     const now = new Date().toISOString();
-    const shiprocketMode = getShiprocketMode();
     const fulfillmentState = "SHIPROCKET_SKIPPED";
     const skipReason =
       shiprocketMode !== "live"
         ? "mock_mode"
         : !isShiprocketAutoFulfillmentEnabled()
           ? "auto_create_disabled"
-          : "live_creation_not_allowed";
+          : !isLiveShiprocketOrderCreationAllowed()
+            ? "live_creation_not_allowed"
+            : razorpayMode === "test" && !enableLiveShiprocketForTestPayments
+              ? "test_payments_disabled"
+              : "unknown_gate";
     console.info("[fulfillment] Shiprocket skipped because disabled/mock/test mode", {
       orderId,
       shiprocketMode,
+      razorpayMode,
       reason: skipReason,
     });
     await orderRef.update({
       status: orderStatus === "paid" ? "paid" : orderStatus,
       shipmentStatus: fulfillmentState,
-      fulfillmentStatus: "shiprocket_not_created",
+      fulfillmentStatus: "shiprocket_disabled",
       shiprocketOrderId: null,
       shiprocketShipmentId: null,
       awb: null,
@@ -197,6 +244,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       updatedAt: FieldValue.serverTimestamp(),
       fulfillmentState,
       fulfillmentSkippedReason: skipReason,
+      shiprocketError: `Shiprocket skipped: ${skipReason}`,
       fulfillmentLastCheckedAt: now,
     });
     return {
@@ -245,7 +293,19 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         subtotal !== null ? subtotal + shippingFee : getOrderItemsSubtotal(items) + shippingFee,
     };
     try {
+      console.info("[shiprocket] creating adhoc order", {
+        orderId,
+        fulfillmentMode,
+        shiprocketMode,
+        razorpayMode,
+      });
       const sr = await createShiprocketOrder(input);
+      console.info("[shiprocket] create adhoc success", {
+        orderId,
+        shiprocketOrderId: sr.shiprocketOrderId,
+        shiprocketShipmentId: sr.shipmentId,
+        status: sr.status,
+      });
       const shipmentRef = db.collection("shipments").doc();
       await shipmentRef.set({
         orderId,
@@ -269,15 +329,26 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         shipmentId: shipmentDocId,
         shiprocketOrderId: sr.shiprocketOrderId,
         shiprocketShipmentId: shipmentId,
+        shiprocketError: null,
         updatedAt: FieldValue.serverTimestamp(),
       });
       reached = "order_created";
     } catch (e) {
-      console.error("[fulfillment] createShiprocketOrder failed", e);
+      const sanitizedError = sanitizeFulfillmentError(e);
+      console.error("[shiprocket] create adhoc failed", {
+        orderId,
+        error: sanitizedError,
+      });
+      await orderRef.update({
+        fulfillmentStatus: "shiprocket_order_failed",
+        shipmentStatus: "failed",
+        shiprocketError: sanitizedError,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
       return {
         ok: false,
         reachedStep: null,
-        error: e instanceof Error ? e.message : "Shiprocket order failed",
+        error: sanitizedError || "Shiprocket order failed",
       };
     }
   } else {
@@ -320,11 +391,17 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       });
       reached = "awb_assigned";
     } catch (e) {
-      console.error("[fulfillment] assignAwb failed", e);
+      const sanitizedError = sanitizeFulfillmentError(e);
+      console.error("[fulfillment] assignAwb failed", { orderId, error: sanitizedError });
+      await orderRef.update({
+        fulfillmentStatus: "shiprocket_order_failed",
+        shiprocketError: sanitizedError,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
       return {
         ok: false,
         reachedStep: "order_created",
-        error: e instanceof Error ? e.message : "AWB assignment failed",
+        error: sanitizedError || "AWB assignment failed",
       };
     }
   } else if (awb) {
@@ -357,11 +434,17 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
       });
       reached = "pickup_scheduled";
     } catch (e) {
-      console.error("[fulfillment] generatePickup failed", e);
+      const sanitizedError = sanitizeFulfillmentError(e);
+      console.error("[fulfillment] generatePickup failed", { orderId, error: sanitizedError });
+      await orderRef.update({
+        fulfillmentStatus: "shiprocket_order_failed",
+        shiprocketError: sanitizedError,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
       return {
         ok: false,
         reachedStep: "awb_assigned",
-        error: e instanceof Error ? e.message : "Pickup scheduling failed",
+        error: sanitizedError || "Pickup scheduling failed",
       };
     }
   }

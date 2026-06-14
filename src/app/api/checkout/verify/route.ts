@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
   if (!valid) {
     return NextResponse.json({ error: "Signature verification failed" }, { status: 400 });
   }
+  console.info("[checkout] payment verified", {
+    orderId: parsed.data.orderId,
+    razorpayOrderId: parsed.data.razorpayOrderId,
+    razorpayPaymentId: parsed.data.razorpayPaymentId,
+  });
 
   const { db, FieldValue } = await adminKit();
   const orderRef = db.collection("orders").doc(parsed.data.orderId);
