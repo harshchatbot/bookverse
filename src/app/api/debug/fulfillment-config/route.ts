@@ -23,6 +23,8 @@ export async function GET() {
       process.env.SHIPROCKET_ALLOW_LIVE_ORDER_CREATION === "true",
     enableLiveShiprocketForTestPayments:
       process.env.ENABLE_LIVE_SHIPROCKET_FOR_TEST_PAYMENTS === "true",
+    hasDefaultPickupFallback:
+      process.env.ENABLE_SHIPROCKET_DEFAULT_PICKUP_FALLBACK === "true",
     fulfillmentMode: process.env.SHIPROCKET_FULFILLMENT_MODE || "manual",
     hasShiprocketEmail: Boolean(process.env.SHIPROCKET_EMAIL),
     hasShiprocketPassword: Boolean(process.env.SHIPROCKET_PASSWORD),

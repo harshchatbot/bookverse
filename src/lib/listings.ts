@@ -53,6 +53,16 @@ export async function createListing(input: NewListingInput): Promise<string> {
   return docRef.id;
 }
 
+export async function ensureSellerPickupLocation(): Promise<{
+  status: "reused" | "created";
+  pickupLocationName: string;
+}> {
+  return apiFetch("/api/shiprocket/pickup-location/ensure", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export async function getListing(id: string): Promise<Listing | null> {
   const snap = await getDoc(doc(db, COLLECTION, id));
   if (!snap.exists()) return null;

@@ -4,6 +4,7 @@
 // onto orders/{id} and shipments/{id} with a history entry.
 import { adminKit } from "@/lib/admin.server";
 import { getStoredOrderItems } from "@/lib/order-server";
+import { ensureSellerPickupLocation } from "@/lib/pickup-location.server";
 import {
   estimateParcelDimensions,
   getOrderItemsSubtotal,
@@ -126,6 +127,14 @@ function isLiveShiprocketForTestPaymentsEnabled() {
   return process.env.ENABLE_LIVE_SHIPROCKET_FOR_TEST_PAYMENTS === "true";
 }
 
+function isDefaultPickupFallbackEnabled() {
+  return process.env.ENABLE_SHIPROCKET_DEFAULT_PICKUP_FALLBACK === "true";
+}
+
+function getDefaultPickupLocation() {
+  return (process.env.SHIPROCKET_DEFAULT_PICKUP_LOCATION ?? "").trim();
+}
+
 function shouldCreateLiveShiprocketOrder() {
   const razorpayMode = (process.env.RAZORPAY_MODE ?? "").trim().toLowerCase();
   const allowLiveForTest = isLiveShiprocketForTestPaymentsEnabled();
@@ -213,6 +222,57 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
   });
   console.info("[fulfillment] fulfillmentMode", { orderId, fulfillmentMode });
 
+  let pickupLocationName = typeof order.shiprocketPickupLocationName === "string"
+    ? order.shiprocketPickupLocationName
+    : "";
+
+  try {
+    const ensuredPickup = await ensureSellerPickupLocation({
+      uid: sellerUid,
+      addressOverride: (order.pickupAddress as Record<string, unknown> | undefined) ?? undefined,
+    });
+    pickupLocationName = ensuredPickup.pickupLocationName;
+    console.info(`[fulfillment] seller pickup location ${ensuredPickup.status}`, {
+      orderId,
+      pickupLocationName,
+    });
+    await orderRef.update({
+      shiprocketPickupLocationName: pickupLocationName,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    const fallbackLocationName = getDefaultPickupLocation();
+    const sanitizedPickupError = sanitizeFulfillmentError(error);
+    const canUseFallback =
+      isDefaultPickupFallbackEnabled() &&
+      razorpayMode === "test" &&
+      Boolean(fallbackLocationName);
+
+    if (canUseFallback) {
+      pickupLocationName = fallbackLocationName;
+      console.info("[fulfillment] seller pickup location fallback", {
+        orderId,
+        pickupLocationName,
+      });
+    } else {
+      console.error("[fulfillment] seller pickup location missing/failed", {
+        orderId,
+        error: sanitizedPickupError,
+      });
+      await orderRef.update({
+        fulfillmentStatus: "shiprocket_order_failed",
+        shipmentStatus: "pickup_location_failed",
+        shiprocketError: "Seller pickup location could not be created. Please contact support.",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return {
+        ok: false,
+        reachedStep: null,
+        error: sanitizedPickupError,
+      };
+    }
+  }
+
   if (!shouldCreateLiveShiprocketOrder()) {
     const now = new Date().toISOString();
     const fulfillmentState = "SHIPROCKET_SKIPPED";
@@ -271,7 +331,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         city: pickup.city,
         state: pickup.state,
         pincode: pickup.pincode,
-        location: pickup.location ?? pickup.pickupLocationName ?? "Primary",
+        location: pickupLocationName,
       },
       buyer: buyerAddress,
       items: items.map((item) => ({
@@ -327,6 +387,7 @@ export async function runFulfillment(orderId: string): Promise<FulfillmentResult
         fulfillmentStatus:
           fulfillmentMode === "auto" ? "shipment_created" : "shiprocket_order_created",
         shipmentId: shipmentDocId,
+        shiprocketPickupLocationName: pickupLocationName,
         shiprocketOrderId: sr.shiprocketOrderId,
         shiprocketShipmentId: shipmentId,
         shiprocketError: null,

@@ -10,7 +10,7 @@ import { celebrate } from "@/lib/confetti";
 import { AuthGate } from "@/components/AuthGate";
 import { AppPageShell } from "@/components/PageShell";
 import { CATEGORIES, CONDITIONS, DELIVERY_TYPES } from "@/lib/constants";
-import { createListing, uploadListingImage } from "@/lib/listings";
+import { createListing, ensureSellerPickupLocation, uploadListingImage } from "@/lib/listings";
 import {
   Upload,
   X,
@@ -649,6 +649,9 @@ function SellForm({ user }: { user: User }) {
     setUploadProgress(0);
 
     try {
+      setSubmitStatus("Setting up seller pickup address…");
+      await ensureSellerPickupLocation();
+
       const orderedImages = getAllImages();
       const imageUrls: string[] = [];
 
@@ -727,7 +730,7 @@ function SellForm({ user }: { user: User }) {
     }
 
     setSubmitting(true);
-    setSubmitStatus(`Preparing ${bulkBooks.length} books for upload…`);
+    setSubmitStatus("Setting up seller pickup address…");
     setUploadProgress(0);
 
     const totalImageCount = bulkBooks.reduce((sum, book) => sum + book.images.length, 0);
@@ -736,6 +739,9 @@ function SellForm({ user }: { user: User }) {
     let createdListings = 0;
 
     try {
+      await ensureSellerPickupLocation();
+      setSubmitStatus(`Preparing ${bulkBooks.length} books for upload…`);
+
       for (let bookIndex = 0; bookIndex < bulkBooks.length; bookIndex += 1) {
         const book = bulkBooks[bookIndex];
         const orderedImages = getOrderedImages(book.images, book.coverImageIndex);
@@ -832,6 +838,9 @@ function SellForm({ user }: { user: User }) {
                 <p className="mt-2 text-muted-foreground">
                   List your book in 4 quick steps. Every listing goes live after admin approval.
                 </p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Your Home Address will be used as your pickup and return address when you sell books on BookVerse.
+                </p>
               </div>
 
               {protectedDeliveryEnabled && pickupIncomplete ? (
@@ -844,7 +853,7 @@ function SellForm({ user }: { user: User }) {
                     <Link href="/profile" className="font-semibold underline">
                       profile
                     </Link>{" "}
-                    before you choose home delivery. WhatsApp/manual flow still works.
+                    before listing a book. This address will be used for courier pickup and returns.
                   </p>
                 </div>
               ) : null}

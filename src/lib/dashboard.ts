@@ -46,6 +46,11 @@ export interface UserDashboardData {
     lifetimePoints: number;
     badges: RewardBadge[];
     referralCode: string;
+    referralRewardStatus: "none" | "pending" | "confirmed" | "rejected";
+    referralStats: {
+      pendingReferrals: number;
+      successfulReferrals: number;
+    };
     availableCoupons: UserCouponRecord[];
     history: RewardEventRecord[];
   };
@@ -65,6 +70,11 @@ interface UserRewardsMetrics {
   lifetimePoints: number;
   badges: RewardBadge[];
   referralCode: string;
+  referralRewardStatus: "none" | "pending" | "confirmed" | "rejected";
+  referralStats: {
+    pendingReferrals: number;
+    successfulReferrals: number;
+  };
   availableCoupons: UserCouponRecord[];
   history: RewardEventRecord[];
 }
@@ -138,6 +148,11 @@ async function getUserRewardsMetrics(): Promise<UserRewardsMetrics> {
     lifetimePoints: summary.rewards.lifetimePoints,
     badges: summary.rewards.badges,
     referralCode: summary.rewards.referralCode,
+    referralRewardStatus: summary.rewards.referralRewardStatus ?? "none",
+    referralStats: summary.rewards.referralStats ?? {
+      pendingReferrals: 0,
+      successfulReferrals: 0,
+    },
     availableCoupons: summary.availableCoupons,
     history: summary.history,
   };
@@ -170,6 +185,8 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
       lifetimePoints: 0,
       badges: [],
       referralCode: "",
+      referralRewardStatus: "none",
+      referralStats: { pendingReferrals: 0, successfulReferrals: 0 },
       availableCoupons: [],
       history: [],
     })),
@@ -233,6 +250,11 @@ export async function getUserDashboard(uid: string): Promise<UserDashboardData> 
       lifetimePoints: rewardMetrics.lifetimePoints ?? 0,
       badges: rewardMetrics.badges ?? [],
       referralCode: rewardMetrics.referralCode ?? "",
+      referralRewardStatus: rewardMetrics.referralRewardStatus ?? "none",
+      referralStats: rewardMetrics.referralStats ?? {
+        pendingReferrals: 0,
+        successfulReferrals: 0,
+      },
       availableCoupons: rewardMetrics.availableCoupons ?? [],
       history: rewardMetrics.history ?? [],
     },

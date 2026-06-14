@@ -6,6 +6,10 @@ export const FREE_DELIVERY_MAX_DISCOUNT = 50;
 export const FREE_DELIVERY_EXPIRY_DAYS = 15;
 export const DAILY_SHARE_REWARD_CAP = 5;
 export const PLATFORM_SUPPORT_FEE_INR = 1;
+export const REFEREE_FIRST_ORDER_POINTS = 50;
+export const REFERRER_FIRST_ORDER_POINTS = 100;
+export const PROFILE_COMPLETION_POINTS = 10;
+export const FIRST_APPROVED_LISTING_POINTS = 25;
 
 export type RewardBadge = "Book Buddy" | "Campus Promoter" | "BookVerse Champion";
 export type RewardEventStatus = "approved" | "pending" | "reversed";
@@ -13,12 +17,26 @@ export type CouponStatus = "unused" | "used" | "expired";
 
 export interface UserRewardsRecord {
   userUid: string;
+  uid?: string;
+  pointsBalance: number;
   availablePoints: number;
+  lifetimePointsEarned: number;
+  lifetimePointsRedeemed: number;
   lifetimePoints: number;
   badges: RewardBadge[];
   monthlyCouponRedemptions: number;
   monthlyCouponRedemptionMonth: string | null;
   referralCode: string;
+  referralCodeNormalized?: string;
+  referredByUid?: string | null;
+  referredByCode?: string | null;
+  referralAppliedAt?: string | null;
+  referralRewardStatus?: "none" | "pending" | "confirmed" | "rejected";
+  referralQualifyingOrderId?: string | null;
+  referralStats?: {
+    pendingReferrals: number;
+    successfulReferrals: number;
+  };
   updatedAt?: string | null;
 }
 

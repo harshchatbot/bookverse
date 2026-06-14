@@ -324,8 +324,8 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                   <h2 className="font-display text-base font-semibold">Rewards and sharing</h2>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Share listings to earn points. Redeem 50 points for FREEDEL50 — a coupon that
-                  makes your next delivery free (we cover shipping up to ₹50).
+                  Invite a friend and keep sharing your listings. Friends unlock delivery rewards,
+                  and you earn 100 points after their first successful order.
                 </p>
               </div>
               <button
@@ -353,13 +353,27 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
               />
             </div>
 
+            {((dashboard?.rewards.referralStats.pendingReferrals ?? 0) +
+              (dashboard?.rewards.referralStats.successfulReferrals ?? 0)) > 0 ? (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  label="Pending referrals"
+                  value={dashboard?.rewards.referralStats.pendingReferrals ?? 0}
+                />
+                <StatCard
+                  label="Successful referrals"
+                  value={dashboard?.rewards.referralStats.successfulReferrals ?? 0}
+                />
+              </div>
+            ) : null}
+
             <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
               <div className="rounded-2xl border border-border bg-background p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">Invite friends, earn points</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Share your referral link. You earn 20 points when a friend joins. They get 10 points free.
+                      Invite a friend. They get delivery rewards, and you earn 100 points after their first successful order.
                     </p>
                   </div>
                   <button
@@ -374,6 +388,16 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
                 <div className="mt-3 rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-sm font-medium">
                   {dashboard?.rewards.referralCode || "BOOKVERSE"}
                 </div>
+                {dashboard?.rewards.referralRewardStatus === "pending" ? (
+                  <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                    Referral applied. Rewards unlock after your first successful order.
+                  </p>
+                ) : null}
+                {dashboard?.rewards.referralRewardStatus === "confirmed" ? (
+                  <p className="mt-3 text-xs text-emerald-700 dark:text-emerald-300">
+                    Referral reward unlocked.
+                  </p>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-border bg-background p-4">

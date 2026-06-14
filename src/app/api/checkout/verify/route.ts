@@ -4,7 +4,7 @@ import { adminKit, requireAuth } from "@/lib/admin.server";
 import { runFulfillment } from "@/lib/fulfillment.server";
 import { getStoredOrderItems, getStoredOrderSummary } from "@/lib/order-server";
 import { verifyRazorpaySignature } from "@/lib/razorpay.server";
-import { markCouponUsedForOrder } from "@/lib/rewards.server";
+import { confirmReferralRewardForFirstPaidOrder, markCouponUsedForOrder } from "@/lib/rewards.server";
 
 export const runtime = "nodejs";
 
@@ -123,6 +123,10 @@ export async function POST(request: NextRequest) {
   await markCouponUsedForOrder({
     couponId: typeof order.couponId === "string" ? order.couponId : null,
     uid: decoded.uid,
+    orderId: orderRef.id,
+  });
+  await confirmReferralRewardForFirstPaidOrder({
+    buyerUid: decoded.uid,
     orderId: orderRef.id,
   });
 

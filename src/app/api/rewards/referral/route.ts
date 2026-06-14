@@ -31,9 +31,17 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not apply referral.";
+    const status =
+      message.includes("already been applied") || message.includes("only be used during signup")
+        ? 409
+        : message.includes("not valid") || message.includes("own referral")
+          ? 400
+          : 400;
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not apply referral." },
-      { status: 400 },
+      { error: message },
+      { status },
     );
   }
 }

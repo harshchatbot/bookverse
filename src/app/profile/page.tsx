@@ -29,14 +29,15 @@ import {
 import {
   clearPickupValidationState,
   getProfile,
-  saveHomeAddress,
   hasCompleteHomeAddress,
+  type HomeAddress,
+  saveHomeAddress,
   getPayoutDetails,
   savePayoutDetails,
-  type HomeAddress,
   type PayoutDetails,
 } from "@/lib/profiles";
 import { apiFetch } from "@/lib/api-client";
+import { getRewardsSummary } from "@/lib/rewards";
 import {
   isValidIndianMobile,
   toIndianE164,
@@ -108,6 +109,8 @@ function ProfileContent({ user }: { user: User }) {
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [homeValidationMessage, setHomeValidationMessage] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [applyingReferral, setApplyingReferral] = useState(false);
 
   const [payoutForm, setPayoutForm] = useState<PayoutDetails>({
     upiId: "",
@@ -120,6 +123,10 @@ function ProfileContent({ user }: { user: User }) {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["user-profile", user.uid],
     queryFn: () => getUserProfile(user.uid),
+  });
+  const rewardsQuery = useQuery({
+    queryKey: ["rewards-summary", user.uid],
+    queryFn: getRewardsSummary,
   });
 
   // Load from profiles.homeAddress; fall back to users profile for prefill
@@ -187,6 +194,15 @@ function ProfileContent({ user }: { user: User }) {
     phoneLinkedInFirebase;
   const emailVerified = user.emailVerified;
   const completed = isProfileCompleted(profile) && hasCompleteHomeAddress(pickupForm);
+  const referralStatus = rewardsQuery.data?.rewards.referralRewardStatus ?? "none";
+  const canApplyReferral = !completed && referralStatus === "none";
+
+  useEffect(() => {
+    const stored = localStorage.getItem("bv_referral_code");
+    if (stored && !completed) {
+      setReferralCode(stored);
+    }
+  }, [completed]);
 
   const setPickupField = <K extends keyof HomeAddress>(field: K, value: HomeAddress[K]) => {
     setHomeValidationMessage("");
@@ -327,6 +343,32 @@ function ProfileContent({ user }: { user: User }) {
       toast.error(error instanceof Error ? error.message : "Could not save payout details.");
     } finally {
       setSavingPayout(false);
+    }
+  };
+
+  const applyReferralCode = async () => {
+    const code = referralCode.trim().toUpperCase();
+    if (!code) {
+      toast.error("Enter a referral code to continue.");
+      return;
+    }
+    setApplyingReferral(true);
+    try {
+      const result = await apiFetch<{ message?: string }>("/api/rewards/referral", {
+        method: "POST",
+        body: JSON.stringify({ referralCode: code }),
+      });
+      localStorage.removeItem("bv_referral_code");
+      await rewardsQuery.refetch();
+      toast.success(result.message || "Referral code applied.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "We could not apply that referral code right now.",
+      );
+    } finally {
+      setApplyingReferral(false);
     }
   };
 
@@ -562,6 +604,55 @@ function ProfileContent({ user }: { user: User }) {
           phoneVerified={phoneVerified}
           completed={completed}
         />
+
+        {canApplyReferral ? (
+          <section className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <h2 className="font-semibold">Referral code</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Have a referral code? Enter it now. It can only be used once during signup.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <input
+                type="text"
+                value={referralCode}
+                onChange={(event) =>
+                  setReferralCode(
+                    event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                  )
+                }
+                placeholder="e.g. BOOKAB12"
+                maxLength={16}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+              <button
+                type="button"
+                onClick={applyReferralCode}
+                disabled={applyingReferral}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
+              >
+                {applyingReferral && <Loader2 className="h-4 w-4 animate-spin" />}
+                Apply code
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {referralStatus === "pending" ? (
+          <section className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">Referral applied</p>
+            <p className="mt-1 text-amber-800 dark:text-amber-200">
+              Rewards unlock after your first successful order.
+            </p>
+          </section>
+        ) : null}
+
+        {referralStatus === "confirmed" ? (
+          <section className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
+            <p className="font-semibold text-emerald-800 dark:text-emerald-200">
+              Referral reward unlocked
+            </p>
+          </section>
+        ) : null}
 
         {isLoading ? (
           <div className="mt-8 h-96 animate-pulse rounded-2xl bg-secondary" />

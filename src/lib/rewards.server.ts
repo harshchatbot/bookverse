@@ -1,10 +1,14 @@
 import { adminKit } from "./admin.server";
 import {
   DAILY_SHARE_REWARD_CAP,
+  FIRST_APPROVED_LISTING_POINTS,
   FREE_DELIVERY_EXPIRY_DAYS,
   FREE_DELIVERY_MAX_DISCOUNT,
   FREE_DELIVERY_POINTS_COST,
   FREE_DELIVERY_REWARD_CODE,
+  PROFILE_COMPLETION_POINTS,
+  REFEREE_FIRST_ORDER_POINTS,
+  REFERRER_FIRST_ORDER_POINTS,
   getRewardBadges,
   type RewardEventRecord,
   type RewardsSummary,
@@ -35,12 +39,26 @@ function plusDays(days: number) {
 function rewardDefaults(uid: string): UserRewardsRecord {
   return {
     userUid: uid,
+    uid,
+    pointsBalance: 0,
     availablePoints: 0,
+    lifetimePointsEarned: 0,
+    lifetimePointsRedeemed: 0,
     lifetimePoints: 0,
     badges: [],
     monthlyCouponRedemptions: 0,
     monthlyCouponRedemptionMonth: monthKey(),
     referralCode: buildReferralCode(uid),
+    referralCodeNormalized: buildReferralCode(uid),
+    referredByUid: null,
+    referredByCode: null,
+    referralAppliedAt: null,
+    referralRewardStatus: "none",
+    referralQualifyingOrderId: null,
+    referralStats: {
+      pendingReferrals: 0,
+      successfulReferrals: 0,
+    },
     updatedAt: null,
   };
 }
@@ -62,16 +80,60 @@ function toBadgeArray(value: unknown): UserRewardsRecord["badges"] {
   );
 }
 
+function normalizeReferralCode(value: string) {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function toReferralStatus(
+  value: unknown,
+): NonNullable<UserRewardsRecord["referralRewardStatus"]> {
+  return value === "pending" || value === "confirmed" || value === "rejected" ? value : "none";
+}
+
+function toReferralStats(value: unknown): NonNullable<UserRewardsRecord["referralStats"]> {
+  if (!value || typeof value !== "object") {
+    return { pendingReferrals: 0, successfulReferrals: 0 };
+  }
+  return {
+    pendingReferrals: toNumber((value as Record<string, unknown>).pendingReferrals),
+    successfulReferrals: toNumber((value as Record<string, unknown>).successfulReferrals),
+  };
+}
+
+function isCompletedUserProfile(data?: Record<string, unknown>) {
+  if (!data) return false;
+  const name = String(data.name ?? "").trim();
+  const mobile = String(data.mobile ?? "").replace(/\D/g, "");
+  const state = String(data.state ?? "").trim();
+  const city = String(data.city ?? "").trim();
+  const pincode = String(data.pincode ?? "").trim();
+  return !!(
+    name &&
+    /^[6-9]\d{9}$/.test(mobile) &&
+    state &&
+    city &&
+    /^\d{6}$/.test(pincode) &&
+    data.emailVerified === true &&
+    data.phoneVerified === true
+  );
+}
+
+function rewardEventRefId(kind: string, id: string) {
+  return `${kind}_${id}`.replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
 function normalizeCouponStatus(value: unknown): UserCouponRecord["status"] {
   if (value === "used" || value === "expired") return value;
   return "unused";
 }
 
 export function buildReferralCode(uid: string) {
-  return `BOOK${uid
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .slice(0, 6)
-    .toUpperCase()}`;
+  return normalizeReferralCode(
+    `BOOK${uid
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 6)
+      .toUpperCase()}`,
+  );
 }
 
 function serializeRewards(uid: string, data?: Record<string, unknown>): UserRewardsRecord {
@@ -80,12 +142,25 @@ function serializeRewards(uid: string, data?: Record<string, unknown>): UserRewa
 
   return {
     userUid: uid,
-    availablePoints: toNumber(data.availablePoints),
-    lifetimePoints: toNumber(data.lifetimePoints),
+    uid: toStringOrNull(data.uid) ?? uid,
+    pointsBalance: toNumber(data.pointsBalance) || toNumber(data.availablePoints),
+    availablePoints: toNumber(data.pointsBalance) || toNumber(data.availablePoints),
+    lifetimePointsEarned: toNumber(data.lifetimePointsEarned) || toNumber(data.lifetimePoints),
+    lifetimePointsRedeemed: toNumber(data.lifetimePointsRedeemed),
+    lifetimePoints: toNumber(data.lifetimePointsEarned) || toNumber(data.lifetimePoints),
     badges: toBadgeArray(data.badges),
     monthlyCouponRedemptions: toNumber(data.monthlyCouponRedemptions),
     monthlyCouponRedemptionMonth: toStringOrNull(data.monthlyCouponRedemptionMonth),
     referralCode: toStringOrNull(data.referralCode) ?? buildReferralCode(uid),
+    referralCodeNormalized:
+      toStringOrNull(data.referralCodeNormalized) ??
+      normalizeReferralCode(toStringOrNull(data.referralCode) ?? buildReferralCode(uid)),
+    referredByUid: toStringOrNull(data.referredByUid),
+    referredByCode: toStringOrNull(data.referredByCode),
+    referralAppliedAt: toStringOrNull(data.referralAppliedAt),
+    referralRewardStatus: toReferralStatus(data.referralRewardStatus),
+    referralQualifyingOrderId: toStringOrNull(data.referralQualifyingOrderId),
+    referralStats: toReferralStats(data.referralStats),
     updatedAt: toStringOrNull(data.updatedAt),
   };
 }
@@ -203,20 +278,32 @@ export async function awardShareRewardPoints(input: { uid: string; listingId: st
     };
   }
 
-  const lifetimePoints = current.lifetimePoints + 1;
-  const availablePoints = current.availablePoints + 1;
-  const badges = getRewardBadges(lifetimePoints);
+  const lifetimePointsEarned = current.lifetimePointsEarned + 1;
+  const pointsBalance = current.pointsBalance + 1;
+  const badges = getRewardBadges(lifetimePointsEarned);
 
   await rewardsRef.set(
     {
       userUid: input.uid,
-      availablePoints,
-      lifetimePoints,
+      uid: input.uid,
+      pointsBalance,
+      availablePoints: pointsBalance,
+      lifetimePointsEarned,
+      lifetimePoints: lifetimePointsEarned,
+      lifetimePointsRedeemed: current.lifetimePointsRedeemed,
       badges,
       monthlyCouponRedemptions:
         current.monthlyCouponRedemptionMonth === monthKey() ? current.monthlyCouponRedemptions : 0,
       monthlyCouponRedemptionMonth: current.monthlyCouponRedemptionMonth ?? monthKey(),
       referralCode: current.referralCode || buildReferralCode(input.uid),
+      referralCodeNormalized:
+        current.referralCodeNormalized || normalizeReferralCode(current.referralCode || buildReferralCode(input.uid)),
+      referredByUid: current.referredByUid ?? null,
+      referredByCode: current.referredByCode ?? null,
+      referralAppliedAt: current.referralAppliedAt ?? null,
+      referralRewardStatus: current.referralRewardStatus ?? "none",
+      referralQualifyingOrderId: current.referralQualifyingOrderId ?? null,
+      referralStats: current.referralStats ?? { pendingReferrals: 0, successfulReferrals: 0 },
       updatedAt: now,
     },
     { merge: true },
@@ -234,7 +321,7 @@ export async function awardShareRewardPoints(input: { uid: string; listingId: st
 
   return {
     rewardGranted: true,
-    availablePoints,
+    availablePoints: pointsBalance,
   };
 }
 
@@ -250,7 +337,7 @@ export async function redeemFreeDeliveryReward(uid: string) {
   const monthlyCouponRedemptions =
     current.monthlyCouponRedemptionMonth === currentMonth ? current.monthlyCouponRedemptions : 0;
 
-  if (current.availablePoints < FREE_DELIVERY_POINTS_COST) {
+  if (current.pointsBalance < FREE_DELIVERY_POINTS_COST) {
     throw new Error(`You need ${FREE_DELIVERY_POINTS_COST} points to redeem FREEDEL50.`);
   }
 
@@ -261,17 +348,29 @@ export async function redeemFreeDeliveryReward(uid: string) {
   const couponRef = db.collection("user_coupons").doc();
   const eventRef = db.collection("reward_events").doc();
   const now = nowIso();
-  const availablePoints = current.availablePoints - FREE_DELIVERY_POINTS_COST;
+  const pointsBalance = current.pointsBalance - FREE_DELIVERY_POINTS_COST;
 
   await rewardsRef.set(
     {
       userUid: uid,
-      availablePoints,
-      lifetimePoints: current.lifetimePoints,
-      badges: getRewardBadges(current.lifetimePoints),
+      uid,
+      pointsBalance,
+      availablePoints: pointsBalance,
+      lifetimePointsEarned: current.lifetimePointsEarned,
+      lifetimePoints: current.lifetimePointsEarned,
+      lifetimePointsRedeemed: current.lifetimePointsRedeemed + FREE_DELIVERY_POINTS_COST,
+      badges: getRewardBadges(current.lifetimePointsEarned),
       monthlyCouponRedemptions: monthlyCouponRedemptions + 1,
       monthlyCouponRedemptionMonth: currentMonth,
       referralCode: current.referralCode || buildReferralCode(uid),
+      referralCodeNormalized:
+        current.referralCodeNormalized || normalizeReferralCode(current.referralCode || buildReferralCode(uid)),
+      referredByUid: current.referredByUid ?? null,
+      referredByCode: current.referredByCode ?? null,
+      referralAppliedAt: current.referralAppliedAt ?? null,
+      referralRewardStatus: current.referralRewardStatus ?? "none",
+      referralQualifyingOrderId: current.referralQualifyingOrderId ?? null,
+      referralStats: current.referralStats ?? { pendingReferrals: 0, successfulReferrals: 0 },
       updatedAt: now,
     },
     { merge: true },
@@ -343,7 +442,13 @@ export async function markCouponUsedForOrder(input: {
   const couponSnap = await couponRef.get();
   if (!couponSnap.exists) return;
   const coupon = serializeCoupon(couponSnap.id, couponSnap.data() as Record<string, unknown>);
-  if (coupon.userUid !== input.uid || coupon.status !== "unused") return;
+  if (coupon.userUid !== input.uid || coupon.status !== "unused") {
+    console.info("[rewards] duplicate redemption skipped", {
+      orderId: input.orderId,
+      couponId: input.couponId,
+    });
+    return;
+  }
 
   await couponRef.set(
     {
@@ -353,109 +458,420 @@ export async function markCouponUsedForOrder(input: {
     },
     { merge: true },
   );
+
+  await db.collection("reward_events").doc(rewardEventRefId("redeem_delivery", input.orderId)).set(
+    {
+      userUid: input.uid,
+      type: "redeem_delivery",
+      points: 0,
+      status: "approved",
+      relatedOrderId: input.orderId,
+      createdAt: nowIso(),
+      metadata: {
+        couponId: input.couponId,
+        code: coupon.code,
+        maxDiscount: coupon.maxDiscount,
+      },
+    },
+    { merge: true },
+  );
+  console.info("[rewards] delivery redemption created", {
+    orderId: input.orderId,
+    couponId: input.couponId,
+  });
 }
 
 export async function applyReferral(input: { newUserUid: string; referralCode: string }) {
   const { db } = await adminKit();
   const now = nowIso();
-  const code = input.referralCode.trim().toUpperCase();
+  const code = normalizeReferralCode(input.referralCode);
+  console.info("[referral] apply start", { uid: input.newUserUid, referralCode: code });
 
-  // Find referrer by referral code
-  const referrerSnap = await db
-    .collection("user_rewards")
-    .where("referralCode", "==", code)
-    .limit(1)
-    .get();
+  const [
+    referrerByNormalizedSnap,
+    referrerByLegacySnap,
+    userRewardsSnap,
+    userDocSnap,
+    paidOrdersByUidSnap,
+    paidOrdersByBuyerIdSnap,
+  ] =
+    await Promise.all([
+      db.collection("user_rewards").where("referralCodeNormalized", "==", code).limit(1).get(),
+      db.collection("user_rewards").where("referralCode", "==", code).limit(1).get(),
+      db.collection("user_rewards").doc(input.newUserUid).get(),
+      db.collection("users").doc(input.newUserUid).get(),
+      db.collection("orders").where("buyerUid", "==", input.newUserUid).limit(10).get(),
+      db.collection("orders").where("buyerId", "==", input.newUserUid).limit(10).get(),
+    ]);
 
-  if (referrerSnap.empty) {
-    throw new Error("Invalid referral code");
+  const referrerDoc = !referrerByNormalizedSnap.empty
+    ? referrerByNormalizedSnap.docs[0]
+    : !referrerByLegacySnap.empty
+      ? referrerByLegacySnap.docs[0]
+      : null;
+
+  if (!referrerDoc) {
+    console.info("[referral] invalid code", { uid: input.newUserUid, referralCode: code });
+    throw new Error("That referral code is not valid. Please check it and try again.");
   }
 
-  const referrerDoc = referrerSnap.docs[0]!;
   const referrerUid = referrerDoc.id;
-
-  // Cannot use own referral code
+  const referrerUserSnap = await db.collection("users").doc(referrerUid).get();
+  if (!referrerUserSnap.exists) {
+    console.info("[referral] invalid code", { uid: input.newUserUid, referralCode: code });
+    throw new Error("That referral code is not valid. Please check it and try again.");
+  }
   if (referrerUid === input.newUserUid) {
-    throw new Error("You cannot use your own referral code");
+    console.info("[referral] self referral blocked", { uid: input.newUserUid });
+    throw new Error("You cannot use your own referral code.");
   }
 
-  // Check if this user already used a referral code
-  const alreadyUsed = await db
-    .collection("reward_events")
-    .where("userUid", "==", input.newUserUid)
-    .where("type", "==", "referral_signup")
-    .limit(1)
-    .get();
-
-  if (!alreadyUsed.empty) {
-    throw new Error("Referral code already applied to this account");
-  }
-
-  // Award 10 points to new user
-  const newUserRef = db.collection("user_rewards").doc(input.newUserUid);
-  const newUserSnap = await newUserRef.get();
-  const newUserCurrent = serializeRewards(
+  const existingRewards = serializeRewards(
     input.newUserUid,
-    newUserSnap.exists ? (newUserSnap.data() as Record<string, unknown>) : undefined,
-  );
-  const newUserAvailable = newUserCurrent.availablePoints + 10;
-  const newUserLifetime = newUserCurrent.lifetimePoints + 10;
-
-  await newUserRef.set(
-    {
-      userUid: input.newUserUid,
-      availablePoints: newUserAvailable,
-      lifetimePoints: newUserLifetime,
-      badges: getRewardBadges(newUserLifetime),
-      referralCode: newUserCurrent.referralCode || buildReferralCode(input.newUserUid),
-      updatedAt: now,
-    },
-    { merge: true },
+    userRewardsSnap.exists ? (userRewardsSnap.data() as Record<string, unknown>) : undefined,
   );
 
-  await db.collection("reward_events").add({
-    userUid: input.newUserUid,
-    type: "referral_signup",
-    points: 10,
-    status: "approved",
-    createdAt: now,
-    metadata: { referralCode: code, referrerUid },
-  });
+  if (existingRewards.referredByUid) {
+    console.info("[referral] already applied", { uid: input.newUserUid });
+    throw new Error("A referral code has already been applied to this account.");
+  }
 
-  // Award 20 points to referrer
+  const hasPaidOrder = [...paidOrdersByUidSnap.docs, ...paidOrdersByBuyerIdSnap.docs].some(
+    (docSnap) => docSnap.data().paymentStatus === "captured" || docSnap.data().status === "paid",
+  );
+  const completedProfile = isCompletedUserProfile(
+    userDocSnap.exists ? (userDocSnap.data() as Record<string, unknown>) : undefined,
+  );
+
+  if (completedProfile || hasPaidOrder) {
+    console.info("[referral] blocked after onboarding", {
+      uid: input.newUserUid,
+      completedProfile,
+      hasPaidOrder,
+    });
+    throw new Error("Referral codes can only be used during signup or profile completion.");
+  }
+
+  const claimRef = db.collection("referralClaims").doc(input.newUserUid);
+  const newUserRef = db.collection("user_rewards").doc(input.newUserUid);
   const referrerRef = db.collection("user_rewards").doc(referrerUid);
-  const referrerCurrent = serializeRewards(
-    referrerUid,
-    referrerDoc.data() as Record<string, unknown>,
-  );
-  const referrerAvailable = referrerCurrent.availablePoints + 20;
-  const referrerLifetime = referrerCurrent.lifetimePoints + 20;
+  const applyEventRef = db
+    .collection("reward_events")
+    .doc(rewardEventRefId("referral_apply", input.newUserUid));
+  const refereeCouponRef = db
+    .collection("user_coupons")
+    .doc(`referral_freedel_${input.newUserUid}`);
 
-  await referrerRef.set(
-    {
-      userUid: referrerUid,
-      availablePoints: referrerAvailable,
-      lifetimePoints: referrerLifetime,
-      badges: getRewardBadges(referrerLifetime),
-      referralCode: referrerCurrent.referralCode || buildReferralCode(referrerUid),
-      updatedAt: now,
-    },
-    { merge: true },
-  );
+  await db.runTransaction(async (transaction) => {
+    const [claimSnap, currentRewardsSnap, currentReferrerSnap, couponSnap, applyEventSnap] =
+      await Promise.all([
+        transaction.get(claimRef),
+        transaction.get(newUserRef),
+        transaction.get(referrerRef),
+        transaction.get(refereeCouponRef),
+        transaction.get(applyEventRef),
+      ]);
 
-  await db.collection("reward_events").add({
-    userUid: referrerUid,
-    type: "referral_reward",
-    points: 20,
-    status: "approved",
-    createdAt: now,
-    metadata: { referralCode: code, newUserUid: input.newUserUid },
+    if (claimSnap.exists || applyEventSnap.exists) {
+      console.info("[referral] already applied", { uid: input.newUserUid });
+      throw new Error("A referral code has already been applied to this account.");
+    }
+
+    const currentRewards = serializeRewards(
+      input.newUserUid,
+      currentRewardsSnap.exists ? (currentRewardsSnap.data() as Record<string, unknown>) : undefined,
+    );
+    if (currentRewards.referredByUid) {
+      console.info("[referral] already applied", { uid: input.newUserUid });
+      throw new Error("A referral code has already been applied to this account.");
+    }
+
+    const currentReferrer = serializeRewards(
+      referrerUid,
+      currentReferrerSnap.exists ? (currentReferrerSnap.data() as Record<string, unknown>) : undefined,
+    );
+
+    transaction.set(
+      newUserRef,
+      {
+        userUid: input.newUserUid,
+        uid: input.newUserUid,
+        pointsBalance: currentRewards.pointsBalance,
+        availablePoints: currentRewards.pointsBalance,
+        lifetimePointsEarned: currentRewards.lifetimePointsEarned,
+        lifetimePoints: currentRewards.lifetimePointsEarned,
+        lifetimePointsRedeemed: currentRewards.lifetimePointsRedeemed,
+        badges: getRewardBadges(currentRewards.lifetimePointsEarned),
+        monthlyCouponRedemptions: currentRewards.monthlyCouponRedemptions,
+        monthlyCouponRedemptionMonth: currentRewards.monthlyCouponRedemptionMonth ?? monthKey(),
+        referralCode: currentRewards.referralCode || buildReferralCode(input.newUserUid),
+        referralCodeNormalized:
+          currentRewards.referralCodeNormalized ||
+          normalizeReferralCode(currentRewards.referralCode || buildReferralCode(input.newUserUid)),
+        referredByUid: referrerUid,
+        referredByCode: code,
+        referralAppliedAt: now,
+        referralRewardStatus: "pending",
+        referralQualifyingOrderId: null,
+        referralStats: currentRewards.referralStats ?? {
+          pendingReferrals: 0,
+          successfulReferrals: 0,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+
+    transaction.set(claimRef, {
+      referredUserUid: input.newUserUid,
+      referrerUid,
+      referralCode: code,
+      status: "pending",
+      createdAt: now,
+      confirmedAt: null,
+      qualifyingOrderId: null,
+      referrerRewardPoints: REFERRER_FIRST_ORDER_POINTS,
+      refereeRewardPoints: REFEREE_FIRST_ORDER_POINTS,
+    });
+
+    if (!couponSnap.exists) {
+      transaction.set(refereeCouponRef, {
+        userUid: input.newUserUid,
+        code: FREE_DELIVERY_REWARD_CODE,
+        type: "delivery_discount",
+        maxDiscount: FREE_DELIVERY_MAX_DISCOUNT,
+        minOrderValue: 0,
+        status: "unused",
+        issuedAt: now,
+        expiresAt: plusDays(FREE_DELIVERY_EXPIRY_DAYS),
+        usedAt: null,
+        orderId: null,
+        issuedMonth: monthKey(),
+        source: "referral_pending_benefit",
+      });
+    }
+
+    transaction.set(applyEventRef, {
+      userUid: input.newUserUid,
+      type: "referral_apply",
+      points: 0,
+      status: "pending",
+      createdAt: now,
+      metadata: {
+        referralCode: code,
+        referrerUid,
+        refereeRewardPoints: REFEREE_FIRST_ORDER_POINTS,
+      },
+    });
+
+    transaction.set(
+      referrerRef,
+      {
+        userUid: referrerUid,
+        uid: referrerUid,
+        pointsBalance: currentReferrer.pointsBalance,
+        availablePoints: currentReferrer.pointsBalance,
+        lifetimePointsEarned: currentReferrer.lifetimePointsEarned,
+        lifetimePoints: currentReferrer.lifetimePointsEarned,
+        lifetimePointsRedeemed: currentReferrer.lifetimePointsRedeemed,
+        badges: getRewardBadges(currentReferrer.lifetimePointsEarned),
+        monthlyCouponRedemptions: currentReferrer.monthlyCouponRedemptions,
+        monthlyCouponRedemptionMonth:
+          currentReferrer.monthlyCouponRedemptionMonth ?? monthKey(),
+        referralCode: currentReferrer.referralCode || buildReferralCode(referrerUid),
+        referralCodeNormalized:
+          currentReferrer.referralCodeNormalized ||
+          normalizeReferralCode(currentReferrer.referralCode || buildReferralCode(referrerUid)),
+        referredByUid: currentReferrer.referredByUid ?? null,
+        referredByCode: currentReferrer.referredByCode ?? null,
+        referralAppliedAt: currentReferrer.referralAppliedAt ?? null,
+        referralRewardStatus: currentReferrer.referralRewardStatus ?? "none",
+        referralQualifyingOrderId: currentReferrer.referralQualifyingOrderId ?? null,
+        referralStats: {
+          pendingReferrals: (currentReferrer.referralStats?.pendingReferrals ?? 0) + 1,
+          successfulReferrals: currentReferrer.referralStats?.successfulReferrals ?? 0,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
   });
+
+  console.info("[referral] pending created", { uid: input.newUserUid, referrerUid });
 
   return {
     ok: true,
-    newUserPoints: 10,
-    referrerPoints: 20,
-    message: "Referral applied successfully",
+    status: "pending",
+    message: "Referral code applied. Rewards unlock after your first successful order.",
   };
+}
+
+export async function confirmReferralRewardForFirstPaidOrder(input: {
+  buyerUid: string;
+  orderId: string;
+}) {
+  const { db } = await adminKit();
+  const now = nowIso();
+  console.info("[referral] reward confirm start", input);
+
+  const claimRef = db.collection("referralClaims").doc(input.buyerUid);
+  const buyerRewardsRef = db.collection("user_rewards").doc(input.buyerUid);
+  const referrerConfirmEventRef = db
+    .collection("reward_events")
+    .doc(rewardEventRefId("referral_confirm_referrer", `${input.buyerUid}_${input.orderId}`));
+  const refereeConfirmEventRef = db
+    .collection("reward_events")
+    .doc(rewardEventRefId("referral_confirm_referee", `${input.buyerUid}_${input.orderId}`));
+
+  return db.runTransaction(async (transaction) => {
+    const [claimSnap, buyerRewardsSnap, referrerConfirmSnap, refereeConfirmSnap] =
+      await Promise.all([
+        transaction.get(claimRef),
+        transaction.get(buyerRewardsRef),
+        transaction.get(referrerConfirmEventRef),
+        transaction.get(refereeConfirmEventRef),
+      ]);
+
+    if (!claimSnap.exists) {
+      return { ok: true, status: "none" as const };
+    }
+
+    const claim = claimSnap.data() as Record<string, unknown>;
+    if (claim.status === "confirmed" || referrerConfirmSnap.exists || refereeConfirmSnap.exists) {
+      console.info("[referral] reward already confirmed", input);
+      return { ok: true, status: "already_confirmed" as const };
+    }
+
+    if (claim.status !== "pending") {
+      return { ok: true, status: "ignored" as const };
+    }
+
+    const referrerUid = String(claim.referrerUid ?? "").trim();
+    if (!referrerUid) return { ok: true, status: "ignored" as const };
+
+    const referrerRewardsRef = db.collection("user_rewards").doc(referrerUid);
+    const referrerRewardsSnap = await transaction.get(referrerRewardsRef);
+    const buyerRewards = serializeRewards(
+      input.buyerUid,
+      buyerRewardsSnap.exists ? (buyerRewardsSnap.data() as Record<string, unknown>) : undefined,
+    );
+    const referrerRewards = serializeRewards(
+      referrerUid,
+      referrerRewardsSnap.exists
+        ? (referrerRewardsSnap.data() as Record<string, unknown>)
+        : undefined,
+    );
+
+    const newReferrerEarned = referrerRewards.lifetimePointsEarned + REFERRER_FIRST_ORDER_POINTS;
+    const newReferrerBalance = referrerRewards.pointsBalance + REFERRER_FIRST_ORDER_POINTS;
+
+    transaction.set(
+      referrerRewardsRef,
+      {
+        userUid: referrerUid,
+        uid: referrerUid,
+        pointsBalance: newReferrerBalance,
+        availablePoints: newReferrerBalance,
+        lifetimePointsEarned: newReferrerEarned,
+        lifetimePoints: newReferrerEarned,
+        lifetimePointsRedeemed: referrerRewards.lifetimePointsRedeemed,
+        badges: getRewardBadges(newReferrerEarned),
+        monthlyCouponRedemptions: referrerRewards.monthlyCouponRedemptions,
+        monthlyCouponRedemptionMonth:
+          referrerRewards.monthlyCouponRedemptionMonth ?? monthKey(),
+        referralCode: referrerRewards.referralCode || buildReferralCode(referrerUid),
+        referralCodeNormalized:
+          referrerRewards.referralCodeNormalized ||
+          normalizeReferralCode(referrerRewards.referralCode || buildReferralCode(referrerUid)),
+        referredByUid: referrerRewards.referredByUid ?? null,
+        referredByCode: referrerRewards.referredByCode ?? null,
+        referralAppliedAt: referrerRewards.referralAppliedAt ?? null,
+        referralRewardStatus: referrerRewards.referralRewardStatus ?? "none",
+        referralQualifyingOrderId: referrerRewards.referralQualifyingOrderId ?? null,
+        referralStats: {
+          pendingReferrals: Math.max(
+            0,
+            (referrerRewards.referralStats?.pendingReferrals ?? 0) - 1,
+          ),
+          successfulReferrals:
+            (referrerRewards.referralStats?.successfulReferrals ?? 0) + 1,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+
+    transaction.set(
+      buyerRewardsRef,
+      {
+        userUid: input.buyerUid,
+        uid: input.buyerUid,
+        pointsBalance: buyerRewards.pointsBalance,
+        availablePoints: buyerRewards.pointsBalance,
+        lifetimePointsEarned: buyerRewards.lifetimePointsEarned,
+        lifetimePoints: buyerRewards.lifetimePointsEarned,
+        lifetimePointsRedeemed: buyerRewards.lifetimePointsRedeemed,
+        badges: getRewardBadges(buyerRewards.lifetimePointsEarned),
+        monthlyCouponRedemptions: buyerRewards.monthlyCouponRedemptions,
+        monthlyCouponRedemptionMonth: buyerRewards.monthlyCouponRedemptionMonth ?? monthKey(),
+        referralCode: buyerRewards.referralCode || buildReferralCode(input.buyerUid),
+        referralCodeNormalized:
+          buyerRewards.referralCodeNormalized ||
+          normalizeReferralCode(buyerRewards.referralCode || buildReferralCode(input.buyerUid)),
+        referredByUid: buyerRewards.referredByUid ?? referrerUid,
+        referredByCode: buyerRewards.referredByCode ?? String(claim.referralCode ?? ""),
+        referralAppliedAt: buyerRewards.referralAppliedAt ?? now,
+        referralRewardStatus: "confirmed",
+        referralQualifyingOrderId: input.orderId,
+        referralStats: buyerRewards.referralStats ?? {
+          pendingReferrals: 0,
+          successfulReferrals: 0,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+
+    transaction.set(claimRef, {
+      status: "confirmed",
+      confirmedAt: now,
+      qualifyingOrderId: input.orderId,
+    }, { merge: true });
+
+    transaction.set(referrerConfirmEventRef, {
+      userUid: referrerUid,
+      type: "referral_confirm_referrer",
+      points: REFERRER_FIRST_ORDER_POINTS,
+      status: "approved",
+      relatedOrderId: input.orderId,
+      createdAt: now,
+      metadata: {
+        referredUserUid: input.buyerUid,
+        qualifyingOrderId: input.orderId,
+      },
+    });
+
+    transaction.set(refereeConfirmEventRef, {
+      userUid: input.buyerUid,
+      type: "referral_confirm_referee",
+      points: 0,
+      status: "approved",
+      relatedOrderId: input.orderId,
+      createdAt: now,
+      metadata: {
+        referrerUid,
+        qualifyingOrderId: input.orderId,
+        refereeRewardPoints: REFEREE_FIRST_ORDER_POINTS,
+        benefitType: FREE_DELIVERY_REWARD_CODE,
+      },
+    });
+
+    console.info("[referral] reward confirmed", {
+      buyerUid: input.buyerUid,
+      referrerUid,
+      orderId: input.orderId,
+    });
+
+    return { ok: true, status: "confirmed" as const };
+  });
 }

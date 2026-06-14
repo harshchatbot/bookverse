@@ -31,6 +31,11 @@ function assertAutoFulfillment(action: "assign_awb" | "generate_pickup") {
   }
 }
 
+export function sanitizeShiprocketError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]").slice(0, 500);
+}
+
 interface CachedToken {
   token: string;
   expiresAt: number;
@@ -204,6 +209,24 @@ export interface CreateOrderResult {
   raw: unknown;
 }
 
+export interface CreatePickupLocationInput {
+  pickupLocationName: string;
+  name: string;
+  email: string;
+  phone: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country?: string;
+}
+
+export interface CreatePickupLocationResult {
+  pickupLocationName: string;
+  raw: unknown;
+}
+
 export async function createShiprocketOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
   const body = {
     order_id: input.orderId,
@@ -248,6 +271,43 @@ export async function createShiprocketOrder(input: CreateOrderInput): Promise<Cr
     shipmentId: data.shipment_id,
     status: data.status,
     raw: data,
+  };
+}
+
+export async function createPickupLocationFromAddress(
+  input: CreatePickupLocationInput,
+): Promise<CreatePickupLocationResult> {
+  const body = {
+    pickup_location: input.pickupLocationName,
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    address: input.address1,
+    address_2: input.address2 ?? "",
+    city: input.city,
+    state: input.state,
+    country: input.country ?? "India",
+    pin_code: input.pincode,
+    return_address: input.address1,
+    return_address_2: input.address2 ?? "",
+    return_city: input.city,
+    return_state: input.state,
+    return_country: input.country ?? "India",
+    return_pin_code: input.pincode,
+  };
+
+  const data = await srFetch<Record<string, unknown>>("/settings/company/addpickup", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  return {
+    pickupLocationName: input.pickupLocationName,
+    raw: {
+      success: data.success ?? null,
+      message: data.message ?? null,
+      data: data.data ?? null,
+    },
   };
 }
 

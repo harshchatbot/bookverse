@@ -530,7 +530,7 @@ function ShippingTrackingCard({
   return (
     <Card
       title="Shipping & Tracking"
-      subtitle="This section is ready for real Shiprocket tracking once live fulfillment is enabled."
+      subtitle="Seller pickup will be arranged from the seller's registered Home Address."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <SummaryCell label="Fulfillment Status" value={formatLabel(fulfillmentStatus)} />

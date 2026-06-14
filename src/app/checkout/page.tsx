@@ -913,6 +913,7 @@ function CheckoutPageContent() {
                 <div className="mt-4 space-y-1 text-xs text-muted-foreground">
                   <p>Secure payment powered by Razorpay.</p>
                   <p>Shipment will be created after successful payment.</p>
+                  <p>Seller pickup will be arranged from the seller&apos;s registered Home Address.</p>
                   <p>Shipment will be processed manually by BookVerse after payment.</p>
                 </div>
               </div>

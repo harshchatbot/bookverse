@@ -90,8 +90,12 @@ export function LoginPageClient() {
               body: JSON.stringify({ referralCode: referralCode.trim() }),
             });
             localStorage.removeItem("bv_referral_code");
-          } catch {
-            // Non-fatal — referral can be retried
+          } catch (error) {
+            toast.error(
+              error instanceof Error
+                ? `${error.message} You can retry while your profile is still incomplete.`
+                : "Could not apply referral code right now. You can retry while your profile is still incomplete.",
+            );
           }
         }
       } else {
@@ -209,6 +213,9 @@ export function LoginPageClient() {
                       maxLength={12}
                       className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Have a referral code? Enter it during signup. It can only be used once.
+                    </p>
                   </label>
                 )}
                 <button
