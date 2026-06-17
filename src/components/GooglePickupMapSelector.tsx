@@ -40,6 +40,11 @@ const browserKey = getGoogleMapsBrowserKey();
 
 let mapsScriptPromise: Promise<void> | null = null;
 
+const AJMER_DEFAULT_CENTER = {
+  lat: 26.4499,
+  lng: 74.6399,
+};
+
 function loadMapsScript() {
   if (!browserKey) {
     return Promise.reject(new Error("Google Maps browser key is missing."));
@@ -136,7 +141,10 @@ export function GooglePickupMapSelector({
   const [error, setError] = useState<string | null>(null);
 
   const fallbackCenter = useMemo(
-    () => ({ lat: typeof lat === "number" && Number.isFinite(lat) ? lat : 18.5204, lng: typeof lon === "number" && Number.isFinite(lon) ? lon : 73.8567 }),
+    () => ({
+      lat: typeof lat === "number" && Number.isFinite(lat) ? lat : AJMER_DEFAULT_CENTER.lat,
+      lng: typeof lon === "number" && Number.isFinite(lon) ? lon : AJMER_DEFAULT_CENTER.lng,
+    }),
     [lat, lon],
   );
 

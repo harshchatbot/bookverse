@@ -91,7 +91,9 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          {!user ? (
+          {loading ? (
+            <div className="h-10 w-28 animate-pulse rounded-full border border-border bg-card" />
+          ) : !user ? (
             <Link
               href="/login"
               className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold transition-colors hover:bg-secondary"
@@ -185,9 +187,14 @@ export function Header({ mode = "marketing" }: { mode?: HeaderMode }) {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          {user && !isAdmin && !profileIncomplete && <NotificationsBell />}
+          {loading ? (
+            <div className="h-10 w-10 animate-pulse rounded-full border border-border bg-card" />
+          ) : (
+            user && !isAdmin && !profileIncomplete && <NotificationsBell />
+          )}
           <button
             onClick={() => setMobileOpen((value) => !value)}
+            disabled={loading}
             className="grid h-10 w-10 place-items-center rounded-full border border-border"
             aria-label="Open menu"
           >

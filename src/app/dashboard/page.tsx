@@ -125,6 +125,16 @@ function DashboardContent({ uid, isAdmin }: { uid: string; isAdmin: boolean }) {
     );
   }
 
+  if (isLoading || !data) {
+    return (
+      <AppPageShell>
+        <main className="flex-1">
+          <PageSpinner label="Loading your dashboard…" />
+        </main>
+      </AppPageShell>
+    );
+  }
+
   const dashboard = data;
 
   const referralLink =

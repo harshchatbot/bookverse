@@ -43,8 +43,9 @@ export function AuthGate({ children, fallback = null, loading, requireAdmin }: A
   const hydrated = useHydrated();
   const { user, isAdmin, loading: authLoading } = useAuth();
 
-  // Pre-hydration: must match SSR (which has no user). Always render fallback.
-  if (!hydrated) return <>{fallback}</>;
+  // Pre-hydration: prefer an explicit loading state so protected pages do not
+  // briefly look signed-out during client navigation and auth restoration.
+  if (!hydrated) return <>{loading ?? <PageSpinner label="Loading…" />}</>;
   if (authLoading) return <>{loading ?? <PageSpinner label="Loading…" />}</>;
   if (!user) return <>{fallback}</>;
   if (requireAdmin && !isAdmin) return <>{fallback}</>;
