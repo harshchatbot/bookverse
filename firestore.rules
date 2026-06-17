@@ -118,6 +118,30 @@ service cloud.firestore {
         ));
     }
 
+    function validPayoutDetails(value) {
+      return value is map
+        && value.keys().hasOnly([
+          'upiId',
+          'accountHolderName',
+          'accountNumber',
+          'ifsc',
+          'updatedAt'
+        ])
+        && (!('upiId' in value) || value.upiId is string)
+        && (!('accountHolderName' in value) || value.accountHolderName is string)
+        && (!('accountNumber' in value) || value.accountNumber is string)
+        && (!('ifsc' in value) || value.ifsc is string)
+        && (!('updatedAt' in value) || value.updatedAt is string)
+        && (
+          nonEmpty(value.upiId)
+          || (
+            nonEmpty(value.accountHolderName)
+            && nonEmpty(value.accountNumber)
+            && nonEmpty(value.ifsc)
+          )
+        );
+    }
+
     function phoneTokenMatches(data) {
       return request.auth.token.phone_number is string
         && (
@@ -274,6 +298,7 @@ service cloud.firestore {
                      'mobile',
                      'homeAddress',
                      'pickupAddress',
+                     'payoutDetails',
                      'updatedAt'
                    ])
                    && (
@@ -283,6 +308,10 @@ service cloud.firestore {
                    && (
                      !('pickupAddress' in request.resource.data)
                      || validPickupAddress(request.resource.data.pickupAddress)
+                   )
+                   && (
+                     !('payoutDetails' in request.resource.data)
+                     || validPayoutDetails(request.resource.data.payoutDetails)
                    );
     }
 
