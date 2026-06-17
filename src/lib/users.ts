@@ -168,13 +168,24 @@ export async function saveUserProfile(
   }
 }
 
-export async function setUserPhoneVerified(user: User, verified: boolean): Promise<void> {
+export async function setUserPhoneVerified(
+  user: User,
+  verified: boolean,
+  mobile?: string,
+): Promise<void> {
+  const normalizedMobile = mobile ? normalizeIndianMobile(mobile) : "";
   await setDoc(
     doc(db, USERS_COLLECTION, user.uid),
     {
       uid: user.uid,
       email: user.email ?? "",
       emailVerified: user.emailVerified,
+      ...(normalizedMobile
+        ? {
+            mobile: normalizedMobile,
+            whatsappNumber: normalizedMobile,
+          }
+        : {}),
       phoneVerified: verified,
       phoneVerifiedAt: verified ? serverTimestamp() : null,
       role: roleForEmail(user.email),

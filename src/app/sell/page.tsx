@@ -31,6 +31,7 @@ import { useMarketplaceAccess } from "@/hooks/useMarketplaceAccess";
 import { indianMobileNational } from "@/lib/users";
 import { FullScreenLoader, PageSpinner } from "@/components/Spinner";
 import { getProfile, hasCompleteHomeAddress } from "@/lib/profiles";
+import { getPayoutDetails, hasPayoutDetails } from "@/lib/profiles";
 import { isProtectedDeliveryEnabled } from "@/lib/feature-flags";
 
 const PRICE_MAX = 100000;
@@ -261,6 +262,7 @@ function SellForm({ user }: { user: User }) {
   const [submitStatus, setSubmitStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pickupIncomplete, setPickupIncomplete] = useState(false);
+  const [payoutIncomplete, setPayoutIncomplete] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [mandatoryPhotos, setMandatoryPhotos] = useState<(File | null)[]>([null, null, null]);
   const [optionalPhotos, setOptionalPhotos] = useState<(File | null)[]>([null, null, null]);
@@ -296,18 +298,23 @@ function SellForm({ user }: { user: User }) {
 
   useEffect(() => {
     let cancelled = false;
-    const checkPickupAddress = async () => {
-      if (!protectedDeliveryEnabled) return;
+    const checkSellerSetup = async () => {
       try {
-        const profile = await getProfile(user.uid);
+        const [profile, payoutDetails] = await Promise.all([
+          getProfile(user.uid),
+          getPayoutDetails(user.uid),
+        ]);
         if (!cancelled) {
-          setPickupIncomplete(!hasCompleteHomeAddress(profile?.homeAddress));
+          if (protectedDeliveryEnabled) {
+            setPickupIncomplete(!hasCompleteHomeAddress(profile?.homeAddress));
+          }
+          setPayoutIncomplete(!hasPayoutDetails(payoutDetails));
         }
       } catch (error) {
-        console.error("Could not check Home Address:", error);
+        console.error("Could not check seller setup:", error);
       }
     };
-    checkPickupAddress();
+    checkSellerSetup();
     return () => {
       cancelled = true;
     };
@@ -631,6 +638,11 @@ function SellForm({ user }: { user: User }) {
 
   const submitSingleListing = async (data: SingleFormValues) => {
     if (!access.ensureAccess("sell")) return;
+    if (payoutIncomplete) {
+      toast.error("Add your payout details before listing a book for sale.");
+      router.push("/profile");
+      return;
+    }
     if (data.city === OTHER_CITY && !singleManualCity.trim()) {
       toast.error("Enter your city or town.");
       return;
@@ -703,6 +715,11 @@ function SellForm({ user }: { user: User }) {
 
   const submitBulkListings = async () => {
     if (!access.ensureAccess("sell")) return;
+    if (payoutIncomplete) {
+      toast.error("Add your payout details before listing a book for sale.");
+      router.push("/profile");
+      return;
+    }
 
     const actualCity =
       bulkShared.city === OTHER_CITY ? bulkManualCity.trim() : bulkShared.city.trim();
@@ -854,6 +871,21 @@ function SellForm({ user }: { user: User }) {
                       profile
                     </Link>{" "}
                     before listing a book. This address will be used for courier pickup and returns.
+                  </p>
+                </div>
+              ) : null}
+
+              {payoutIncomplete ? (
+                <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm">
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    Payout details are required before you can sell
+                  </p>
+                  <p className="mt-1 text-amber-800 dark:text-amber-200">
+                    Add your UPI ID or bank account in{" "}
+                    <Link href="/profile" className="font-semibold underline">
+                      profile
+                    </Link>{" "}
+                    so BookVerse can send you sale proceeds after an order is completed.
                   </p>
                 </div>
               ) : null}
@@ -1107,7 +1139,7 @@ function SellForm({ user }: { user: User }) {
                       submitting={submitting}
                       submitStatus={submitStatus}
                       uploadProgress={uploadProgress}
-                      disabled={!access.canUseMarketplace}
+                      disabled={!access.canUseMarketplace || payoutIncomplete}
                       label="Submit for review"
                     />
                   </>
@@ -1119,7 +1151,7 @@ function SellForm({ user }: { user: User }) {
                   onNext={goNext}
                   isLastStep={step === 4}
                   submitting={submitting}
-                  disabled={!access.canUseMarketplace}
+                  disabled={!access.canUseMarketplace || (step === 4 && payoutIncomplete)}
                 />
               </form>
 

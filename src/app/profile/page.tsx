@@ -30,6 +30,7 @@ import {
   clearPickupValidationState,
   getProfile,
   hasCompleteHomeAddress,
+  hasPayoutDetails,
   type HomeAddress,
   saveHomeAddress,
   getPayoutDetails,
@@ -71,6 +72,7 @@ export default function ProfilePage() {
 function ProfileContent({ user }: { user: User }) {
   const queryClient = useQueryClient();
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
+  const phoneSyncAttemptedRef = useRef(false);
 
   const [pickupForm, setPickupForm] = useState<HomeAddress>({
     label: "Home",
@@ -193,16 +195,35 @@ function ProfileContent({ user }: { user: User }) {
     normalizeIndianMobile(profile.mobile) === normalizedMobile) ||
     phoneLinkedInFirebase;
   const emailVerified = user.emailVerified;
-  const completed = isProfileCompleted(profile) && hasCompleteHomeAddress(pickupForm);
+  const marketplaceReady = isProfileCompleted(profile) && hasCompleteHomeAddress(pickupForm);
+  const payoutReady = hasPayoutDetails(payoutForm);
+  const sellerReady = marketplaceReady && payoutReady;
   const referralStatus = rewardsQuery.data?.rewards.referralRewardStatus ?? "none";
-  const canApplyReferral = !completed && referralStatus === "none";
+  const canApplyReferral = !marketplaceReady && referralStatus === "none";
 
   useEffect(() => {
     const stored = localStorage.getItem("bv_referral_code");
-    if (stored && !completed) {
+    if (stored && !marketplaceReady) {
       setReferralCode(stored);
     }
-  }, [completed]);
+  }, [marketplaceReady]);
+
+  useEffect(() => {
+    if (!phoneLinkedInFirebase) return;
+    if (!normalizedMobile) return;
+    if (profile?.phoneVerified && normalizeIndianMobile(profile.mobile) === normalizedMobile) return;
+    if (phoneSyncAttemptedRef.current) return;
+
+    phoneSyncAttemptedRef.current = true;
+    void (async () => {
+      try {
+        await setUserPhoneVerified(user, true, normalizedMobile);
+        await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
+      } catch (error) {
+        console.error("Could not sync verified phone state:", error);
+      }
+    })();
+  }, [normalizedMobile, phoneLinkedInFirebase, profile?.mobile, profile?.phoneVerified, queryClient, user]);
 
   const setPickupField = <K extends keyof HomeAddress>(field: K, value: HomeAddress[K]) => {
     setHomeValidationMessage("");
@@ -556,25 +577,32 @@ function ProfileContent({ user }: { user: User }) {
     setOtpVerifying(true);
     try {
       const credential = PhoneAuthProvider.credential(verificationId, otp.trim());
-      await linkWithCredential(user, credential);
-      await user.getIdToken(true);
-      await setUserPhoneVerified(user, true);
-      await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
-      setOtp("");
-      setVerificationId("");
-      toast.success("Your mobile number is verified.");
-    } catch (error) {
-      const code = (error as { code?: string }).code;
-      if (code === "auth/provider-already-linked") {
-        await setUserPhoneVerified(user, true);
+      let linkedInAuth = false;
+      try {
+        await linkWithCredential(user, credential);
+        linkedInAuth = true;
+      } catch (error) {
+        const code = (error as { code?: string }).code;
+        if (code !== "auth/provider-already-linked") {
+          throw error;
+        }
+        linkedInAuth = true;
+      }
+
+      if (linkedInAuth) {
         await user.getIdToken(true);
+        try {
+          await setUserPhoneVerified(user, true, pickupForm.phone);
+        } catch (persistError) {
+          console.error("Could not persist verified phone state:", persistError);
+        }
         await queryClient.invalidateQueries({ queryKey: ["user-profile", user.uid] });
         setOtp("");
         setVerificationId("");
         toast.success("Your mobile number is verified.");
-      } else {
-        toast.error(error instanceof Error ? error.message : "Invalid OTP. Please try again.");
       }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid OTP. Please try again.");
     } finally {
       setOtpVerifying(false);
     }
@@ -591,8 +619,10 @@ function ProfileContent({ user }: { user: User }) {
         <div>
           <h1 className="font-display text-3xl font-bold">Your BookVerse profile</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {completed
+            {sellerReady
               ? "All set! You can buy and sell books on BookVerse."
+              : marketplaceReady
+                ? "Your account is ready for buying. Add payout details to start selling."
               : "Complete the steps below to unlock buying and selling on BookVerse."}
           </p>
         </div>
@@ -602,7 +632,8 @@ function ProfileContent({ user }: { user: User }) {
           emailVerified={emailVerified}
           addressComplete={hasCompleteHomeAddress(pickupForm)}
           phoneVerified={phoneVerified}
-          completed={completed}
+          payoutReady={payoutReady}
+          completed={sellerReady}
         />
 
         {canApplyReferral ? (
@@ -1010,6 +1041,16 @@ function ProfileContent({ user }: { user: User }) {
                     details accepted as fallback.
                   </p>
                 </div>
+                <div
+                  className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    payoutReady
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {payoutReady ? "Payout ready" : "Needed to start selling"}
+                </div>
               </div>
               <div className="mt-4 space-y-4">
                 <Field
@@ -1115,11 +1156,13 @@ function ProfileStepper({
   emailVerified,
   addressComplete,
   phoneVerified,
+  payoutReady,
   completed,
 }: {
   emailVerified: boolean;
   addressComplete: boolean;
   phoneVerified: boolean;
+  payoutReady: boolean;
   completed: boolean;
 }) {
   const steps = [
@@ -1145,11 +1188,18 @@ function ProfileStepper({
       tip: "Used for OTP and WhatsApp communication.",
     },
     {
+      id: "payout",
+      icon: <Wallet className="h-4 w-4" />,
+      label: "Add payout details",
+      done: payoutReady,
+      tip: "Required before you can sell and receive payments.",
+    },
+    {
       id: "ready",
       icon: <CheckCircle2 className="h-4 w-4" />,
-      label: "Ready to buy & sell",
+      label: "Ready to sell",
       done: completed,
-      tip: "All steps complete — marketplace unlocked.",
+      tip: "All steps complete — buying and selling are fully unlocked.",
     },
   ];
 

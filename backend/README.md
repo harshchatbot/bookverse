@@ -64,8 +64,57 @@ SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT=
 SHIPROCKET_ALLOW_LIVE_ORDER_CREATION=
 ```
 
-Mode switching:
+## Razorpay mode switching
 
+BookVerse now switches Razorpay mode with two envs:
+
+- frontend/browser: `NEXT_PUBLIC_RAZORPAY_MODE`
+- server/API: `RAZORPAY_MODE`
+
+They should always match.
+
+### Switch back to live mode
+
+Set:
+
+```bash
+NEXT_PUBLIC_RAZORPAY_MODE=live
+RAZORPAY_MODE=live
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_xxxxx
+RAZORPAY_KEY_ID=rzp_live_xxxxx
+RAZORPAY_KEY_SECRET=live_secret_xxxxx
+```
+
+Notes:
+
+- live mode uses the existing live keys above
+- `RAZORPAY_MODE=live` is also the default if the variable is missing
+- after changing any `NEXT_PUBLIC_*` variable, redeploy the frontend because those are build-time variables
+
+### Switch to test mode again later
+
+Set:
+
+```bash
+NEXT_PUBLIC_RAZORPAY_MODE=test
+RAZORPAY_MODE=test
+NEXT_PUBLIC_RAZORPAY_TEST_KEY_ID=rzp_test_xxxxx
+RAZORPAY_TEST_KEY_ID=rzp_test_xxxxx
+RAZORPAY_TEST_KEY_SECRET=test_secret_xxxxx
+```
+
+Recommended while testing:
+
+```bash
+SHIPROCKET_MODE=mock
+SHIPROCKET_AUTO_CREATE_AFTER_PAYMENT=false
+SHIPROCKET_ALLOW_LIVE_ORDER_CREATION=false
+```
+
+Mode rules:
+
+- `NEXT_PUBLIC_RAZORPAY_MODE=test` uses `NEXT_PUBLIC_RAZORPAY_TEST_KEY_ID`
+- `NEXT_PUBLIC_RAZORPAY_MODE=live` (or unset) uses `NEXT_PUBLIC_RAZORPAY_KEY_ID`
 - `RAZORPAY_MODE=test` uses `RAZORPAY_TEST_KEY_ID` + `RAZORPAY_TEST_KEY_SECRET`
 - `RAZORPAY_MODE=live` (or unset) uses existing `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET`
 - Shiprocket should stay `mock` while Razorpay test payments are being debugged

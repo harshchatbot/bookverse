@@ -459,6 +459,17 @@ export interface PayoutDetails {
   updatedAt?: string;
 }
 
+export function hasPayoutDetails(details: PayoutDetails | null | undefined): boolean {
+  if (!details) return false;
+  const upiId = details.upiId.trim();
+  if (upiId) return true;
+  return !!(
+    details.accountHolderName.trim() &&
+    details.accountNumber.trim() &&
+    details.ifsc.trim()
+  );
+}
+
 export async function getPayoutDetails(uid: string): Promise<PayoutDetails | null> {
   try {
     const snap = await getDoc(doc(db, COLLECTION, uid));
