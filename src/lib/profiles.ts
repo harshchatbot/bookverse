@@ -436,13 +436,27 @@ export async function saveProfile(uid: string, input: Omit<UserProfile, "uid">):
 
 export async function saveHomeAddress(uid: string, homeAddress: HomeAddress): Promise<void> {
   const normalized = normalizeHomeAddress(homeAddress);
+  const payload = {
+    homeAddress: sanitizeHomeAddressForFirestore(normalized),
+    pickupAddress: sanitizePickupAddressForFirestore(toLegacyPickupAddress(normalized)),
+    updatedAt: serverTimestamp(),
+  };
+
+  console.info("[profile/address-save] topLevelKeys", Object.keys(payload));
+  console.info(
+    "[profile/address-save] homeAddressKeys",
+    Object.keys(payload.homeAddress as Record<string, unknown>),
+  );
+  if (payload.pickupAddress) {
+    console.info(
+      "[profile/address-save] pickupAddressKeys",
+      Object.keys(payload.pickupAddress as Record<string, unknown>),
+    );
+  }
+
   await setDoc(
     doc(db, COLLECTION, uid),
-    {
-      homeAddress: sanitizeHomeAddressForFirestore(normalized),
-      pickupAddress: sanitizePickupAddressForFirestore(toLegacyPickupAddress(normalized)),
-      updatedAt: serverTimestamp(),
-    },
+    payload,
     { merge: true },
   );
 }

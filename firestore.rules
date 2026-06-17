@@ -64,11 +64,13 @@ service cloud.firestore {
           'placeId',
           'formattedAddress',
           'userConfirmed',
+          'buyerConfirmed',
           'sellerConfirmed',
           'pinConfirmedAt',
           'googleValidatedAt',
           'googleValidation',
           'isAddressReady',
+          'isDeliveryReady',
           'isCourierReady',
           'validationLevel'
         ])
@@ -93,10 +95,12 @@ service cloud.firestore {
         && (!('lat' in value) || value.lat is number)
         && (!('lon' in value) || value.lon is number)
         && (!('userConfirmed' in value) || value.userConfirmed is bool)
+        && (!('buyerConfirmed' in value) || value.buyerConfirmed is bool)
         && (!('sellerConfirmed' in value) || value.sellerConfirmed is bool)
         && (!('pinConfirmedAt' in value) || value.pinConfirmedAt == null || value.pinConfirmedAt is string)
         && (!('googleValidatedAt' in value) || value.googleValidatedAt == null || value.googleValidatedAt is string)
         && (!('isAddressReady' in value) || value.isAddressReady is bool)
+        && (!('isDeliveryReady' in value) || value.isDeliveryReady is bool)
         && (!('isCourierReady' in value) || value.isCourierReady is bool)
         && (!('validationLevel' in value)
             || value.validationLevel == null
@@ -351,11 +355,18 @@ service cloud.firestore {
                       'homeAddress.placeId',
                       'homeAddress.formattedAddress',
                       'homeAddress.userConfirmed',
+                      'homeAddress.buyerConfirmed',
                       'homeAddress.sellerConfirmed',
                       'homeAddress.pinConfirmedAt',
                       'homeAddress.googleValidatedAt',
                       'homeAddress.googleValidation',
+                      'homeAddress.googleValidation.addressComplete',
+                      'homeAddress.googleValidation.validationGranularity',
+                      'homeAddress.googleValidation.geocodeGranularity',
+                      'homeAddress.googleValidation.reasonCodes',
+                      'homeAddress.googleValidation.message',
                       'homeAddress.isAddressReady',
+                      'homeAddress.isDeliveryReady',
                       'homeAddress.isCourierReady',
                       'homeAddress.validationLevel',
                       'pickupAddress',
@@ -382,11 +393,18 @@ service cloud.firestore {
                       'pickupAddress.placeId',
                       'pickupAddress.formattedAddress',
                       'pickupAddress.userConfirmed',
+                      'pickupAddress.buyerConfirmed',
                       'pickupAddress.sellerConfirmed',
                       'pickupAddress.pinConfirmedAt',
                       'pickupAddress.googleValidatedAt',
                       'pickupAddress.googleValidation',
+                      'pickupAddress.googleValidation.addressComplete',
+                      'pickupAddress.googleValidation.validationGranularity',
+                      'pickupAddress.googleValidation.geocodeGranularity',
+                      'pickupAddress.googleValidation.reasonCodes',
+                      'pickupAddress.googleValidation.message',
                       'pickupAddress.isAddressReady',
+                      'pickupAddress.isDeliveryReady',
                       'pickupAddress.isCourierReady',
                       'pickupAddress.validationLevel',
                       'payoutDetails',
