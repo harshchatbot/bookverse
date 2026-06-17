@@ -288,31 +288,56 @@ service cloud.firestore {
 
     match /profiles/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if isSignedIn()
-                   && request.auth.uid == uid
-                   && request.resource.data.keys().hasOnly([
-                     'displayName',
-                     'photoURL',
-                     'bio',
-                     'city',
-                     'mobile',
-                     'homeAddress',
-                     'pickupAddress',
-                     'payoutDetails',
-                     'updatedAt'
-                   ])
-                   && (
-                     !('homeAddress' in request.resource.data)
-                     || validPickupAddress(request.resource.data.homeAddress)
-                   )
-                   && (
-                     !('pickupAddress' in request.resource.data)
-                     || validPickupAddress(request.resource.data.pickupAddress)
-                   )
-                   && (
-                     !('payoutDetails' in request.resource.data)
-                     || validPayoutDetails(request.resource.data.payoutDetails)
-                   );
+      allow create: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly([
+                      'displayName',
+                      'photoURL',
+                      'bio',
+                      'city',
+                      'mobile',
+                      'homeAddress',
+                      'pickupAddress',
+                      'payoutDetails',
+                      'updatedAt'
+                    ])
+                    && (
+                      !('homeAddress' in request.resource.data)
+                      || validPickupAddress(request.resource.data.homeAddress)
+                    )
+                    && (
+                      !('pickupAddress' in request.resource.data)
+                      || validPickupAddress(request.resource.data.pickupAddress)
+                    )
+                    && (
+                      !('payoutDetails' in request.resource.data)
+                      || validPayoutDetails(request.resource.data.payoutDetails)
+                    );
+      allow update: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                      'displayName',
+                      'photoURL',
+                      'bio',
+                      'city',
+                      'mobile',
+                      'homeAddress',
+                      'pickupAddress',
+                      'payoutDetails',
+                      'updatedAt'
+                    ])
+                    && (
+                      !('homeAddress' in request.resource.data)
+                      || validPickupAddress(request.resource.data.homeAddress)
+                    )
+                    && (
+                      !('pickupAddress' in request.resource.data)
+                      || validPickupAddress(request.resource.data.pickupAddress)
+                    )
+                    && (
+                      !('payoutDetails' in request.resource.data)
+                      || validPayoutDetails(request.resource.data.payoutDetails)
+                    );
     }
 
     match /users/{uid} {

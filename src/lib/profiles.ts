@@ -489,18 +489,21 @@ export async function getPayoutDetails(uid: string): Promise<PayoutDetails | nul
 }
 
 export async function savePayoutDetails(uid: string, details: PayoutDetails): Promise<void> {
+  const payload = {
+    payoutDetails: {
+      upiId: details.upiId.trim(),
+      accountHolderName: details.accountHolderName.trim(),
+      accountNumber: details.accountNumber.trim(),
+      ifsc: details.ifsc.toUpperCase().trim(),
+      updatedAt: new Date().toISOString(),
+    },
+    updatedAt: serverTimestamp(),
+  };
+  console.info("[profile/save] topLevelKeys", Object.keys(payload));
+  console.info("[profile/save] payoutDetailsKeys", Object.keys(payload.payoutDetails));
   await setDoc(
     doc(db, COLLECTION, uid),
-    {
-      payoutDetails: {
-        upiId: details.upiId.trim(),
-        accountHolderName: details.accountHolderName.trim(),
-        accountNumber: details.accountNumber.trim(),
-        ifsc: details.ifsc.toUpperCase().trim(),
-        updatedAt: new Date().toISOString(),
-      },
-      updatedAt: serverTimestamp(),
-    },
+    payload,
     { merge: true },
   );
 }
