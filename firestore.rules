@@ -101,7 +101,7 @@ service cloud.firestore {
         && (!('validationLevel' in value)
             || value.validationLevel == null
             || value.validationLevel in ['google_validated', 'google_geo_confirmed', 'needs_more_detail', 'failed'])
-        && (!('googleValidation' in value) || (
+        && (!('googleValidation' in value) || value.googleValidation == null || (
           value.googleValidation is map
           && value.googleValidation.keys().hasOnly([
             'addressComplete',
@@ -131,11 +131,18 @@ service cloud.firestore {
         && (!('accountHolderName' in value) || value.accountHolderName is string)
         && (!('accountNumber' in value) || value.accountNumber is string)
         && (!('ifsc' in value) || value.ifsc is string)
-        && (!('updatedAt' in value) || value.updatedAt is string)
+        && (!('updatedAt' in value) || value.updatedAt is string || value.updatedAt is timestamp)
         && (
-          nonEmpty(value.upiId)
+          (
+            ('upiId' in value)
+            && nonEmpty(value.upiId)
+            && (!('accountHolderName' in value) || value.accountHolderName == '' || nonEmpty(value.accountHolderName))
+            && (!('accountNumber' in value) || value.accountNumber == '' || nonEmpty(value.accountNumber))
+            && (!('ifsc' in value) || value.ifsc == '' || nonEmpty(value.ifsc))
+          )
           || (
-            nonEmpty(value.accountHolderName)
+            (!('upiId' in value) || value.upiId == '' || nonEmpty(value.upiId))
+            && nonEmpty(value.accountHolderName)
             && nonEmpty(value.accountNumber)
             && nonEmpty(value.ifsc)
           )
@@ -315,15 +322,79 @@ service cloud.firestore {
                     );
       allow update: if isSignedIn()
                     && request.auth.uid == uid
-                    && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
                       'displayName',
                       'photoURL',
                       'bio',
                       'city',
                       'mobile',
                       'homeAddress',
+                      'homeAddress.label',
+                      'homeAddress.name',
+                      'homeAddress.phone',
+                      'homeAddress.email',
+                      'homeAddress.houseOrFlat',
+                      'homeAddress.buildingOrSociety',
+                      'homeAddress.streetOrRoad',
+                      'homeAddress.areaOrLocality',
+                      'homeAddress.address1',
+                      'homeAddress.address2',
+                      'homeAddress.city',
+                      'homeAddress.state',
+                      'homeAddress.pincode',
+                      'homeAddress.country',
+                      'homeAddress.landmark',
+                      'homeAddress.address',
+                      'homeAddress.location',
+                      'homeAddress.lat',
+                      'homeAddress.lon',
+                      'homeAddress.placeId',
+                      'homeAddress.formattedAddress',
+                      'homeAddress.userConfirmed',
+                      'homeAddress.sellerConfirmed',
+                      'homeAddress.pinConfirmedAt',
+                      'homeAddress.googleValidatedAt',
+                      'homeAddress.googleValidation',
+                      'homeAddress.isAddressReady',
+                      'homeAddress.isCourierReady',
+                      'homeAddress.validationLevel',
                       'pickupAddress',
+                      'pickupAddress.label',
+                      'pickupAddress.pickupLocationName',
+                      'pickupAddress.name',
+                      'pickupAddress.phone',
+                      'pickupAddress.email',
+                      'pickupAddress.houseOrFlat',
+                      'pickupAddress.buildingOrSociety',
+                      'pickupAddress.streetOrRoad',
+                      'pickupAddress.areaOrLocality',
+                      'pickupAddress.address1',
+                      'pickupAddress.address2',
+                      'pickupAddress.city',
+                      'pickupAddress.state',
+                      'pickupAddress.pincode',
+                      'pickupAddress.country',
+                      'pickupAddress.landmark',
+                      'pickupAddress.address',
+                      'pickupAddress.location',
+                      'pickupAddress.lat',
+                      'pickupAddress.lon',
+                      'pickupAddress.placeId',
+                      'pickupAddress.formattedAddress',
+                      'pickupAddress.userConfirmed',
+                      'pickupAddress.sellerConfirmed',
+                      'pickupAddress.pinConfirmedAt',
+                      'pickupAddress.googleValidatedAt',
+                      'pickupAddress.googleValidation',
+                      'pickupAddress.isAddressReady',
+                      'pickupAddress.isCourierReady',
+                      'pickupAddress.validationLevel',
                       'payoutDetails',
+                      'payoutDetails.upiId',
+                      'payoutDetails.accountHolderName',
+                      'payoutDetails.accountNumber',
+                      'payoutDetails.ifsc',
+                      'payoutDetails.updatedAt',
                       'updatedAt'
                     ])
                     && (
